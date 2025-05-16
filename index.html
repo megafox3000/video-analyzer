@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Анализ Видео</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2em;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      color: #333;
+    }
+    input[type="file"] {
+      margin-bottom: 1em;
+    }
+    button {
+      padding: 0.5em 1em;
+      font-size: 16px;
+    }
+    pre {
+      background-color: #eee;
+      padding: 1em;
+      overflow-x: auto;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>Загрузка видео и анализ метаданных</h1>
+
+  <input type="file" id="videoFile" accept="video/*" />
+  <br>
+  <button onclick="analyzeVideo()">Отправить и проанализировать</button>
+
+  <h2>Результат:</h2>
+  <div id="result"></div>
+
+  <script>
+    async function analyzeVideo() {
+      const fileInput = document.getElementById('videoFile');
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '⏳ Отправка файла...';
+
+      const file = fileInput.files[0];
+      if (!file) {
+        resultDiv.innerHTML = '<p class="error">❌ Пожалуйста, выбери видеофайл.</p>';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const response = await fetch('https://video-meta-api.onrender.com/analyze', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          resultDiv.innerHTML = `<p class="error">❌ Ошибка: ${response.status}<br>${error}</p>`;
+          return;
+        }
+
+        const data = await response.json();
+        resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+
+        // Если есть координаты — показать ссылки на карты
+        if (data.gps && data.gps.length > 0) {
+          data.gps.forEach(g => {
+            const link = document.createElement('a');
+            link.href = g.link;
+            link.target = '_blank';
+            link.textContent = `📍 Открыть на карте (${g.lat}, ${g.lon})`;
+            resultDiv.appendChild(document.createElement('br'));
+            resultDiv.appendChild(link);
+          });
+        }
+
+      } catch (err) {
+        resultDiv.innerHTML = `<p class="error">❌ Ошибка запроса: ${err}</p>`;
+      }
+    }
+  </script>
+</body>
+</html>
