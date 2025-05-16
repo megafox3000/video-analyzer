@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Video Metadata Viewer</title>
+  <title>Video Metadata Analyzer</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css" />
   <style>
     body {
@@ -22,28 +22,23 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       margin-bottom: 2rem;
     }
-    .result pre {
-      background: #eee;
+    pre {
+      background: #f0f0f0;
       padding: 1rem;
       overflow-x: auto;
     }
-    .gps {
-      margin-top: 1rem;
-    }
-    .gps a {
-      color: #007BFF;
-      text-decoration: none;
-    }
-    .tag-table {
+    .tag-table, .stream-table {
       width: 100%;
       border-collapse: collapse;
+      margin-top: 1rem;
     }
-    .tag-table th, .tag-table td {
+    .tag-table th, .tag-table td,
+    .stream-table th, .stream-table td {
       border: 1px solid #ddd;
       padding: 0.5rem;
     }
-    .tag-table th {
-      background: #f1f1f1;
+    .tag-table th, .stream-table th {
+      background: #f5f5f5;
     }
   </style>
 </head>
@@ -85,52 +80,51 @@
       const card = document.createElement("div");
       card.className = "card";
 
-      card.innerHTML = `
-        <h2>🎬 ${data.file_name}</h2>
-        <p><strong>Format:</strong> ${data.format?.format_name || "N/A"}</p>
-        <p><strong>Duration:</strong> ${parseFloat(data.format?.duration || 0).toFixed(2)} sec</p>
-        <p><strong>Size:</strong> ${(parseInt(data.format?.size || 0)/1024/1024).toFixed(2)} MB</p>
-      `;
-
-      if (data.gps?.length) {
-        card.innerHTML += `<div class="gps"><h3>📍 GPS Tags:</h3>`;
-        data.gps.forEach(tag => {
-          card.innerHTML += `
-            <p>
-              <strong>${tag.tag}</strong>: 
-              <a href="${tag.link}" target="_blank">${tag.lat}, ${tag.lon}</a><br>
-              <em>${tag.address}</em>
-            </p>
-          `;
-        });
-        card.innerHTML += `</div>`;
+      // Format Info
+      const format = data.format || {};
+      card.innerHTML += `<h2>🎞️ Format Information</h2><ul>`;
+      for (const key in format) {
+        if (typeof format[key] !== 'object') {
+          card.innerHTML += `<li><strong>${key}</strong>: ${format[key]}</li>`;
+        }
       }
+      card.innerHTML += `</ul>`;
 
-      // Streams table
-      if (data.streams?.length) {
-        card.innerHTML += `<h3>📺 Streams Info:</h3><table class="tag-table"><thead><tr>
-            <th>Type</th><th>Codec</th><th>Resolution</th><th>Frame Rate</th>
-        </tr></thead><tbody>`;
-
-        data.streams.forEach(stream => {
-          if (stream.codec_type === 'video') {
-            card.innerHTML += `<tr>
-              <td>${stream.codec_type}</td>
-              <td>${stream.codec_name}</td>
-              <td>${stream.width}×${stream.height}</td>
-              <td>${stream.r_frame_rate}</td>
-            </tr>`;
-          } else if (stream.codec_type === 'audio') {
-            card.innerHTML += `<tr>
-              <td>${stream.codec_type}</td>
-              <td>${stream.codec_name}</td>
-              <td colspan="2">${stream.sample_rate} Hz</td>
-            </tr>`;
-          }
-        });
-
+      // Tags
+      const tags = format.tags || {};
+      if (Object.keys(tags).length > 0) {
+        card.innerHTML += `<h3>🏷️ Tags</h3><table class="tag-table"><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>`;
+        for (const key in tags) {
+          card.innerHTML += `<tr><td>${key}</td><td>${tags[key]}</td></tr>`;
+        }
         card.innerHTML += `</tbody></table>`;
       }
+
+      // Streams
+      const streams = data.streams || [];
+      if (streams.length > 0) {
+        card.innerHTML += `<h3>🎛️ Streams</h3>`;
+        streams.forEach((stream, i) => {
+          card.innerHTML += `<h4>Stream #${i}</h4><table class="stream-table"><tbody>`;
+          for (const key in stream) {
+            if (typeof stream[key] !== 'object') {
+              card.innerHTML += `<tr><td><strong>${key}</strong></td><td>${stream[key]}</td></tr>`;
+            }
+          }
+          card.innerHTML += `</tbody></table>`;
+        });
+      }
+
+      // GPS Info
+      if (data.gps?.length > 0) {
+        card.innerHTML += `<h3>📍 GPS Coordinates</h3>`;
+        data.gps.forEach(tag => {
+          card.innerHTML += `<p><strong>${tag.tag}</strong>: <a href="${tag.link}" target="_blank">${tag.lat}, ${tag.lon}</a><br><em>${tag.address}</em></p>`;
+        });
+      }
+
+      // Raw JSON
+      card.innerHTML += `<h3>🧾 Raw JSON</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
 
       out.appendChild(card);
     }
