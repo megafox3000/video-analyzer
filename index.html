@@ -1,90 +1,140 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Анализ Видео</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Video Metadata Viewer</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css" />
   <style>
     body {
-      font-family: Arial, sans-serif;
-      padding: 2em;
-      background-color: #f9f9f9;
-    }
-    h1 {
+      font-family: sans-serif;
+      margin: 2rem;
+      background: #f9f9f9;
       color: #333;
     }
-    input[type="file"] {
-      margin-bottom: 1em;
+    h1 {
+      text-align: center;
     }
-    button {
-      padding: 0.5em 1em;
-      font-size: 16px;
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
     }
-    pre {
-      background-color: #eee;
-      padding: 1em;
+    .result pre {
+      background: #eee;
+      padding: 1rem;
       overflow-x: auto;
     }
-    .error {
-      color: red;
+    .gps {
+      margin-top: 1rem;
+    }
+    .gps a {
+      color: #007BFF;
+      text-decoration: none;
+    }
+    .tag-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .tag-table th, .tag-table td {
+      border: 1px solid #ddd;
+      padding: 0.5rem;
+    }
+    .tag-table th {
+      background: #f1f1f1;
     }
   </style>
 </head>
 <body>
-  <h1>Загрузка видео и анализ метаданных</h1>
 
-  <input type="file" id="videoFile" accept="video/*" />
-  <br>
-  <button onclick="analyzeVideo()">Отправить и проанализировать</button>
+  <h1>📹 Video Metadata Analyzer</h1>
 
-  <h2>Результат:</h2>
-  <div id="result"></div>
+  <input type="file" id="videoInput" />
+  <button onclick="uploadVideo()">Analyze</button>
+
+  <div id="output"></div>
 
   <script>
-    async function analyzeVideo() {
-      const fileInput = document.getElementById('videoFile');
-      const resultDiv = document.getElementById('result');
-      resultDiv.innerHTML = '⏳ Отправка файла...';
-
-      const file = fileInput.files[0];
-      if (!file) {
-        resultDiv.innerHTML = '<p class="error">❌ Пожалуйста, выбери видеофайл.</p>';
-        return;
-      }
+    async function uploadVideo() {
+      const file = document.getElementById("videoInput").files[0];
+      if (!file) return alert("Please select a file first.");
 
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
+
+      document.getElementById("output").innerHTML = "<p>⏳ Analyzing...</p>";
 
       try {
-        const response = await fetch('https://video-meta-api.onrender.com/analyze', {
-          method: 'POST',
+        const res = await fetch("https://video-meta-api.onrender.com/analyze", {
+          method: "POST",
           body: formData
         });
-
-        if (!response.ok) {
-          const error = await response.text();
-          resultDiv.innerHTML = `<p class="error">❌ Ошибка: ${response.status}<br>${error}</p>`;
-          return;
-        }
-
-        const data = await response.json();
-        resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
-
-        // Если есть координаты — показать ссылки на карты
-        if (data.gps && data.gps.length > 0) {
-          data.gps.forEach(g => {
-            const link = document.createElement('a');
-            link.href = g.link;
-            link.target = '_blank';
-            link.textContent = `📍 Открыть на карте (${g.lat}, ${g.lon})`;
-            resultDiv.appendChild(document.createElement('br'));
-            resultDiv.appendChild(link);
-          });
-        }
-
+        const data = await res.json();
+        showResult(data);
       } catch (err) {
-        resultDiv.innerHTML = `<p class="error">❌ Ошибка запроса: ${err}</p>`;
+        document.getElementById("output").innerHTML = `<p>❌ Error: ${err}</p>`;
       }
     }
+
+    function showResult(data) {
+      const out = document.getElementById("output");
+      out.innerHTML = '';
+
+      const card = document.createElement("div");
+      card.className = "card";
+
+      card.innerHTML = `
+        <h2>🎬 ${data.file_name}</h2>
+        <p><strong>Format:</strong> ${data.format?.format_name || "N/A"}</p>
+        <p><strong>Duration:</strong> ${parseFloat(data.format?.duration || 0).toFixed(2)} sec</p>
+        <p><strong>Size:</strong> ${(parseInt(data.format?.size || 0)/1024/1024).toFixed(2)} MB</p>
+      `;
+
+      if (data.gps?.length) {
+        card.innerHTML += `<div class="gps"><h3>📍 GPS Tags:</h3>`;
+        data.gps.forEach(tag => {
+          card.innerHTML += `
+            <p>
+              <strong>${tag.tag}</strong>: 
+              <a href="${tag.link}" target="_blank">${tag.lat}, ${tag.lon}</a><br>
+              <em>${tag.address}</em>
+            </p>
+          `;
+        });
+        card.innerHTML += `</div>`;
+      }
+
+      // Streams table
+      if (data.streams?.length) {
+        card.innerHTML += `<h3>📺 Streams Info:</h3><table class="tag-table"><thead><tr>
+            <th>Type</th><th>Codec</th><th>Resolution</th><th>Frame Rate</th>
+        </tr></thead><tbody>`;
+
+        data.streams.forEach(stream => {
+          if (stream.codec_type === 'video') {
+            card.innerHTML += `<tr>
+              <td>${stream.codec_type}</td>
+              <td>${stream.codec_name}</td>
+              <td>${stream.width}×${stream.height}</td>
+              <td>${stream.r_frame_rate}</td>
+            </tr>`;
+          } else if (stream.codec_type === 'audio') {
+            card.innerHTML += `<tr>
+              <td>${stream.codec_type}</td>
+              <td>${stream.codec_name}</td>
+              <td colspan="2">${stream.sample_rate} Hz</td>
+            </tr>`;
+          }
+        });
+
+        card.innerHTML += `</tbody></table>`;
+      }
+
+      out.appendChild(card);
+    }
   </script>
+
 </body>
 </html>
