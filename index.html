@@ -96,8 +96,10 @@
     }
 
     const data = await res.json();
-    console.log("Data received:", data);
+    console.log("📦 Raw API response:", data); // 👈 Добавь это
     showResult(data);
+
+    
   } catch (err) {
     document.getElementById("error").style.display = "block";
     document.getElementById("error").textContent = "❌ Error: " + err.message;
