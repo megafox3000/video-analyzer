@@ -8,71 +8,98 @@
   <style>
     body {
       font-family: monospace;
-      background: #f9f9f9 url('image-bkgr.jpeg') center/cover no-repeat fixed;
+      background: url('image-bkgr.jpeg') no-repeat center center fixed;
+      background-size: cover;
       color: #333;
       padding: 2rem;
-      transition: background 1.5s ease;
+      transition: background 1.5s ease-in-out;
     }
+
     h1 {
       text-align: center;
       cursor: pointer;
     }
-    input[type="file"], button {
+
+    input[type="file"], button, input[type="text"], input[type="email"] {
       font-family: sans-serif;
       font-size: 1rem;
       margin-bottom: 1rem;
+      display: block;
     }
+
     button {
+      background-color: gold;
+      color: black;
       padding: 0.6rem 1.2rem;
       border: none;
-      border-radius: 8px;
-      background: linear-gradient(45deg, gold, orange);
-      color: #222;
+      border-radius: 5px;
       cursor: pointer;
       font-weight: bold;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transition: background-color 0.3s ease;
     }
+
     button:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+      background-color: goldenrod;
     }
-    .spoiler {
-      margin: 1rem 0;
-    }
-    .spoiler button {
-      display: block;
-      width: 100%;
-      text-align: left;
-      border-radius: 10px;
-      background: #ffe58a;
+
+    .spoiler-btn {
+      background-color: gold;
       color: #000;
-      padding: 0.8rem 1rem;
-      font-size: 1.1rem;
+      border: none;
+      padding: 0.4rem 0.8rem;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      display: inline-block;
+      font-size: 0.95rem;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
     }
+
+    .spoiler-btn:hover {
+      background-color: goldenrod;
+    }
+
     .spoiler-content {
       display: none;
       background: #fff;
-      margin-top: 0.5rem;
-      padding: 1.5rem;
+      padding: 1.2rem;
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      overflow-x: auto;
       white-space: pre-wrap;
+      margin-bottom: 1.5rem;
     }
-    .spoiler.open .spoiler-content {
-      display: block;
-    }
-    #loading {
-      margin-top: 1rem;
-    }
+
     .error {
       color: red;
       margin-top: 1rem;
+    }
+
+    .input-group {
+      margin-bottom: 1rem;
     }
   </style>
 </head>
 <body>
 
-  <h1 onclick="reloadSmooth()">📹 Hife Video Analyzer</h1>
+  <h1 onclick="reloadWithFade()">
+    <img src="image-logo.jpeg" alt="Logo" style="max-width: 160px;" />
+  </h1>
+
+  <div class="input-group">
+    <label>LinkedIn:</label>
+    <input type="text" id="linkedin" placeholder="LinkedIn URL" />
+  </div>
+  <div class="input-group">
+    <label>Instagram:</label>
+    <input type="text" id="instagram" placeholder="Instagram handle" />
+  </div>
+  <div class="input-group">
+    <label>Email:</label>
+    <input type="email" id="email" placeholder="your@email.com" />
+  </div>
 
   <input type="file" id="videoInput" multiple />
   <button onclick="uploadVideos()">Analyze</button>
@@ -82,20 +109,21 @@
   <div id="output"></div>
 
   <script>
-    function reloadSmooth() {
-      document.body.style.background = "#f9f9f9";
-      setTimeout(() => location.reload(), 500);
+    function reloadWithFade() {
+      document.body.style.background = "white";
+      setTimeout(() => location.reload(), 300);
     }
 
     async function uploadVideos() {
       const files = document.getElementById("videoInput").files;
-      if (!files.length) return alert("Please select at least one file.");
+      if (files.length === 0) return alert("Please select one or two files.");
+      if (files.length > 2) return alert("Only one or two files allowed.");
 
       document.getElementById("output").innerHTML = "";
       document.getElementById("loading").style.display = "block";
       document.getElementById("error").style.display = "none";
 
-      for (let i = 0; i < files.length && i < 2; i++) {
+      for (let i = 0; i < files.length; i++) {
         const formData = new FormData();
         formData.append("file", files[i]);
 
@@ -111,7 +139,7 @@
           }
 
           const data = await res.json();
-          showResult(data, i + 1);
+          showSpoiler(data.filename, data);
         } catch (err) {
           document.getElementById("error").style.display = "block";
           document.getElementById("error").textContent = "❌ Error: " + err.message;
@@ -121,31 +149,20 @@
       document.getElementById("loading").style.display = "none";
     }
 
-    function showResult(data, index) {
-      const out = document.getElementById("output");
-
-      const spoiler = document.createElement("div");
-      spoiler.className = "spoiler";
-
-      const button = document.createElement("button");
-      button.textContent = `📁 Show Result for File ${index}`;
-      button.onclick = () => spoiler.classList.toggle("open");
-
-      const content = document.createElement("div");
-      content.className = "spoiler-content";
-      content.textContent = formatData(data);
-
-      spoiler.appendChild(button);
-      spoiler.appendChild(content);
-      out.appendChild(spoiler);
-    }
-
     function formatLine(key, value) {
       const keyPadded = key.padEnd(35, ' ');
       return `[Main]  ${keyPadded} : ${value}`;
     }
 
-    function formatData(data) {
+    function showSpoiler(filename, data) {
+      const out = document.getElementById("output");
+
+      const button = document.createElement("button");
+      button.className = "spoiler-btn";
+      button.textContent = filename;
+      const content = document.createElement("div");
+      content.className = "spoiler-content";
+
       const lines = [];
 
       lines.push(formatLine("File Name", data.filename || ""));
@@ -177,8 +194,8 @@
         });
       }
 
-      if (data.metadata?.gps?.length) {
-        data.metadata.gps.forEach((tag) => {
+      if (data.gps?.length) {
+        data.gps.forEach((tag) => {
           lines.push(formatLine("GPS " + tag.tag, `${tag.lat}, ${tag.lon}`));
           if (tag.address) {
             lines.push(formatLine("Address", tag.address));
@@ -186,7 +203,14 @@
         });
       }
 
-      return lines.join("\n");
+      content.textContent = lines.join("\n");
+
+      button.addEventListener("click", () => {
+        content.style.display = content.style.display === "none" ? "block" : "none";
+      });
+
+      out.appendChild(button);
+      out.appendChild(content);
     }
 
     function toTitle(key) {
