@@ -35,7 +35,7 @@
     }
 
     .start-screen {
-      height: 100dvh;
+      height: 100vh;
       background: url('image-bkgr.jpeg') center/cover no-repeat;
       display: flex;
       flex-direction: column;
@@ -77,7 +77,7 @@
       transition: all 0.3s ease;
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
       margin: 0.5rem;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 0.5rem;
     }
@@ -88,14 +88,20 @@
       background: linear-gradient(60deg, #FFD700, #FF8C00);
     }
 
-    .gold-button.animate {
+    .animate .material-symbols-outlined {
       animation: pulse 1.5s infinite;
+      font-size: 20px;
     }
 
     @keyframes pulse {
-      0% { transform: scale(1); box-shadow: 0 0 0 rgba(0,0,0,0.2); }
-      50% { transform: scale(1.05); box-shadow: 0 0 10px rgba(255, 215, 0, 0.6); }
-      100% { transform: scale(1); box-shadow: 0 0 0 rgba(0,0,0,0.2); }
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.8;
+      }
+      50% {
+        transform: scale(1.2);
+        opacity: 1;
+      }
     }
 
     .container {
@@ -189,16 +195,6 @@
       .logo-circle img {
         width: 70px;
       }
-
-      .gold-button {
-        font-size: 1.2rem;
-        padding: 1rem 2rem;
-      }
-
-      .start-screen {
-        justify-content: flex-end;
-        padding-bottom: 3rem;
-      }
     }
   </style>
 </head>
@@ -208,7 +204,10 @@
     <div class="logo-circle">
       <img src="image-logo.jpeg" alt="Logo" />
     </div>
-    <button class="gold-button" onclick="startApp()">Start</button>
+    <button class="gold-button animate" onclick="startApp()">
+      <span class="material-symbols-outlined">play_arrow</span>
+      Start
+    </button>
   </div>
 
   <div class="container" id="mainApp">
@@ -216,7 +215,10 @@
       <img src="image-logo.jpeg" alt="Logo" />
     </div>
 
-    <label for="fileInput" class="gold-button">📁 Choose Video File(s)</label>
+    <label for="fileInput" class="gold-button animate">
+      <span class="material-symbols-outlined">upload_file</span>
+      Choose Video File(s)
+    </label>
     <input type="file" id="fileInput" multiple accept="video/*" />
 
     <button class="gold-button animate" onclick="uploadVideos()">
@@ -297,8 +299,8 @@
       container.className = "spoiler";
 
       const btn = document.createElement("button");
-      btn.className = "gold-button";
-      btn.textContent = data.filename || "File Result";
+      btn.className = "gold-button animate";
+      btn.innerHTML = `<span class="material-symbols-outlined">folder</span> ${data.filename || "File Result"}`;
       btn.onclick = () => {
         content.style.display = content.style.display === "none" ? "block" : "none";
       };
