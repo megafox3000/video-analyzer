@@ -3,55 +3,119 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Hife Video Analyzer</title>
+  <title>Hife Video ver0.1</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css" />
   <style>
     body {
-      font-family: monospace;
+      font-family: sans-serif;
+      margin: 2rem;
       background: #f9f9f9;
       color: #333;
-      padding: 2rem;
     }
+
     h1 {
       text-align: center;
+      font-size: 2rem;
     }
-    input[type="file"], button {
-      font-family: sans-serif;
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+    }
+
+    pre {
+      background: #f0f0f0;
+      padding: 1rem;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+    }
+
+    th {
+      background-color: #eee;
+    }
+
+    input[type="file"], input[type="text"], input[type="email"] {
+      display: block;
+      margin: 1rem auto;
+      padding: 0.5rem;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    button {
+      display: block;
+      margin: 1rem auto;
+      padding: 0.75rem 1.5rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
       font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+      transform: scale(1.05);
+    }
+
+    #map {
+      width: 100%;
+      height: 300px;
+      border-radius: 10px;
+      margin-top: 1rem;
+    }
+
+    .logo {
+      text-align: center;
       margin-bottom: 1rem;
     }
-    pre {
-      background: #fff;
-      padding: 1.5rem;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      overflow-x: auto;
-      white-space: pre-wrap;
-    }
-    #loading {
-      margin-top: 1rem;
-    }
-    .error {
-      color: red;
-      margin-top: 1rem;
+
+    .logo img {
+      height: 64px;
     }
   </style>
 </head>
 <body>
 
-  <h1>📹 Hife Video Analyzer</h1>
+  <div class="logo">
+    <img src="your-logo.png" alt="Hife Logo" />
+  </div>
+
+  <h1>Hife</h1>
+
+  <input type="text" placeholder="LinkedIn Profile URL" id="linkedin">
+  <input type="text" placeholder="Instagram Username" id="instagram">
+  <input type="email" placeholder="Email Address" id="email">
 
   <input type="file" id="videoInput" />
   <button onclick="uploadVideo()">Analyze</button>
 
-  <div id="loading" style="display:none">⏳ Analyzing video...</div>
-  <div id="error" class="error" style="display:none"></div>
   <div id="output"></div>
+  <div id="loading" style="display:none">⏳ Analyzing video...</div>
+  <div id="error" style="display:none;color:red;margin-top:1rem"></div>
 
   <script>
     async function uploadVideo() {
       const file = document.getElementById("videoInput").files[0];
       if (!file) return alert("Please select a file first.");
+
+      const button = document.querySelector("button");
+      button.disabled = true;
 
       document.getElementById("output").innerHTML = "";
       document.getElementById("loading").style.display = "block";
@@ -72,88 +136,84 @@
         }
 
         const data = await res.json();
-        showExifStyle(data);
+        showResult(data);
       } catch (err) {
         document.getElementById("error").style.display = "block";
         document.getElementById("error").textContent = "❌ Error: " + err.message;
       } finally {
+        button.disabled = false;
         document.getElementById("loading").style.display = "none";
       }
     }
 
-    function formatLine(key, value) {
-      const keyPadded = key.padEnd(35, ' ');
-      return `[Main]  ${keyPadded} : ${value}`;
-    }
-
-    function showExifStyle(data) {
+    function showResult(data) {
       const out = document.getElementById("output");
-      const pre = document.createElement("pre");
+      out.innerHTML = "";
 
-      const lines = [];
+      const card = document.createElement("div");
+      card.className = "card";
 
-      // Basic file info
-      lines.push(formatLine("File Name", data.filename || ""));
-      lines.push(formatLine("File Size", `${Math.round(data.size_bytes / 1024)} kB`));
-      lines.push(formatLine("Analyzed At", data.analyzed_at));
-
-      const meta = data.metadata || {};
-      const format = meta.format || {};
-      const tags = format.tags || {};
-
+      const format = data.metadata?.format || {};
+      card.innerHTML += `<h2>🎞️ Format Information</h2><ul>`;
       for (const key in format) {
-        if (typeof format[key] !== "object") {
-          lines.push(formatLine(toTitle(key), format[key]));
+        if (typeof format[key] !== 'object') {
+          card.innerHTML += `<li><strong>${key}</strong>: ${format[key]}</li>`;
         }
       }
+      card.innerHTML += `</ul>`;
 
-      for (const tag in tags) {
-        lines.push(formatLine(toTitle(tag), tags[tag]));
+      const tags = format.tags || {};
+      if (Object.keys(tags).length > 0) {
+        card.innerHTML += `<h3>🏷️ Tags</h3><table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>`;
+        for (const key in tags) {
+          card.innerHTML += `<tr><td>${key}</td><td>${tags[key]}</td></tr>`;
+        }
+        card.innerHTML += `</tbody></table>`;
       }
 
-      if (meta.streams?.length) {
-        meta.streams.forEach((stream, i) => {
-          lines.push(formatLine("-----", `Stream #${i}`));
+      const streams = data.metadata?.streams || [];
+      if (streams.length > 0) {
+        card.innerHTML += `<h3>🎛️ Streams</h3>`;
+        streams.forEach((stream, i) => {
+          card.innerHTML += `<h4>Stream #${i + 1}</h4><table><tbody>`;
           for (const key in stream) {
-            if (typeof stream[key] !== "object") {
-              lines.push(formatLine(toTitle(key), stream[key]));
+            if (typeof stream[key] !== 'object') {
+              card.innerHTML += `<tr><td><strong>${key}</strong></td><td>${stream[key]}</td></tr>`;
             }
           }
+          card.innerHTML += `</tbody></table>`;
         });
       }
 
-    // Временные GPS-данные для теста
-data.gps = [
-  {
-    tag: "location",
-    lat: 55.7558,
-    lon: 37.6173,
-    link: "https://maps.google.com/?q=55.7558,37.6173",
-    address: "Москва, Россия"
-  }
-];
+      // 📍 GPS Info and Google Map
+      const gpsData = data.gps;
+      if (gpsData && gpsData.length > 0) {
+        const { lat, lon } = gpsData[0];
+        card.innerHTML += `<h3>📍 GPS Coordinates</h3>`;
+        card.innerHTML += `<p><strong>Latitude:</strong> ${lat}<br><strong>Longitude:</strong> ${lon}</p>`;
+        card.innerHTML += `<div id="map"></div>`;
+        setTimeout(() => {
+          const map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 14,
+            center: { lat: parseFloat(lat), lng: parseFloat(lon) }
+          });
+          new google.maps.Marker({
+            position: { lat: parseFloat(lat), lng: parseFloat(lon) },
+            map: map
+          });
+        }, 100);
+      } else {
+        card.innerHTML += `<h3>📍 GPS Coordinates</h3><p>Not found.</p>`;
+      }
 
-if (data.gps?.length > 0) {
-  card.innerHTML += `<h3>📍 GPS Coordinates</h3>`;
-  data.gps.forEach(tag => {
-    card.innerHTML += `
-      <p><strong>${tag.tag}</strong>: 
-      <a href="${tag.link}" target="_blank">${tag.lat}, ${tag.lon}</a><br>
-      <em>${tag.address}</em></p>
-    `;
-  });
-}
+      card.innerHTML += `<h3>🧾 Raw JSON</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
 
-      pre.textContent = lines.join("\n");
-      out.appendChild(pre);
-    }
-
-    function toTitle(key) {
-      return key
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, l => l.toUpperCase());
+      out.appendChild(card);
     }
   </script>
+
+  <!-- Google Maps JS API (insert your key below if required) -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
 
 </body>
 </html>
