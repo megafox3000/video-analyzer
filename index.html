@@ -45,15 +45,13 @@
     }
 
     .logo-circle {
-      background: white;
       border-radius: 50%;
-      padding: 1rem;
       width: 160px;
       height: 160px;
+      overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 20px rgba(0,0,0,0.3);
       position: fixed;
       top: 1rem;
       left: 1rem;
@@ -62,8 +60,10 @@
     }
 
     .logo-circle img {
-      width: 120px;
-      height: auto;
+      width: 160px;
+      height: 160px;
+      object-fit: cover;
+      border-radius: 50%;
       pointer-events: none;
     }
 
@@ -198,7 +198,8 @@
       }
 
       .logo-circle img {
-        width: 90px;
+        width: 120px;
+        height: 120px;
       }
 
       .container {
@@ -210,9 +211,9 @@
         bottom: 0;
         left: 0;
         width: 100%;
-        background: #f9f9f9;
+        background: transparent;
         padding: 0.5rem;
-        box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+        box-shadow: none;
         z-index: 999;
       }
 
@@ -220,6 +221,10 @@
         flex: 1;
         font-size: 1rem;
         padding: 0.8rem;
+      }
+
+      .socials {
+        margin-top: 5rem;
       }
     }
   </style>
@@ -241,8 +246,7 @@
     <input type="file" id="fileInput" multiple accept="video/*" />
 
     <div class="file-buttons">
-      <label for="fileInput" class="gold-button">📁 Choose</label>
-      <button class="gold-button" onclick="uploadVideos()">Analyze</button>
+      <label for="fileInput" class="gold-button" style="background: transparent; box-shadow: none;">📁 Upload Video</label>
     </div>
 
     <div class="loader" id="loader"></div>
@@ -274,9 +278,8 @@
     async function uploadVideos() {
       const input = document.getElementById("fileInput");
       const files = input.files;
-      if (!files.length) return alert("Please select at least one video file.");
+      if (!files.length) return;
 
-      document.getElementById("output").innerHTML = "";
       document.getElementById("loader").style.display = "block";
       document.getElementById("progressContainer").style.display = "block";
 
