@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Upload Video</title>
+  <link rel="icon" href="image-logo.jpeg" type="image/jpeg">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="fade-in">
+
+  <div class="container" id="mainApp">
+    <label for="fileInput" class="gold-button transparent-button">📁 Upload Video</label>
+    <input type="file" id="fileInput" multiple accept="video/*" />
+
+    <div class="loader" id="loader"></div>
+    <div class="progress-container" id="progressContainer">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div id="output"></div>
+
+    <div class="socials">
+      <input type="text" placeholder="LinkedIn URL" />
+      <input type="text" placeholder="Instagram URL" />
+      <input type="email" placeholder="Your Email" />
+    </div>
+  </div>
+
+  <script src="analyze.js"></script>
+</body>
+</html>
