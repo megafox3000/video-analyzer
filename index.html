@@ -96,6 +96,7 @@
     }
 
     const data = await res.json();
+    console.log("Data received:", data);
     showResult(data);
   } catch (err) {
     document.getElementById("error").style.display = "block";
