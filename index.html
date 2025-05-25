@@ -21,7 +21,6 @@
       background: #f9f9f9;
       color: #333;
       scroll-behavior: smooth;
-      height: 100%;
     }
 
     body.fade-in {
@@ -35,20 +34,14 @@
     }
 
     .start-screen {
-      height: 100vh;
+      height: 100dvh;
       background: url('image-bkgr.jpeg') center/cover no-repeat;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       position: relative;
-    }
-
-    @media (max-width: 600px) {
-      .start-screen {
-        justify-content: flex-end;
-        padding-bottom: 2rem;
-      }
+      padding-bottom: 0;
     }
 
     .logo-circle {
@@ -96,7 +89,7 @@
 
     @keyframes pulse {
       0% { transform: scale(1); }
-      50% { transform: scale(1.03); }
+      50% { transform: scale(1.05); }
       100% { transform: scale(1); }
     }
 
@@ -105,7 +98,6 @@
       max-width: 900px;
       margin: 0 auto;
       display: none;
-      padding-bottom: 100px; /* for space under fixed buttons */
     }
 
     input[type="file"] {
@@ -116,30 +108,6 @@
       display: inline-block;
       margin: 1rem 0;
       cursor: pointer;
-    }
-
-    .buttons-bottom-mobile {
-      display: none;
-    }
-
-    @media (max-width: 600px) {
-      .buttons-bottom-mobile {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: rgba(255,255,255,0.95);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 1rem 0;
-        box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
-        z-index: 100;
-      }
-
-      .desktop-buttons {
-        display: none;
-      }
     }
 
     #output button {
@@ -207,6 +175,30 @@
       border-radius: 8px;
       font-size: 1rem;
     }
+
+    @media(max-width: 600px) {
+      .start-screen {
+        justify-content: flex-end;
+        padding-bottom: 3rem;
+      }
+
+      .start-screen .gold-button {
+        font-size: 1.2rem;
+        padding: 1rem 2rem;
+      }
+
+      .logo-circle {
+        width: 100px;
+        height: 100px;
+        top: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .logo-circle img {
+        width: 70px;
+      }
+    }
   </style>
 </head>
 <body class="fade-in">
@@ -223,12 +215,10 @@
       <img src="image-logo.jpeg" alt="Logo" />
     </div>
 
-    <!-- Desktop buttons -->
-    <div class="desktop-buttons">
-      <label for="fileInput" class="gold-button">📁 Choose Video File(s)</label>
-      <input type="file" id="fileInput" multiple accept="video/*" />
-      <button class="gold-button" onclick="uploadVideos()">Analyze</button>
-    </div>
+    <label for="fileInput" class="gold-button">📁 Choose Video File(s)</label>
+    <input type="file" id="fileInput" multiple accept="video/*" />
+
+    <button class="gold-button" onclick="uploadVideos()">Analyze</button>
 
     <div class="loader" id="loader"></div>
     <div class="progress-container" id="progressContainer">
@@ -242,13 +232,6 @@
       <input type="text" placeholder="Instagram URL" />
       <input type="email" placeholder="Your Email" />
     </div>
-  </div>
-
-  <!-- Mobile sticky buttons -->
-  <div class="buttons-bottom-mobile">
-    <label for="fileInput" class="gold-button" style="width: 90%; text-align: center;">📁 Choose Video File(s)</label>
-    <input type="file" id="fileInput" multiple accept="video/*" />
-    <button class="gold-button" style="width: 90%;" onclick="uploadVideos()">Analyze</button>
   </div>
 
   <script>
@@ -366,5 +349,6 @@
       document.getElementById("output").appendChild(container);
     }
   </script>
+
 </body>
 </html>
