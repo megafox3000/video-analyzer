@@ -1,219 +1,152 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Hife Video ver0.1</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video Metadata Analyzer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <style>
     body {
-      font-family: sans-serif;
-      margin: 2rem;
-      background: #f9f9f9;
-      color: #333;
-    }
-
-    h1 {
-      text-align: center;
-      font-size: 2rem;
-    }
-
-    .card {
-      background: white;
-      border-radius: 10px;
-      padding: 1.5rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      margin-bottom: 2rem;
-    }
-
-    pre {
-      background: #f0f0f0;
-      padding: 1rem;
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1rem;
-    }
-
-    th, td {
-      border: 1px solid #ccc;
-      padding: 0.5rem;
-    }
-
-    th {
-      background-color: #eee;
-    }
-
-    input[type="file"], input[type="text"], input[type="email"] {
-      display: block;
-      margin: 1rem auto;
-      padding: 0.5rem;
-      width: 90%;
-      max-width: 400px;
-    }
-
-    button {
-      display: block;
-      margin: 1rem auto;
-      padding: 0.75rem 1.5rem;
-      background-color: #007bff;
+      background-image: url('image-bkgr.jpeg');
+      background-size: cover;
+      background-position: center;
       color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: transform 0.2s ease, background-color 0.2s;
-    }
-
-    button:hover {
-      background-color: #0056b3;
-      transform: scale(1.05);
-    }
-
-    #map {
-      width: 100%;
-      height: 300px;
-      border-radius: 10px;
-      margin-top: 1rem;
+      font-family: monospace;
     }
 
     .logo {
-      text-align: center;
-      margin-bottom: 1rem;
+      width: 100px;
+      height: auto;
     }
 
-    .logo img {
-      height: 64px;
+    .gold-button {
+      background: linear-gradient(45deg, #d4af37, #b8860b);
+      border: none;
+      color: black;
+      font-weight: bold;
+      padding: 10px 20px;
+      border-radius: 8px;
+      transition: transform 0.2s ease-in-out;
+    }
+
+    .gold-button:hover {
+      transform: scale(1.05);
+      background: linear-gradient(45deg, #ffd700, #daa520);
+    }
+
+    .form-group input {
+      margin-bottom: 10px;
+    }
+
+    .table-wrapper {
+      background-color: rgba(0, 0, 0, 0.6);
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .exif-style {
+      white-space: pre-wrap;
+      font-family: monospace;
+      background-color: #1e1e1e;
+      padding: 15px;
+      border-radius: 8px;
+      color: #d4d4d4;
+    }
+
+    .map-container {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: rgba(0, 0, 0, 0.6);
+      border-radius: 8px;
     }
   </style>
 </head>
-<body>
 
-  <div class="logo">
-    <img src="your-logo.png" alt="Hife Logo" />
+<body class="container py-4">
+  <div class="text-center mb-4">
+    <img src="image-logo.jpeg" alt="Logo" class="logo mb-2">
+    <h1 class="display-5">Video Metadata Analyzer</h1>
   </div>
 
-  <h1>Hife</h1>
+  <form id="uploadForm" enctype="multipart/form-data">
+    <div class="mb-3 text-center">
+      <input class="form-control gold-button" type="file" id="videoFile" name="video" accept="video/*">
+    </div>
+    <div class="text-center">
+      <button type="submit" class="gold-button">Analyze</button>
+    </div>
+  </form>
 
-  <input type="text" placeholder="LinkedIn Profile URL" id="linkedin">
-  <input type="text" placeholder="Instagram Username" id="instagram">
-  <input type="email" placeholder="Email Address" id="email">
+  <div class="mt-4 form-group">
+    <input type="text" class="form-control" placeholder="LinkedIn">
+    <input type="text" class="form-control" placeholder="Instagram">
+    <input type="email" class="form-control" placeholder="Email">
+  </div>
 
-  <input type="file" id="videoInput" />
-  <button onclick="uploadVideo()">Analyze</button>
+  <div id="results" class="table-wrapper mt-4"></div>
 
-  <div id="output"></div>
-  <div id="loading" style="display:none">⏳ Analyzing video...</div>
-  <div id="error" style="display:none;color:red;margin-top:1rem"></div>
+  <div id="gpsMap" class="map-container"></div>
 
   <script>
-    async function uploadVideo() {
-      const file = document.getElementById("videoInput").files[0];
-      if (!file) return alert("Please select a file first.");
-
-      const button = document.querySelector("button");
-      button.disabled = true;
-
-      document.getElementById("output").innerHTML = "";
-      document.getElementById("loading").style.display = "block";
-      document.getElementById("error").style.display = "none";
+    document.getElementById('uploadForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const fileInput = document.getElementById('videoFile');
+      if (!fileInput.files.length) return;
 
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append('video', fileInput.files[0]);
 
-      try {
-        const res = await fetch("https://video-meta-api.onrender.com/analyze", {
-          method: "POST",
-          body: formData
-        });
+      const response = await fetch('/analyze', {
+        method: 'POST',
+        body: formData
+      });
 
-        if (!res.ok) {
-          const err = await res.text();
-          throw new Error(err);
-        }
+      const data = await response.json();
+      displayResults(data);
+    });
 
-        const data = await res.json();
-        showResult(data);
-      } catch (err) {
-        document.getElementById("error").style.display = "block";
-        document.getElementById("error").textContent = "❌ Error: " + err.message;
-      } finally {
-        button.disabled = false;
-        document.getElementById("loading").style.display = "none";
-      }
-    }
+    function displayResults(data) {
+      const container = document.getElementById('results');
+      const metadata = data.metadata;
+      const format = metadata.format;
+      let output = '';
 
-    function showResult(data) {
-      const out = document.getElementById("output");
-      out.innerHTML = "";
+      output += `<h3>File: ${metadata.file_name}</h3>`;
 
-      const card = document.createElement("div");
-      card.className = "card";
+      output += '<details><summary style="cursor:pointer">📂 Format Information</summary>';
+      output += '<div class="exif-style">';
 
-      const format = data.metadata?.format || {};
-      card.innerHTML += `<h2>🎞️ Format Information</h2><ul>`;
-      for (const key in format) {
-        if (typeof format[key] !== 'object') {
-          card.innerHTML += `<li><strong>${key}</strong>: ${format[key]}</li>`;
-        }
-      }
-      card.innerHTML += `</ul>`;
-
-      const tags = format.tags || {};
-      if (Object.keys(tags).length > 0) {
-        card.innerHTML += `<h3>🏷️ Tags</h3><table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>`;
-        for (const key in tags) {
-          card.innerHTML += `<tr><td>${key}</td><td>${tags[key]}</td></tr>`;
-        }
-        card.innerHTML += `</tbody></table>`;
+      for (const [key, value] of Object.entries(format)) {
+        output += `[Main]  ${key.padEnd(35)}: ${value}\n`;
       }
 
-      const streams = data.metadata?.streams || [];
-      if (streams.length > 0) {
-        card.innerHTML += `<h3>🎛️ Streams</h3>`;
-        streams.forEach((stream, i) => {
-          card.innerHTML += `<h4>Stream #${i + 1}</h4><table><tbody>`;
-          for (const key in stream) {
-            if (typeof stream[key] !== 'object') {
-              card.innerHTML += `<tr><td><strong>${key}</strong></td><td>${stream[key]}</td></tr>`;
-            }
-          }
-          card.innerHTML += `</tbody></table>`;
-        });
-      }
+      output += '</div></details>';
 
-      // 📍 GPS Info and Google Map
-      const gpsData = data.gps;
-      if (gpsData && gpsData.length > 0) {
-        const { lat, lon } = gpsData[0];
-        card.innerHTML += `<h3>📍 GPS Coordinates</h3>`;
-        card.innerHTML += `<p><strong>Latitude:</strong> ${lat}<br><strong>Longitude:</strong> ${lon}</p>`;
-        card.innerHTML += `<div id="map"></div>`;
-        setTimeout(() => {
-          const map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 14,
-            center: { lat: parseFloat(lat), lng: parseFloat(lon) }
-          });
-          new google.maps.Marker({
-            position: { lat: parseFloat(lat), lng: parseFloat(lon) },
-            map: map
-          });
-        }, 100);
+      container.innerHTML = output;
+
+      const gps = metadata.gps || [];
+      const gpsContainer = document.getElementById('gpsMap');
+      if (gps.length === 2) {
+        const [lat, lon] = gps;
+        gpsContainer.innerHTML = `
+          <h4>📍 GPS Coordinates:</h4>
+          <p>Latitude: ${lat}, Longitude: ${lon}</p>
+          <iframe
+            width="100%"
+            height="300"
+            style="border:0"
+            loading="lazy"
+            allowfullscreen
+            src="https://www.google.com/maps?q=${lat},${lon}&hl=es;z=14&output=embed">
+          </iframe>
+        `;
       } else {
-        card.innerHTML += `<h3>📍 GPS Coordinates</h3><p>Not found.</p>`;
+        gpsContainer.innerHTML = `<h4>📍 GPS Coordinates:</h4><p>Not found</p>`;
       }
-
-      card.innerHTML += `<h3>🧾 Raw JSON</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
-
-      out.appendChild(card);
     }
   </script>
-
-  <!-- Google Maps JS API (insert your key below if required) -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
-
 </body>
+
 </html>
