@@ -3,191 +3,144 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Hife Video ver 0.1</title>
+  <title>Hife Video Analyzer</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css" />
   <style>
     body {
-      font-family: sans-serif;
-      margin: 2rem;
+      font-family: monospace;
       background: #f9f9f9;
       color: #333;
+      padding: 2rem;
     }
     h1 {
       text-align: center;
     }
-    .card {
-      background: white;
-      border-radius: 10px;
-      padding: 1.5rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      margin-bottom: 2rem;
-    }
-    pre {
-      background: #f0f0f0;
-      padding: 1rem;
-      overflow-x: auto;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1rem;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 0.5rem;
-    }
-    th {
-      background-color: #eee;
-    }
-    input[type="file"] {
+    input[type="file"], button {
+      font-family: sans-serif;
+      font-size: 1rem;
       margin-bottom: 1rem;
     }
-    .tag-table, .stream-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-  }
-
-  .tag-table th, .tag-table td,
-  .stream-table th, .stream-table td {
-  border: 1px solid #ccc;
-  padding: 0.5rem;
-  }
-
-  .tag-table th, .stream-table th {
-  background-color: #eee;
-  }
+    pre {
+      background: #fff;
+      padding: 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+    #loading {
+      margin-top: 1rem;
+    }
+    .error {
+      color: red;
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
 
-  <h1>📹 Hife </h1>
+  <h1>📹 Hife Video Analyzer</h1>
 
   <input type="file" id="videoInput" />
   <button onclick="uploadVideo()">Analyze</button>
 
-  <div id="output"></div>
   <div id="loading" style="display:none">⏳ Analyzing video...</div>
-  <div id="error" style="display:none;color:red;margin-top:1rem"></div>
+  <div id="error" class="error" style="display:none"></div>
+  <div id="output"></div>
+
   <script>
-   async function uploadVideo() {
-  const file = document.getElementById("videoInput").files[0];
-  if (!file) return alert("Please select a file first.");
+    async function uploadVideo() {
+      const file = document.getElementById("videoInput").files[0];
+      if (!file) return alert("Please select a file first.");
 
-  const button = document.querySelector("button");
-  button.disabled = true;
+      document.getElementById("output").innerHTML = "";
+      document.getElementById("loading").style.display = "block";
+      document.getElementById("error").style.display = "none";
 
-  document.getElementById("output").innerHTML = "";
-  document.getElementById("loading").style.display = "block";
-  document.getElementById("error").style.display = "none";
+      const formData = new FormData();
+      formData.append("file", file);
 
-  const formData = new FormData();
-  formData.append("file", file);
+      try {
+        const res = await fetch("https://video-meta-api.onrender.com/analyze", {
+          method: "POST",
+          body: formData
+        });
 
-  try {
-    const res = await fetch("https://video-meta-api.onrender.com/analyze", {
-      method: "POST",
-      body: formData
-    });
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(err);
+        }
 
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(err);
+        const data = await res.json();
+        showExifStyle(data);
+      } catch (err) {
+        document.getElementById("error").style.display = "block";
+        document.getElementById("error").textContent = "❌ Error: " + err.message;
+      } finally {
+        document.getElementById("loading").style.display = "none";
+      }
     }
 
-    const data = await res.json();
-    console.log("📦 Raw API response:", data); // 👈 Добавь это
-    showResult(data);
-
-    
-  } catch (err) {
-    document.getElementById("error").style.display = "block";
-    document.getElementById("error").textContent = "❌ Error: " + err.message;
-  } finally {
-    button.disabled = false;
-    document.getElementById("loading").style.display = "none";
-  }
-}
-
-
-function showResult(data) {
-  const out = document.getElementById("output");
-  out.innerHTML = "";
-
-  const card = document.createElement("div");
-  card.className = "card";
-
-  const metadata = data.metadata || {};
-  const format = metadata.format || {};
-  const streams = metadata.streams || [];
-  const gps = metadata.gps || [];
-
-  // 🎞️ Format Info
-  card.innerHTML += `<h2>🎞️ Format Information</h2><ul>`;
-  for (const key in format) {
-    if (typeof format[key] !== 'object') {
-      card.innerHTML += `<li><strong>${key}</strong>: ${format[key]}</li>`;
+    function formatLine(key, value) {
+      const keyPadded = key.padEnd(35, ' ');
+      return `[Main]  ${keyPadded} : ${value}`;
     }
-  }
-  card.innerHTML += `</ul>`;
 
-  // 🏷️ Tags
-  const tags = format.tags || {};
-  if (Object.keys(tags).length > 0) {
-    card.innerHTML += `<h3>🏷️ Tags</h3><table class="tag-table"><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>`;
-    for (const key in tags) {
-      card.innerHTML += `<tr><td>${key}</td><td>${tags[key]}</td></tr>`;
-    }
-    card.innerHTML += `</tbody></table>`;
-  }
+    function showExifStyle(data) {
+      const out = document.getElementById("output");
+      const pre = document.createElement("pre");
 
-  // 🎛️ Streams
-  if (streams.length > 0) {
-    card.innerHTML += `<h3>🎛️ Streams</h3>`;
-    streams.forEach((stream, i) => {
-      card.innerHTML += `<h4>Stream #${i + 1}</h4><table class="stream-table"><tbody>`;
-      for (const key in stream) {
-        if (typeof stream[key] !== 'object') {
-          card.innerHTML += `<tr><td><strong>${key}</strong></td><td>${stream[key]}</td></tr>`;
+      const lines = [];
+
+      // Basic file info
+      lines.push(formatLine("File Name", data.filename || ""));
+      lines.push(formatLine("File Size", `${Math.round(data.size_bytes / 1024)} kB`));
+      lines.push(formatLine("Analyzed At", data.analyzed_at));
+
+      const meta = data.metadata || {};
+      const format = meta.format || {};
+      const tags = format.tags || {};
+
+      for (const key in format) {
+        if (typeof format[key] !== "object") {
+          lines.push(formatLine(toTitle(key), format[key]));
         }
       }
-      card.innerHTML += `</tbody></table>`;
-    });
-  }
 
-  // 📍 GPS Info
-  if (gps.length > 0) {
-    
-// Временные GPS-данные для теста
-data.gps = [
-  {
-    tag: "location",
-    lat: 55.7558,
-    lon: 37.6173,
-    link: "https://maps.google.com/?q=55.7558,37.6173",
-    address: "Москва, Россия"
-  }
-];
+      for (const tag in tags) {
+        lines.push(formatLine(toTitle(tag), tags[tag]));
+      }
 
-if (data.gps?.length > 0) {
-  card.innerHTML += `<h3>📍 GPS Coordinates</h3>`;
-  data.gps.forEach(tag => {
-    card.innerHTML += `
-      <p><strong>${tag.tag}</strong>: 
-      <a href="${tag.link}" target="_blank">${tag.lat}, ${tag.lon}</a><br>
-      <em>${tag.address}</em></p>
-    `;
-  });
-}
+      if (meta.streams?.length) {
+        meta.streams.forEach((stream, i) => {
+          lines.push(formatLine("-----", `Stream #${i}`));
+          for (const key in stream) {
+            if (typeof stream[key] !== "object") {
+              lines.push(formatLine(toTitle(key), stream[key]));
+            }
+          }
+        });
+      }
 
-  // 🧾 Raw JSON
-  card.innerHTML += `<h3>🧾 Raw JSON</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+      if (data.gps?.length) {
+        data.gps.forEach((tag) => {
+          lines.push(formatLine("GPS " + tag.tag, `${tag.lat}, ${tag.lon}`));
+          if (tag.address) {
+            lines.push(formatLine("Address", tag.address));
+          }
+        });
+      }
 
-  out.appendChild(card);
-}
+      pre.textContent = lines.join("\n");
+      out.appendChild(pre);
+    }
 
-
-</script>
+    function toTitle(key) {
+      return key
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase());
+    }
+  </script>
 
 </body>
 </html>
