@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Video Metadata Analyzer</title>
+  <title>Hife Video ver0.1</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css" />
   <style>
     body {
@@ -46,7 +46,7 @@
 </head>
 <body>
 
-  <h1>📹 Video Metadata Analyzer by Sinkler</h1>
+  <h1>📹 Hife </h1>
 
   <input type="file" id="videoInput" />
   <button onclick="uploadVideo()">Analyze</button>
@@ -92,61 +92,67 @@
 }
 
 
-    function showResult(data) {
-      const out = document.getElementById("output");
-      out.innerHTML = '';
+function showResult(data) {
+  const out = document.getElementById("output");
+  out.innerHTML = "";
 
-      const card = document.createElement("div");
-      card.className = "card";
+  const card = document.createElement("div");
+  card.className = "card";
 
-      // Format info
-      if (data.format) {
-        card.innerHTML += `<h2>🎞️ Format</h2><table><tbody>`;
-        for (const key in data.format) {
-          if (typeof data.format[key] !== 'object') {
-            card.innerHTML += `<tr><td><strong>${key}</strong></td><td>${data.format[key]}</td></tr>`;
-          }
-        }
-        card.innerHTML += `</tbody></table>`;
-      }
-
-      // Tags
-      if (data.format?.tags) {
-        card.innerHTML += `<h3>🏷️ Tags</h3><table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>`;
-        for (const key in data.format.tags) {
-          card.innerHTML += `<tr><td>${key}</td><td>${data.format.tags[key]}</td></tr>`;
-        }
-        card.innerHTML += `</tbody></table>`;
-      }
-
-      // Streams
-      if (data.streams && data.streams.length > 0) {
-        card.innerHTML += `<h3>🎛️ Streams</h3>`;
-        data.streams.forEach((stream, idx) => {
-          card.innerHTML += `<h4>Stream #${idx}</h4><table><tbody>`;
-          for (const key in stream) {
-            if (typeof stream[key] !== 'object') {
-              card.innerHTML += `<tr><td><strong>${key}</strong></td><td>${stream[key]}</td></tr>`;
-            }
-          }
-          card.innerHTML += `</tbody></table>`;
-        });
-      }
-
-      // GPS
-      if (data.gps && data.gps.length > 0) {
-        card.innerHTML += `<h3>📍 GPS Data</h3>`;
-        data.gps.forEach((entry) => {
-          card.innerHTML += `<p><strong>${entry.tag}</strong>: <a href="${entry.link}" target="_blank">${entry.lat}, ${entry.lon}</a><br><em>${entry.address}</em></p>`;
-        });
-      }
-
-      // Raw JSON
-      card.innerHTML += `<h3>🧾 Full JSON</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
-      
-      out.appendChild(card);
+  // 🎞️ Format Info
+  const format = data.format || {};
+  card.innerHTML += `<h2>🎞️ Format Information</h2><ul>`;
+  for (const key in format) {
+    if (typeof format[key] !== 'object') {
+      card.innerHTML += `<li><strong>${key}</strong>: ${format[key]}</li>`;
     }
-  </script>
+  }
+  card.innerHTML += `</ul>`;
+
+  // 🏷️ Tags
+  const tags = format.tags || {};
+  if (Object.keys(tags).length > 0) {
+    card.innerHTML += `<h3>🏷️ Tags</h3><table class="tag-table"><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>`;
+    for (const key in tags) {
+      card.innerHTML += `<tr><td>${key}</td><td>${tags[key]}</td></tr>`;
+    }
+    card.innerHTML += `</tbody></table>`;
+  }
+
+  // 🎛️ Streams
+  const streams = data.streams || [];
+  if (streams.length > 0) {
+    card.innerHTML += `<h3>🎛️ Streams</h3>`;
+    streams.forEach((stream, i) => {
+      card.innerHTML += `<h4>Stream #${i + 1}</h4><table class="stream-table"><tbody>`;
+      for (const key in stream) {
+        if (typeof stream[key] !== 'object') {
+          card.innerHTML += `<tr><td><strong>${key}</strong></td><td>${stream[key]}</td></tr>`;
+        }
+      }
+      card.innerHTML += `</tbody></table>`;
+    });
+  }
+
+  // 📍 GPS Info
+  if (data.gps?.length > 0) {
+    card.innerHTML += `<h3>📍 GPS Coordinates</h3>`;
+    data.gps.forEach(tag => {
+      card.innerHTML += `
+        <p><strong>${tag.tag}</strong>: 
+        <a href="${tag.link}" target="_blank">${tag.lat}, ${tag.lon}</a><br>
+        <em>${tag.address}</em></p>
+      `;
+    });
+  }
+
+  // 🧾 Raw JSON
+  card.innerHTML += `<h3>🧾 Raw JSON</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+
+  out.appendChild(card);
+}
+
+</script>
 
 </body>
 </html>
