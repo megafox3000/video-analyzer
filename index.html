@@ -11,35 +11,76 @@
       background: url('image-bkgr.jpeg') no-repeat center center fixed;
       background-size: cover;
       color: #333;
+      margin: 0;
       padding: 2rem;
-      // transition: background 1.5s ease-in-out;
+      opacity: 0;
+      transition: opacity 2s ease;
     }
 
-    h1 {
+    body.loaded {
+      opacity: 1;
+    }
+
+    .centered {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
       text-align: center;
-      cursor: pointer;
     }
 
-    input[type="file"], button, input[type="text"], input[type="email"] {
-      font-family: sans-serif;
-      font-size: 1rem;
-      margin-bottom: 1rem;
-      display: block;
+    .logo-circle {
+      border: 4px solid gold;
+      border-radius: 50%;
+      overflow: hidden;
+      width: 140px;
+      height: 140px;
+      margin-bottom: 2rem;
+      transition: transform 0.3s ease;
     }
 
-    button {
+    .logo-circle:hover {
+      transform: scale(1.05);
+    }
+
+    .logo-circle img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .gold-btn {
       background-color: gold;
       color: black;
-      padding: 0.6rem 1.2rem;
+      padding: 0.7rem 1.5rem;
       border: none;
       border-radius: 5px;
       cursor: pointer;
       font-weight: bold;
+      font-size: 1rem;
       transition: background-color 0.3s ease;
     }
 
-    button:hover {
+    .gold-btn:hover {
       background-color: goldenrod;
+    }
+
+    #app {
+      display: none;
+      animation: fadeIn 1.2s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    input[type="file"], input[type="text"], input[type="email"], button {
+      font-family: sans-serif;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      display: block;
     }
 
     .spoiler-btn {
@@ -83,34 +124,53 @@
   </style>
 </head>
 <body>
-
-  <h1 onclick="reloadWithFade()">
-    <img src="image-logo.jpeg" alt="Logo" style="max-width: 160px;" />
-  </h1>
-
-  <div class="input-group">
-    <label>LinkedIn:</label>
-    <input type="text" id="linkedin" placeholder="LinkedIn URL" />
-  </div>
-  <div class="input-group">
-    <label>Instagram:</label>
-    <input type="text" id="instagram" placeholder="Instagram handle" />
-  </div>
-  <div class="input-group">
-    <label>Email:</label>
-    <input type="email" id="email" placeholder="your@email.com" />
+  <div id="splash" class="centered">
+    <div class="logo-circle">
+      <img src="image-logo.jpeg" alt="Logo">
+    </div>
+    <button class="gold-btn" onclick="startApp()">Start</button>
   </div>
 
-  <input type="file" id="videoInput" multiple />
-  <button onclick="uploadVideos()">Analyze</button>
+  <div id="app">
+    <h1 onclick="reloadWithFade()">
+      <div class="logo-circle">
+        <img src="image-logo.jpeg" alt="Logo" />
+      </div>
+    </h1>
 
-  <div id="loading" style="display:none">⏳ Analyzing video(s)...</div>
-  <div id="error" class="error" style="display:none"></div>
-  <div id="output"></div>
+    <div class="input-group">
+      <label>LinkedIn:</label>
+      <input type="text" id="linkedin" placeholder="LinkedIn URL" />
+    </div>
+    <div class="input-group">
+      <label>Instagram:</label>
+      <input type="text" id="instagram" placeholder="Instagram handle" />
+    </div>
+    <div class="input-group">
+      <label>Email:</label>
+      <input type="email" id="email" placeholder="your@email.com" />
+    </div>
+
+    <input type="file" id="videoInput" multiple />
+    <button class="gold-btn" onclick="uploadVideos()">Analyze</button>
+
+    <div id="loading" style="display:none">⏳ Analyzing video(s)...</div>
+    <div id="error" class="error" style="display:none"></div>
+    <div id="output"></div>
+  </div>
 
   <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      document.body.classList.add("loaded");
+    });
+
+    function startApp() {
+      document.getElementById("splash").style.display = "none";
+      document.getElementById("app").style.display = "block";
+    }
+
     function reloadWithFade() {
-      document.body.style.background = "white";
+      document.body.classList.remove("loaded");
       setTimeout(() => location.reload(), 300);
     }
 
