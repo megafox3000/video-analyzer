@@ -13,15 +13,24 @@
       color: #333;
       padding: 2rem;
     }
+
     h1 {
       text-align: center;
     }
+
     #logo {
       display: block;
       margin: 0 auto 1rem auto;
       max-width: 120px;
       border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.3s ease;
     }
+
+    #logo:hover {
+      transform: rotate(10deg) scale(1.05);
+    }
+
     input[type="file"], button, input[type="text"], input[type="email"] {
       font-family: sans-serif;
       font-size: 1rem;
@@ -35,16 +44,21 @@
       border-radius: 6px;
       border: 1px solid #ccc;
     }
-    button {
-      background-color: #4CAF50;
-      color: white;
+
+    button, input[type="file"] {
+      background: linear-gradient(135deg, #FFD700, #FFC107);
+      color: #333;
       border: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
       cursor: pointer;
-      transition: background-color 0.3s ease-in-out;
     }
-    button:hover {
-      background-color: #388E3C;
+
+    button:hover, input[type="file"]:hover {
+      transform: scale(1.03);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.3);
     }
+
     pre {
       background: #fff;
       padding: 1.5rem;
@@ -54,24 +68,42 @@
       white-space: pre-wrap;
       margin-top: 1.5rem;
     }
+
     #loading {
       margin-top: 1rem;
       text-align: center;
     }
+
     .error {
       color: red;
       margin-top: 1rem;
       text-align: center;
     }
+
     .social-inputs {
       text-align: center;
       margin-bottom: 2rem;
+    }
+
+    details summary {
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0.5rem;
+      text-align: center;
+      background-color: #eee;
+      border-radius: 6px;
+      margin-top: 1rem;
+    }
+
+    #map {
+      text-align: center;
+      margin-top: 2rem;
     }
   </style>
 </head>
 <body>
 
-  <img id="logo" src="image-logo.jpeg" alt="Logo" />
+  <img id="logo" src="image-logo.jpeg" alt="Logo" onclick="location.reload()" />
   <h1>📹 Hife Video Analyzer</h1>
 
   <div class="social-inputs">
@@ -86,7 +118,7 @@
   <div id="loading" style="display:none">⏳ Analyzing video...</div>
   <div id="error" class="error" style="display:none"></div>
   <div id="output"></div>
-  <div id="map" style="text-align:center; margin-top:2rem;"></div>
+  <div id="map"></div>
 
   <script>
     async function uploadVideo() {
@@ -130,11 +162,14 @@
 
     function showExifStyle(data) {
       const out = document.getElementById("output");
-      const pre = document.createElement("pre");
+      const container = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.textContent = "🔍 Show Metadata";
+      container.appendChild(summary);
 
+      const pre = document.createElement("pre");
       const lines = [];
 
-      // Basic file info
       lines.push(formatLine("File Name", data.filename || ""));
       lines.push(formatLine("File Size", `${Math.round(data.size_bytes / 1024)} kB`));
       lines.push(formatLine("Analyzed At", data.analyzed_at));
@@ -176,7 +211,8 @@
       }
 
       pre.textContent = lines.join("\n");
-      out.appendChild(pre);
+      container.appendChild(pre);
+      out.appendChild(container);
     }
 
     function renderMap(gps) {
