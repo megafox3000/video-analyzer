@@ -117,8 +117,12 @@ function showResult(data) {
   const card = document.createElement("div");
   card.className = "card";
 
+  const metadata = data.metadata || {};
+  const format = metadata.format || {};
+  const streams = metadata.streams || [];
+  const gps = metadata.gps || [];
+
   // 🎞️ Format Info
-  const format = data.format || {};
   card.innerHTML += `<h2>🎞️ Format Information</h2><ul>`;
   for (const key in format) {
     if (typeof format[key] !== 'object') {
@@ -138,7 +142,6 @@ function showResult(data) {
   }
 
   // 🎛️ Streams
-  const streams = data.streams || [];
   if (streams.length > 0) {
     card.innerHTML += `<h3>🎛️ Streams</h3>`;
     streams.forEach((stream, i) => {
@@ -153,9 +156,9 @@ function showResult(data) {
   }
 
   // 📍 GPS Info
-  if (data.gps?.length > 0) {
+  if (gps.length > 0) {
     card.innerHTML += `<h3>📍 GPS Coordinates</h3>`;
-    data.gps.forEach(tag => {
+    gps.forEach(tag => {
       card.innerHTML += `
         <p><strong>${tag.tag}</strong>: 
         <a href="${tag.link}" target="_blank">${tag.lat}, ${tag.lon}</a><br>
@@ -169,6 +172,7 @@ function showResult(data) {
 
   out.appendChild(card);
 }
+
 
 </script>
 
