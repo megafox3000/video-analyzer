@@ -34,50 +34,83 @@
       margin: 0;
     }
 
-    form {
-      max-width: 500px;
-      margin: 2rem auto;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      background: rgba(0, 0, 0, 0.7);
+    main {
+      max-width: 800px;
+      margin: auto;
       padding: 2rem;
+      background: rgba(0, 0, 0, 0.7);
       border-radius: 1rem;
       box-shadow: 0 0 10px #000;
     }
 
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
     input[type="file"],
     input[type="text"],
-    input[type="email"],
-    button {
-      padding: 0.75rem;
-      font-size: 1rem;
+    input[type="email"] {
+      width: 100%;
+      padding: 0.5rem;
       border-radius: 0.5rem;
       border: none;
-    }
-
-    input {
-      background: #333;
-      color: white;
+      margin-bottom: 1rem;
+      background: #fff;
+      color: #000;
     }
 
     button {
-      background: #28a745;
-      color: white;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 1rem;
+      background: linear-gradient(45deg, #FFD700, #FFA500);
+      color: black;
+      font-size: 1rem;
+      font-weight: bold;
       cursor: pointer;
+      transition: transform 0.2s;
     }
 
     button:hover {
-      background: #218838;
+      transform: scale(1.05);
     }
 
-    #results {
-      max-width: 700px;
-      margin: 2rem auto;
-      background: rgba(0, 0, 0, 0.6);
+    details summary {
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+
+    .exif-style {
+      font-family: monospace;
+      background: black;
+      color: #00FF00;
       padding: 1rem;
       border-radius: 0.5rem;
-      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    .map-container {
+      margin-top: 2rem;
+      height: 300px;
+      border: 2px solid gold;
+      border-radius: 1rem;
+      overflow: hidden;
+    }
+
+    .map-placeholder {
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.1);
+      text-align: center;
+      border-radius: 1rem;
+      color: #ccc;
+      font-style: italic;
+    }
+
+    .input-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
     }
   </style>
 </head>
@@ -87,26 +120,106 @@
     <h1>Video Metadata Analyzer</h1>
   </header>
 
-  <form id="upload-form">
-    <input type="file" name="video" accept="video/*" required />
-    <input type="text" name="instagram" placeholder="Instagram Handle" />
-    <input type="email" name="email" placeholder="Email Address" />
-    <input type="text" name="linkedin" placeholder="LinkedIn URL" />
-    <button type="submit">Analyze</button>
-  </form>
+  <main>
+    <form id="upload-form">
+      <div class="form-group">
+        <input type="file" name="video" accept="video/*" required />
+      </div>
 
-  <div id="results"></div>
+      <div class="input-row">
+        <input type="text" placeholder="Instagram Handle" name="instagram" />
+        <input type="email" placeholder="Email Address" name="email" />
+        <input type="text" placeholder="LinkedIn URL" name="linkedin" />
+      </div>
+
+      <button type="submit">Analyze</button>
+    </form>
+
+    <div id="results" style="margin-top: 2rem;">
+      <!-- Rendered results go here -->
+    </div>
+  </main>
 
   <script>
+    const BACKEND_URL = 'https://video-analyzer-backend.onrender.com/analyze';
+
     document.getElementById('upload-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(e.target);
-      const response = await fetch('/analyze', { method: 'POST', body: formData });
-      const data = await response.json();
-
       const resultsDiv = document.getElementById('results');
-      resultsDiv.innerHTML = JSON.stringify(data, null, 2);
+      resultsDiv.innerHTML = 'Analyzing...';
+
+      try {
+        const response = await fetch(BACKEND_URL, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+        resultsDiv.innerHTML = '';
+
+        // EXIF-style block
+        const exifContent = document.createElement('details');
+        exifContent.innerHTML = `
+          <summary>Format Information (click to expand)</summary>
+          <pre class="exif-style">${formatExif(data.metadata)}</pre>
+        `;
+        resultsDiv.appendChild(exifContent);
+
+        // GPS display
+        const gps = data.metadata.gps;
+        const gpsDiv = document.createElement('div');
+        if (gps && gps.length > 0 && gps[0].latitude && gps[0].longitude) {
+          const lat = gps[0].latitude;
+          const lon = gps[0].longitude;
+          gpsDiv.className = 'map-container';
+          gpsDiv.innerHTML = `
+            <iframe 
+              width="100%" 
+              height="100%" 
+              frameborder="0" 
+              style="border:0" 
+              referrerpolicy="no-referrer-when-downgrade"
+              src="https://www.google.com/maps/embed/v1/view?key=YOUR_GOOGLE_MAPS_API_KEY&center=${lat},${lon}&zoom=14&maptype=satellite" 
+              allowfullscreen>
+            </iframe>
+          `;
+        } else {
+          gpsDiv.className = 'map-placeholder';
+          gpsDiv.textContent = 'GPS coordinates not found in this video.';
+        }
+        resultsDiv.appendChild(gpsDiv);
+      } catch (err) {
+        resultsDiv.innerHTML = `<div style="color: red;">Error: ${err.message}</div>`;
+      }
     });
+
+    function formatExif(meta) {
+      let out = '';
+      if (!meta) return 'No metadata available.';
+      function entry(key, value) {
+        return `[Main]  ${key.padEnd(35)}: ${value}`;
+      }
+
+      const format = meta.format || {};
+      out += entry('File Name', format.filename || '-') + '\n';
+      out += entry('File Size', Math.round(+format.size / 1024) + ' kB') + '\n';
+      out += entry('Duration', (parseFloat(format.duration) || 0).toFixed(2) + ' s') + '\n';
+      out += entry('Format Name', format.format_name || '-') + '\n';
+      out += entry('Format Long Name', format.format_long_name || '-') + '\n';
+      out += entry('Bit Rate', format.bit_rate || '-') + '\n';
+      out += entry('Compatible Brands', format.tags?.compatible_brands || '-') + '\n';
+      out += entry('Major Brand', format.tags?.major_brand || '-') + '\n';
+      out += entry('Minor Version', format.tags?.minor_version || '-') + '\n';
+      out += entry('Rotation', meta.streams?.[0]?.tags?.rotate || '0') + '\n';
+      out += entry('Image Width', meta.streams?.[0]?.width || '-') + '\n';
+      out += entry('Image Height', meta.streams?.[0]?.height || '-') + '\n';
+      out += entry('Video Frame Rate', meta.streams?.[0]?.r_frame_rate || '-') + '\n';
+      out += entry('Audio Channels', meta.streams?.[1]?.channels || '-') + '\n';
+      out += entry('Audio Sample Rate', meta.streams?.[1]?.sample_rate || '-') + '\n';
+      out += entry('Audio Codec', meta.streams?.[1]?.codec_name || '-') + '\n';
+      return out;
+    }
   </script>
 </body>
 </html>
