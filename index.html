@@ -48,8 +48,8 @@
       background: white;
       border-radius: 50%;
       padding: 1rem;
-      width: 140px;
-      height: 140px;
+      width: 160px;
+      height: 160px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -62,7 +62,7 @@
     }
 
     .logo-circle img {
-      width: 100px;
+      width: 120px;
       height: auto;
       pointer-events: none;
     }
@@ -188,15 +188,26 @@
       }
 
       .logo-circle {
-        width: 100px;
-        height: 100px;
+        width: 120px;
+        height: 120px;
         top: 1rem;
         left: 50%;
         transform: translateX(-50%);
       }
 
       .logo-circle img {
-        width: 70px;
+        width: 90px;
+      }
+
+      .container {
+        padding-bottom: 3rem;
+      }
+
+      .gold-button {
+        display: block;
+        width: 90%;
+        margin: 0.5rem auto;
+        font-size: 1.1rem;
       }
     }
   </style>
@@ -348,7 +359,13 @@
       container.appendChild(content);
       document.getElementById("output").appendChild(container);
     }
-  </script>
 
+    // 🔁 Автоанализ после выбора файла
+    document.getElementById("fileInput").addEventListener("change", () => {
+      if (document.getElementById("fileInput").files.length > 0) {
+        uploadVideos();
+      }
+    });
+  </script>
 </body>
 </html>
