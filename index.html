@@ -1,101 +1,135 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Видео-анализатор</title>
-
-  <!-- 💄 Стили вставляем сюда -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Video Metadata Analyzer</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css" />
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      margin: 0;
-      padding: 20px;
+      font-family: sans-serif;
+      margin: 2rem;
+      background: #f9f9f9;
+      color: #333;
     }
-
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-
     h1 {
       text-align: center;
     }
-
-    .result-card {
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      margin-top: 20px;
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
     }
-
+    pre {
+      background: #f0f0f0;
+      padding: 1rem;
+      overflow-x: auto;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 15px;
+      margin-top: 1rem;
     }
-
-    table td {
-      padding: 5px;
-      border-bottom: 1px solid #eee;
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5rem;
     }
-
-    h2, h3 {
-      margin-top: 20px;
+    th {
+      background-color: #eee;
     }
-
-    ul {
-      padding-left: 20px;
-    }
-
-    ul li {
-      margin-bottom: 10px;
+    input[type="file"] {
+      margin-bottom: 1rem;
     }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <h1>Загрузите видео для анализа</h1>
-    <input type="file" id="fileInput" accept="video/*">
-    <button onclick="upload()">Анализировать</button>
+  <h1>📹 Video Metadata Analyzer</h1>
 
-    <div id="result"></div>
-  </div>
+  <input type="file" id="videoInput" />
+  <button onclick="uploadVideo()">Analyze</button>
 
-  <!-- ✅ Скрипты -->
+  <div id="output"></div>
+
   <script>
-    function upload() {
-      const fileInput = document.getElementById("fileInput");
-      const file = fileInput.files[0];
-      if (!file) {
-        alert("Выберите видеофайл");
-        return;
-      }
+    async function uploadVideo() {
+      const file = document.getElementById("videoInput").files[0];
+      if (!file) return alert("Please select a file first.");
 
       const formData = new FormData();
       formData.append("file", file);
 
-      fetch("https://video-meta-api.onrender.com/analyze", {
-        method: "POST",
-        body: formData
-      })
-      .then(res => res.json())
-      .then(data => showResult(data))
-      .catch(err => {
-        console.error("Ошибка:", err);
-        alert("Произошла ошибка при отправке файла");
-      });
+      document.getElementById("output").innerHTML = "<p>⏳ Analyzing...</p>";
+
+      try {
+        const res = await fetch("https://video-meta-api.onrender.com/analyze", {
+          method: "POST",
+          body: formData
+        });
+        const data = await res.json();
+        showResult(data);
+      } catch (err) {
+        document.getElementById("output").innerHTML = `<p>❌ Error: ${err}</p>`;
+      }
     }
 
-    // 🔍 Вот сюда вставляем улучшенный showResult
     function showResult(data) {
-      const resultDiv = document.getElementById("result");
-      resultDiv.innerHTML = "";
+      const out = document.getElementById("output");
+      out.innerHTML = '';
 
-     
+      const card = document.createElement("div");
+      card.className = "card";
+
+      // Format info
+      if (data.format) {
+        card.innerHTML += `<h2>🎞️ Format</h2><table><tbody>`;
+        for (const key in data.format) {
+          if (typeof data.format[key] !== 'object') {
+            card.innerHTML += `<tr><td><strong>${key}</strong></td><td>${data.format[key]}</td></tr>`;
+          }
+        }
+        card.innerHTML += `</tbody></table>`;
+      }
+
+      // Tags
+      if (data.format?.tags) {
+        card.innerHTML += `<h3>🏷️ Tags</h3><table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>`;
+        for (const key in data.format.tags) {
+          card.innerHTML += `<tr><td>${key}</td><td>${data.format.tags[key]}</td></tr>`;
+        }
+        card.innerHTML += `</tbody></table>`;
+      }
+
+      // Streams
+      if (data.streams && data.streams.length > 0) {
+        card.innerHTML += `<h3>🎛️ Streams</h3>`;
+        data.streams.forEach((stream, idx) => {
+          card.innerHTML += `<h4>Stream #${idx}</h4><table><tbody>`;
+          for (const key in stream) {
+            if (typeof stream[key] !== 'object') {
+              card.innerHTML += `<tr><td><strong>${key}</strong></td><td>${stream[key]}</td></tr>`;
+            }
+          }
+          card.innerHTML += `</tbody></table>`;
+        });
+      }
+
+      // GPS
+      if (data.gps && data.gps.length > 0) {
+        card.innerHTML += `<h3>📍 GPS Data</h3>`;
+        data.gps.forEach((entry) => {
+          card.innerHTML += `<p><strong>${entry.tag}</strong>: <a href="${entry.link}" target="_blank">${entry.lat}, ${entry.lon}</a><br><em>${entry.address}</em></p>`;
+        });
+      }
+
+      // Raw JSON
+      card.innerHTML += `<h3>🧾 Full JSON</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
+
+      out.appendChild(card);
+    }
+  </script>
+
+</body>
+</html>
