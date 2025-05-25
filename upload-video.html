@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hife Video Analyzer</title>
+  <link rel="icon" href="image-logo.jpeg" type="image/jpeg" />
+  <style>
+    :root {
+      --gold-gradient: linear-gradient(45deg, #FFD700, #FFA500);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9f9f9;
+      color: #333;
+      scroll-behavior: smooth;
+    }
+
+    .gold-button {
+      background: var(--gold-gradient);
+      color: #000;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      margin: 0.5rem;
+      animation: pulse 2s infinite;
+    }
+
+    .gold-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+      background: linear-gradient(60deg, #FFD700, #FF8C00);
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .container {
+      padding: 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    label[for="fileInput"] {
+      display: inline-block;
+      margin: 1rem 0;
+      cursor: pointer;
+    }
+
+    .spoiler {
+      margin-top: 1rem;
+    }
+
+    .spoiler-content {
+      display: none;
+      background: #fff;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #FFD700;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 1rem auto;
+      display: none;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .progress-container {
+      width: 100%;
+      background: #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 1rem 0;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 10px;
+      width: 0%;
+      background: var(--gold-gradient);
+      transition: width 0.2s;
+    }
+
+    .socials {
+      margin-top: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .socials input {
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    @media(max-width: 600px) {
+      .container {
+        padding-bottom: 3rem;
+      }
+      .socials {
+        margin-top: auto;
+        margin-bottom: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <label for="fileInput" class="gold-button">📁 Upload Video</label>
+    <input type="file" id="fileInput" multiple accept="video/*" />
+
+    <div class="loader" id="loader"></div>
+    <div class="progress-container" id="progressContainer">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div id="output"></div>
+
+    <div class="socials">
+      <input type="text" placeholder="LinkedIn URL" />
+      <input type="text" placeholder="Instagram URL" />
+      <input type="email" placeholder="Your Email" />
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("fileInput").addEventListener("change", uploadVideos);
+
+    async function uploadVideos() {
+      const input = document.getElementById("fileInput");
+      const files = input.files;
+      if (!files.length) return alert("Please select at least one video file.");
+
+      for (let i = 0; i < files.length; i++) {
+        const formData = new FormData();
+        formData.append("file", files[i]);
+
+        document.getElementById("loader").style.display = "block";
+        document.getElementById("progressContainer").style.display = "block";
+
+        await new Promise((resolve) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", "https://video-meta-api.onrender.com/analyze");
+
+          xhr.upload.onprogress = function (e) {
+            if (e.lengthComputable) {
+              const percent = Math.round((e.loaded / e.total) * 100);
+              document.getElementById("progressBar").style.width = percent + "%";
+            }
+          };
+
+          xhr.onload = function () {
+            if (xhr.status === 200) {
+              const data = JSON.parse(xhr.responseText);
+              showResult(data);
+            } else {
+              alert("Upload failed for file: " + files[i].name);
+            }
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("progressBar").style.width = "0%";
+            document.getElementById("progressContainer").style.display = "none";
+            resolve();
+          };
+
+          xhr.send(formData);
+        });
+      }
+    }
+
+    function showResult(data) {
+      const container = document.createElement("div");
+      container.className = "spoiler";
+
+      const btn = document.createElement("button");
+      btn.className = "gold-button";
+      btn.textContent = data.filename || "File Result";
+      btn.onclick = () => {
+        content.style.display = content.style.display === "none" ? "block" : "none";
+      };
+
+      const content = document.createElement("div");
+      content.className = "spoiler-content";
+      content.style.display = "none";
+
+      const lines = [];
+      lines.push(`File Name: ${data.filename}`);
+      lines.push(`File Size: ${Math.round(data.size_bytes / 1024)} kB`);
+      lines.push(`Analyzed At: ${data.analyzed_at}`);
+      lines.push("");
+
+      const meta = data.metadata || {};
+      const format = meta.format || {};
+      const tags = format.tags || {};
+
+      for (const key in format) {
+        if (typeof format[key] !== "object") {
+          lines.push(`${key}: ${format[key]}`);
+        }
+      }
+
+      for (const tag in tags) {
+        lines.push(`${tag}: ${tags[tag]}`);
+      }
+
+      if (meta.streams?.length) {
+        meta.streams.forEach((stream, i) => {
+          lines.push(`--- Stream #${i} ---`);
+          for (const key in stream) {
+            if (typeof stream[key] !== "object") {
+              lines.push(`${key}: ${stream[key]}`);
+            }
+          }
+        });
+      }
+
+      if (data.metadata?.gps?.length) {
+        lines.push("");
+        data.metadata.gps.forEach(gps => {
+          lines.push(`GPS Tag: ${gps.tag}`);
+          lines.push(`Location: ${gps.lat}, ${gps.lon}`);
+          if (gps.address) lines.push(`Address: ${gps.address}`);
+        });
+      }
+
+      content.textContent = lines.join("\n");
+      container.appendChild(btn);
+      container.appendChild(content);
+      document.getElementById("output").appendChild(container);
+    }
+  </script>
+</body>
+</html>
