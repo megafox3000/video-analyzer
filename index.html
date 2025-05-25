@@ -3,69 +3,144 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Video Metadata Analyzer</title>
-  <link rel="icon" href="image-logo.jpeg" type="image/jpeg" />
+  <title>Hife Video Analyzer</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css" />
   <style>
     body {
-      font-family: sans-serif;
-      background: #111;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      font-family: monospace;
+      background: #f9f9f9;
+      color: #333;
       padding: 2rem;
     }
     h1 {
-      color: gold;
+      text-align: center;
     }
-    form {
-      background: #222;
-      padding: 1rem;
-      border-radius: 1rem;
-      box-shadow: 0 0 10px #000;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      width: 100%;
-      max-width: 400px;
-    }
-    input[type="file"],
-    input[type="text"],
-    input[type="email"],
-    button {
-      padding: 0.5rem;
-      border-radius: 0.5rem;
-      border: none;
-    }
-    button {
-      background: gold;
-      font-weight: bold;
-      cursor: pointer;
+    input[type="file"], button {
+      font-family: sans-serif;
+      font-size: 1rem;
+      margin-bottom: 1rem;
     }
     pre {
-      background: #000;
-      color: #0f0;
-      padding: 1rem;
-      margin-top: 2rem;
-      border-radius: 0.5rem;
+      background: #fff;
+      padding: 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       overflow-x: auto;
+      white-space: pre-wrap;
+    }
+    #loading {
+      margin-top: 1rem;
+    }
+    .error {
+      color: red;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
-  <h1>Video Metadata Analyzer</h1>
-  <form action="https://video-analyzer-backend.onrender.com/analyze" method="post" enctype="multipart/form-data">
-    <label>Select video file:</label>
-    <input type="file" name="file" accept="video/*" required />
-    <label>Instagram:</label>
-    <input type="text" name="instagram" placeholder="@yourhandle" />
-    <label>Email:</label>
-    <input type="email" name="email" placeholder="you@example.com" />
-    <label>LinkedIn:</label>
-    <input type="text" name="linkedin" placeholder="linkedin.com/in/yourname" />
-    <button type="submit">Analyze</button>
-  </form>
 
-  <p style="margin-top: 2rem;">After submission, you'll get a raw JSON response with video metadata.</p>
+  <h1>📹 Hife Video Analyzer</h1>
+
+  <input type="file" id="videoInput" />
+  <button onclick="uploadVideo()">Analyze</button>
+
+  <div id="loading" style="display:none">⏳ Analyzing video...</div>
+  <div id="error" class="error" style="display:none"></div>
+  <div id="output"></div>
+
+  <script>
+    async function uploadVideo() {
+      const file = document.getElementById("videoInput").files[0];
+      if (!file) return alert("Please select a file first.");
+
+      document.getElementById("output").innerHTML = "";
+      document.getElementById("loading").style.display = "block";
+      document.getElementById("error").style.display = "none";
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch("https://video-meta-api.onrender.com/analyze", {
+          method: "POST",
+          body: formData
+        });
+
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(err);
+        }
+
+        const data = await res.json();
+        showExifStyle(data);
+      } catch (err) {
+        document.getElementById("error").style.display = "block";
+        document.getElementById("error").textContent = "❌ Error: " + err.message;
+      } finally {
+        document.getElementById("loading").style.display = "none";
+      }
+    }
+
+    function formatLine(key, value) {
+      const keyPadded = key.padEnd(35, ' ');
+      return `[Main]  ${keyPadded} : ${value}`;
+    }
+
+    function showExifStyle(data) {
+      const out = document.getElementById("output");
+      const pre = document.createElement("pre");
+
+      const lines = [];
+
+      // Basic file info
+      lines.push(formatLine("File Name", data.filename || ""));
+      lines.push(formatLine("File Size", `${Math.round(data.size_bytes / 1024)} kB`));
+      lines.push(formatLine("Analyzed At", data.analyzed_at));
+
+      const meta = data.metadata || {};
+      const format = meta.format || {};
+      const tags = format.tags || {};
+
+      for (const key in format) {
+        if (typeof format[key] !== "object") {
+          lines.push(formatLine(toTitle(key), format[key]));
+        }
+      }
+
+      for (const tag in tags) {
+        lines.push(formatLine(toTitle(tag), tags[tag]));
+      }
+
+      if (meta.streams?.length) {
+        meta.streams.forEach((stream, i) => {
+          lines.push(formatLine("-----", `Stream #${i}`));
+          for (const key in stream) {
+            if (typeof stream[key] !== "object") {
+              lines.push(formatLine(toTitle(key), stream[key]));
+            }
+          }
+        });
+      }
+
+      if (data.gps?.length) {
+        data.gps.forEach((tag) => {
+          lines.push(formatLine("GPS " + tag.tag, `${tag.lat}, ${tag.lon}`));
+          if (tag.address) {
+            lines.push(formatLine("Address", tag.address));
+          }
+        });
+      }
+
+      pre.textContent = lines.join("\n");
+      out.appendChild(pre);
+    }
+
+    function toTitle(key) {
+      return key
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase());
+    }
+  </script>
+
 </body>
 </html>
