@@ -3,219 +3,69 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Hife v0.1</title>
+  <title>Video Metadata Analyzer</title>
   <link rel="icon" href="image-logo.jpeg" type="image/jpeg" />
   <style>
     body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background-image: url('image-bkgr.jpeg');
-      background-size: cover;
-      background-position: center;
+      font-family: sans-serif;
+      background: #111;
       color: white;
-    }
-
-    header {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 1rem;
-      padding: 1rem;
-      background: rgba(0, 0, 0, 0.6);
-    }
-
-    header img {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-    }
-
-    h1 {
-      font-size: 1.8rem;
-      margin: 0;
-    }
-
-    main {
-      max-width: 800px;
-      margin: auto;
       padding: 2rem;
-      background: rgba(0, 0, 0, 0.7);
+    }
+    h1 {
+      color: gold;
+    }
+    form {
+      background: #222;
+      padding: 1rem;
       border-radius: 1rem;
       box-shadow: 0 0 10px #000;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 100%;
+      max-width: 400px;
     }
-
-    .form-group {
-      margin-bottom: 1rem;
-    }
-
     input[type="file"],
     input[type="text"],
-    input[type="email"] {
-      width: 100%;
+    input[type="email"],
+    button {
       padding: 0.5rem;
       border-radius: 0.5rem;
       border: none;
-      margin-bottom: 1rem;
-      background: #fff;
-      color: #000;
     }
-
     button {
-      padding: 0.75rem 1.5rem;
-      border: none;
-      border-radius: 1rem;
-      background: linear-gradient(45deg, #FFD700, #FFA500);
-      color: black;
-      font-size: 1rem;
+      background: gold;
       font-weight: bold;
       cursor: pointer;
-      transition: transform 0.2s;
     }
-
-    button:hover {
-      transform: scale(1.05);
-    }
-
-    details summary {
-      cursor: pointer;
-      font-weight: bold;
-      margin-top: 1rem;
-    }
-
-    .exif-style {
-      font-family: monospace;
-      background: black;
-      color: #00FF00;
+    pre {
+      background: #000;
+      color: #0f0;
       padding: 1rem;
+      margin-top: 2rem;
       border-radius: 0.5rem;
       overflow-x: auto;
-    }
-
-    .map-container {
-      margin-top: 2rem;
-      height: 300px;
-      border: 2px solid gold;
-      border-radius: 1rem;
-      overflow: hidden;
-    }
-
-    .map-placeholder {
-      padding: 1rem;
-      background: rgba(255, 255, 255, 0.1);
-      text-align: center;
-      border-radius: 1rem;
-      color: #ccc;
-      font-style: italic;
-    }
-
-    .input-row {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
     }
   </style>
 </head>
 <body>
-  <header>
-    <img src="image-logo.jpeg" alt="Logo" />
-    <h1>Video Metadata Analyzer</h1>
-  </header>
+  <h1>Video Metadata Analyzer</h1>
+  <form action="https://video-analyzer-backend.onrender.com/analyze" method="post" enctype="multipart/form-data">
+    <label>Select video file:</label>
+    <input type="file" name="file" accept="video/*" required />
+    <label>Instagram:</label>
+    <input type="text" name="instagram" placeholder="@yourhandle" />
+    <label>Email:</label>
+    <input type="email" name="email" placeholder="you@example.com" />
+    <label>LinkedIn:</label>
+    <input type="text" name="linkedin" placeholder="linkedin.com/in/yourname" />
+    <button type="submit">Analyze</button>
+  </form>
 
-  <main>
-    <form id="upload-form">
-      <div class="form-group">
-        <input type="file" name="file" accept="video/*" required />
-      </div>
-
-      <div class="input-row">
-        <input type="text" placeholder="Instagram Handle" name="instagram" />
-        <input type="email" placeholder="Email Address" name="email" />
-        <input type="text" placeholder="LinkedIn URL" name="linkedin" />
-      </div>
-
-      <button type="submit">Analyze</button>
-    </form>
-
-    <div id="results" style="margin-top: 2rem;"></div>
-  </main>
-
-  <script>
-    const BACKEND_URL = 'https://video-analyzer-backend.onrender.com/analyze';
-
-    document.getElementById('upload-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      const resultsDiv = document.getElementById('results');
-      resultsDiv.innerHTML = 'Analyzing...';
-
-      try {
-        const response = await fetch(BACKEND_URL, {
-          method: 'POST',
-          body: formData
-        });
-
-        const data = await response.json();
-        resultsDiv.innerHTML = '';
-
-        const exifContent = document.createElement('details');
-        exifContent.innerHTML = `
-          <summary>Format Information (click to expand)</summary>
-          <pre class="exif-style">${formatExif(data.metadata)}</pre>
-        `;
-        resultsDiv.appendChild(exifContent);
-
-        const gps = data.metadata.gps;
-        const gpsDiv = document.createElement('div');
-        if (gps && gps.length > 0 && gps[0].latitude && gps[0].longitude) {
-          const lat = gps[0].latitude;
-          const lon = gps[0].longitude;
-          gpsDiv.className = 'map-container';
-          gpsDiv.innerHTML = `
-            <iframe 
-              width="100%" 
-              height="100%" 
-              frameborder="0" 
-              style="border:0" 
-              referrerpolicy="no-referrer-when-downgrade"
-              src="https://www.google.com/maps/embed/v1/view?key=YOUR_GOOGLE_MAPS_API_KEY&center=${lat},${lon}&zoom=14&maptype=satellite" 
-              allowfullscreen>
-            </iframe>
-          `;
-        } else {
-          gpsDiv.className = 'map-placeholder';
-          gpsDiv.textContent = 'GPS coordinates not found in this video.';
-        }
-        resultsDiv.appendChild(gpsDiv);
-      } catch (err) {
-        resultsDiv.innerHTML = `<div style="color: red;">Error: ${err.message}</div>`;
-      }
-    });
-
-    function formatExif(meta) {
-      let out = '';
-      if (!meta) return 'No metadata available.';
-      function entry(key, value) {
-        return `[Main]  ${key.padEnd(35)}: ${value}`;
-      }
-
-      const format = meta.format || {};
-      out += entry('File Name', format.filename || '-') + '\n';
-      out += entry('File Size', Math.round(+format.size / 1024) + ' kB') + '\n';
-      out += entry('Duration', (parseFloat(format.duration) || 0).toFixed(2) + ' s') + '\n';
-      out += entry('Format Name', format.format_name || '-') + '\n';
-      out += entry('Format Long Name', format.format_long_name || '-') + '\n';
-      out += entry('Bit Rate', format.bit_rate || '-') + '\n';
-      out += entry('Compatible Brands', format.tags?.compatible_brands || '-') + '\n';
-      out += entry('Major Brand', format.tags?.major_brand || '-') + '\n';
-      out += entry('Minor Version', format.tags?.minor_version || '-') + '\n';
-      out += entry('Rotation', meta.streams?.[0]?.tags?.rotate || '0') + '\n';
-      out += entry('Image Width', meta.streams?.[0]?.width || '-') + '\n';
-      out += entry('Image Height', meta.streams?.[0]?.height || '-') + '\n';
-      out += entry('Video Frame Rate', meta.streams?.[0]?.r_frame_rate || '-') + '\n';
-      out += entry('Audio Channels', meta.streams?.[1]?.channels || '-') + '\n';
-      out += entry('Audio Sample Rate', meta.streams?.[1]?.sample_rate || '-') + '\n';
-      out += entry('Audio Codec', meta.streams?.[1]?.codec_name || '-') + '\n';
-      return out;
-    }
-  </script>
+  <p style="margin-top: 2rem;">After submission, you'll get a raw JSON response with video metadata.</p>
 </body>
 </html>
