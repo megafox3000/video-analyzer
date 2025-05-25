@@ -8,151 +8,136 @@
   <style>
     body {
       font-family: monospace;
-      background: url('image-bkgr.jpeg') no-repeat center center fixed;
-      background-size: cover;
+      background: #f9f9f9 url('image-bkgr.jpeg') center/cover no-repeat fixed;
       color: #333;
       padding: 2rem;
+      transition: background 1.5s ease;
     }
-
     h1 {
       text-align: center;
-    }
-
-    #logo {
-      display: block;
-      margin: 0 auto 1rem auto;
-      max-width: 120px;
-      border-radius: 50%;
       cursor: pointer;
-      transition: transform 0.3s ease;
     }
-
-    #logo:hover {
-      transform: rotate(10deg) scale(1.05);
-    }
-
-    input[type="file"], button, input[type="text"], input[type="email"] {
+    input[type="file"], button {
       font-family: sans-serif;
       font-size: 1rem;
       margin-bottom: 1rem;
-      padding: 0.5rem;
+    }
+    button {
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(45deg, gold, orange);
+      color: #222;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+    .spoiler {
+      margin: 1rem 0;
+    }
+    .spoiler button {
       display: block;
       width: 100%;
-      max-width: 400px;
-      margin-left: auto;
-      margin-right: auto;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+      text-align: left;
+      border-radius: 10px;
+      background: #ffe58a;
+      color: #000;
+      padding: 0.8rem 1rem;
+      font-size: 1.1rem;
     }
-
-    button, input[type="file"] {
-      background: linear-gradient(135deg, #FFD700, #FFC107);
-      color: #333;
-      border: none;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-      cursor: pointer;
-    }
-
-    button:hover, input[type="file"]:hover {
-      transform: scale(1.03);
-      box-shadow: 0 6px 14px rgba(0,0,0,0.3);
-    }
-
-    pre {
+    .spoiler-content {
+      display: none;
       background: #fff;
+      margin-top: 0.5rem;
       padding: 1.5rem;
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      overflow-x: auto;
       white-space: pre-wrap;
-      margin-top: 1.5rem;
     }
-
+    .spoiler.open .spoiler-content {
+      display: block;
+    }
     #loading {
       margin-top: 1rem;
-      text-align: center;
     }
-
     .error {
       color: red;
       margin-top: 1rem;
-      text-align: center;
-    }
-
-    .social-inputs {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-
-    details summary {
-      font-weight: bold;
-      cursor: pointer;
-      padding: 0.5rem;
-      text-align: center;
-      background-color: #eee;
-      border-radius: 6px;
-      margin-top: 1rem;
-    }
-
-    #map {
-      text-align: center;
-      margin-top: 2rem;
     }
   </style>
 </head>
 <body>
 
-  <img id="logo" src="image-logo.jpeg" alt="Logo" onclick="location.reload()" />
-  <h1>📹 Hife Video Analyzer</h1>
+  <h1 onclick="reloadSmooth()">📹 Hife Video Analyzer</h1>
 
-  <div class="social-inputs">
-    <input type="text" placeholder="LinkedIn Profile URL" />
-    <input type="text" placeholder="Instagram Handle" />
-    <input type="email" placeholder="Email Address" />
-  </div>
+  <input type="file" id="videoInput" multiple />
+  <button onclick="uploadVideos()">Analyze</button>
 
-  <input type="file" id="videoInput" />
-  <button onclick="uploadVideo()">Analyze</button>
-
-  <div id="loading" style="display:none">⏳ Analyzing video...</div>
+  <div id="loading" style="display:none">⏳ Analyzing video(s)...</div>
   <div id="error" class="error" style="display:none"></div>
   <div id="output"></div>
-  <div id="map"></div>
 
   <script>
-    async function uploadVideo() {
-      const file = document.getElementById("videoInput").files[0];
-      if (!file) return alert("Please select a file first.");
+    function reloadSmooth() {
+      document.body.style.background = "#f9f9f9";
+      setTimeout(() => location.reload(), 500);
+    }
+
+    async function uploadVideos() {
+      const files = document.getElementById("videoInput").files;
+      if (!files.length) return alert("Please select at least one file.");
 
       document.getElementById("output").innerHTML = "";
-      document.getElementById("map").innerHTML = "";
       document.getElementById("loading").style.display = "block";
       document.getElementById("error").style.display = "none";
 
-      const formData = new FormData();
-      formData.append("file", file);
+      for (let i = 0; i < files.length && i < 2; i++) {
+        const formData = new FormData();
+        formData.append("file", files[i]);
 
-      try {
-        const res = await fetch("https://video-meta-api.onrender.com/analyze", {
-          method: "POST",
-          body: formData
-        });
+        try {
+          const res = await fetch("https://video-meta-api.onrender.com/analyze", {
+            method: "POST",
+            body: formData
+          });
 
-        if (!res.ok) {
-          const err = await res.text();
-          throw new Error(err);
+          if (!res.ok) {
+            const err = await res.text();
+            throw new Error(err);
+          }
+
+          const data = await res.json();
+          showResult(data, i + 1);
+        } catch (err) {
+          document.getElementById("error").style.display = "block";
+          document.getElementById("error").textContent = "❌ Error: " + err.message;
         }
-
-        const data = await res.json();
-        showExifStyle(data);
-        renderMap(data.metadata.gps || []);
-      } catch (err) {
-        document.getElementById("error").style.display = "block";
-        document.getElementById("error").textContent = "❌ Error: " + err.message;
-      } finally {
-        document.getElementById("loading").style.display = "none";
       }
+
+      document.getElementById("loading").style.display = "none";
+    }
+
+    function showResult(data, index) {
+      const out = document.getElementById("output");
+
+      const spoiler = document.createElement("div");
+      spoiler.className = "spoiler";
+
+      const button = document.createElement("button");
+      button.textContent = `📁 Show Result for File ${index}`;
+      button.onclick = () => spoiler.classList.toggle("open");
+
+      const content = document.createElement("div");
+      content.className = "spoiler-content";
+      content.textContent = formatData(data);
+
+      spoiler.appendChild(button);
+      spoiler.appendChild(content);
+      out.appendChild(spoiler);
     }
 
     function formatLine(key, value) {
@@ -160,14 +145,7 @@
       return `[Main]  ${keyPadded} : ${value}`;
     }
 
-    function showExifStyle(data) {
-      const out = document.getElementById("output");
-      const container = document.createElement("details");
-      const summary = document.createElement("summary");
-      summary.textContent = "🔍 Show Metadata";
-      container.appendChild(summary);
-
-      const pre = document.createElement("pre");
+    function formatData(data) {
       const lines = [];
 
       lines.push(formatLine("File Name", data.filename || ""));
@@ -199,31 +177,16 @@
         });
       }
 
-      if (data.metadata.gps?.length) {
+      if (data.metadata?.gps?.length) {
         data.metadata.gps.forEach((tag) => {
           lines.push(formatLine("GPS " + tag.tag, `${tag.lat}, ${tag.lon}`));
           if (tag.address) {
             lines.push(formatLine("Address", tag.address));
           }
         });
-      } else {
-        lines.push(formatLine("GPS Info", "Not found in video metadata"));
       }
 
-      pre.textContent = lines.join("\n");
-      container.appendChild(pre);
-      out.appendChild(container);
-    }
-
-    function renderMap(gps) {
-      const map = document.getElementById("map");
-      if (!gps.length) {
-        map.innerHTML = "<p>🗺️ No GPS data found in the video.</p>";
-        return;
-      }
-      const first = gps[0];
-      const link = first.link;
-      map.innerHTML = `<a href="${link}" target="_blank" style="font-size:1.2rem;">🌍 View on Google Maps</a>`;
+      return lines.join("\n");
     }
 
     function toTitle(key) {
