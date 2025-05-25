@@ -34,16 +34,18 @@
     }
 
     .start-screen {
-      height: 100vh;
+      min-height: 100vh;
+      height: 100dvh;
       background: url('image-bkgr.jpeg') center/cover no-repeat;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
+      position: relative;
     }
 
     .logo-circle {
-      background: white;
+      background: var(--gold-gradient);
       border-radius: 50%;
       padding: 1rem;
       width: 140px;
@@ -63,6 +65,7 @@
       width: 100px;
       height: auto;
       pointer-events: none;
+      filter: brightness(0) invert(1);
     }
 
     .gold-button {
@@ -175,6 +178,13 @@
       .logo-circle img {
         width: 70px;
       }
+
+      .start-screen button {
+        position: fixed;
+        bottom: 2rem;
+        font-size: 1.2rem;
+        padding: 1rem 2rem;
+      }
     }
   </style>
 </head>
@@ -196,6 +206,7 @@
     <input type="file" id="fileInput" multiple accept="video/*" />
 
     <button class="gold-button" onclick="uploadVideos()">Analyze</button>
+    <button class="gold-button" id="compareBtn" style="display:none" onclick="compareVideos()">📊 Compare</button>
 
     <div class="loader" id="loader"></div>
     <div class="progress-container" id="progressContainer">
@@ -203,6 +214,7 @@
     </div>
 
     <div id="output"></div>
+    <div id="map" style="height: 400px; margin-top: 1rem; display: none;"></div>
 
     <div class="socials">
       <input type="text" placeholder="LinkedIn URL" />
@@ -211,7 +223,10 @@
     </div>
   </div>
 
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY"></script>
   <script>
+    let uploadedData = [];
+
     function startApp() {
       document.getElementById("startScreen").style.display = "none";
       document.getElementById("mainApp").style.display = "block";
@@ -229,8 +244,10 @@
       if (!files.length) return alert("Please select at least one video file.");
 
       document.getElementById("output").innerHTML = "";
+      document.getElementById("map").style.display = "none";
       document.getElementById("loader").style.display = "block";
       document.getElementById("progressContainer").style.display = "block";
+      uploadedData = [];
 
       for (let i = 0; i < files.length; i++) {
         const formData = new FormData();
@@ -248,15 +265,20 @@
           };
 
           xhr.onload = function () {
-            if (xhr.status === 200) {
-              const data = JSON.parse(xhr.responseText);
-              showResult(data);
-            } else {
-              alert("Upload failed for file: " + files[i].name);
-            }
             document.getElementById("loader").style.display = "none";
             document.getElementById("progressBar").style.width = "0%";
             document.getElementById("progressContainer").style.display = "none";
+
+            if (xhr.status === 200) {
+              const data = JSON.parse(xhr.responseText);
+              showResult(data);
+              uploadedData.push(data);
+              if (uploadedData.length === 2) {
+                document.getElementById("compareBtn").style.display = "inline-block";
+              }
+            } else {
+              alert("Upload failed for file: " + files[i].name);
+            }
             resolve();
           };
 
@@ -317,10 +339,61 @@
           lines.push(`GPS Tag: ${gps.tag}`);
           lines.push(`Location: ${gps.lat}, ${gps.lon}`);
           if (gps.address) lines.push(`Address: ${gps.address}`);
+
+          const map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 15,
+            center: { lat: gps.lat, lng: gps.lon },
+          });
+          new google.maps.Marker({
+            position: { lat: gps.lat, lng: gps.lon },
+            map: map,
+            title: gps.tag || "GPS Location",
+          });
+          document.getElementById("map").style.display = "block";
         });
       }
 
       content.textContent = lines.join("\n");
+      container.appendChild(btn);
+      container.appendChild(content);
+      document.getElementById("output").appendChild(container);
+    }
+
+    function compareVideos() {
+      if (uploadedData.length !== 2) return;
+      const [a, b] = uploadedData;
+      const differences = [];
+
+      function addDiff(label, valA, valB) {
+        if (valA !== valB) {
+          differences.push(`${label}:\n - Video 1: ${valA}\n - Video 2: ${valB}\n`);
+        }
+      }
+
+      addDiff("Duration", a.metadata?.format?.duration, b.metadata?.format?.duration);
+      addDiff("Codec", a.metadata?.streams?.[0]?.codec_name, b.metadata?.streams?.[0]?.codec_name);
+      addDiff("Resolution",
+        `${a.metadata?.streams?.[0]?.width}x${a.metadata?.streams?.[0]?.height}`,
+        `${b.metadata?.streams?.[0]?.width}x${b.metadata?.streams?.[0]?.height}`
+      );
+      addDiff("Frame Rate", a.metadata?.streams?.[0]?.r_frame_rate, b.metadata?.streams?.[0]?.r_frame_rate);
+      addDiff("Bit Rate", a.metadata?.format?.bit_rate, b.metadata?.format?.bit_rate);
+
+      const container = document.createElement("div");
+      container.className = "spoiler";
+      const btn = document.createElement("button");
+      btn.className = "gold-button";
+      btn.textContent = "🆚 Differences";
+
+      const content = document.createElement("div");
+      content.className = "spoiler-content";
+      content.textContent = differences.length ? differences.join("\n\n") : "No major differences found.";
+      content.style.display = "none";
+
+      btn.onclick = () => {
+        content.style.display = content.style.display === "none" ? "block" : "none";
+      };
+
       container.appendChild(btn);
       container.appendChild(content);
       document.getElementById("output").appendChild(container);
