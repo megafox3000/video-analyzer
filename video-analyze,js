@@ -1,0 +1,118 @@
+function startApp() {
+  document.getElementById("startScreen").style.display = "none";
+  document.getElementById("mainApp").style.display = "block";
+}
+
+function reloadPage() {
+  document.body.classList.remove("fade-in");
+  document.body.style.opacity = "0";
+  setTimeout(() => location.reload(), 100);
+}
+
+function handleFileInputChange() {
+  uploadVideos();
+}
+
+async function uploadVideos() {
+  const input = document.getElementById("fileInput");
+  const files = input.files;
+  if (!files.length) return alert("Please select at least one video file.");
+
+  const outputContainer = document.getElementById("output");
+  outputContainer.innerHTML = "";
+  document.getElementById("loader").style.display = "block";
+  document.getElementById("progressContainer").style.display = "block";
+
+  for (let i = 0; i < files.length; i++) {
+    const formData = new FormData();
+    formData.append("file", files[i]);
+
+    await new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "https://video-meta-api.onrender.com/analyze");
+
+      xhr.upload.onprogress = function (e) {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          document.getElementById("progressBar").style.width = percent + "%";
+        }
+      };
+
+      xhr.onload = function () {
+        if (xhr.status === 200) {
+          const data = JSON.parse(xhr.responseText);
+          showResult(data);
+        } else {
+          alert("Upload failed for file: " + files[i].name);
+        }
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("progressBar").style.width = "0%";
+        document.getElementById("progressContainer").style.display = "none";
+        resolve();
+      };
+
+      xhr.send(formData);
+    });
+  }
+}
+
+function showResult(data) {
+  const container = document.createElement("div");
+  container.className = "spoiler";
+
+  const btn = document.createElement("button");
+  btn.className = "gold-button";
+  btn.textContent = data.filename || "File Result";
+  btn.onclick = () => {
+    content.style.display = content.style.display === "none" ? "block" : "none";
+  };
+
+  const content = document.createElement("div");
+  content.className = "spoiler-content";
+  content.style.display = "none";
+
+  const lines = [];
+  lines.push(`File Name: ${data.filename}`);
+  lines.push(`File Size: ${Math.round(data.size_bytes / 1024)} kB`);
+  lines.push(`Analyzed At: ${data.analyzed_at}`);
+  lines.push("");
+
+  const meta = data.metadata || {};
+  const format = meta.format || {};
+  const tags = format.tags || {};
+
+  for (const key in format) {
+    if (typeof format[key] !== "object") {
+      lines.push(`${key}: ${format[key]}`);
+    }
+  }
+
+  for (const tag in tags) {
+    lines.push(`${tag}: ${tags[tag]}`);
+  }
+
+  if (meta.streams?.length) {
+    meta.streams.forEach((stream, i) => {
+      lines.push(`--- Stream #${i} ---`);
+      for (const key in stream) {
+        if (typeof stream[key] !== "object") {
+          lines.push(`${key}: ${stream[key]}`);
+        }
+      }
+    });
+  }
+
+  if (data.metadata?.gps?.length) {
+    lines.push("");
+    data.metadata.gps.forEach(gps => {
+      lines.push(`GPS Tag: ${gps.tag}`);
+      lines.push(`Location: ${gps.lat}, ${gps.lon}`);
+      if (gps.address) lines.push(`Address: ${gps.address}`);
+    });
+  }
+
+  content.textContent = lines.join("\n");
+  container.appendChild(btn);
+  container.appendChild(content);
+  document.getElementById("output").appendChild(container);
+}
