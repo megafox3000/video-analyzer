@@ -4,8 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Hife Video Analyzer</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <style>
+    :root {
+      --gold-gradient: linear-gradient(45deg, #FFD700, #FFA500);
+    }
+
     * {
       box-sizing: border-box;
     }
@@ -13,257 +17,274 @@
     html, body {
       margin: 0;
       padding: 0;
-      font-family: monospace;
-      background: url('image-bkgr.jpeg') no-repeat center center fixed;
-      background-size: cover;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9f9f9;
       color: #333;
-      height: 100%;
-      overflow-x: hidden;
+      scroll-behavior: smooth;
     }
 
-    body {
-      opacity: 0;
-      transition: opacity 2s ease;
-    }
-
-    body.loaded {
-      opacity: 1;
-    }
-
-    .centered {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background-color: rgba(0,0,0,0.3);
-      z-index: 999;
-    }
-
-    .logo-circle {
-      border: 4px solid gold;
-      border-radius: 50%;
-      overflow: hidden;
-      width: 140px;
-      height: 140px;
-      margin-bottom: 2rem;
-      transition: transform 0.3s ease;
-      background: #fff;
-    }
-
-    .logo-circle:hover {
-      transform: scale(1.05);
-    }
-
-    .logo-circle img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .gold-btn {
-      background-color: gold;
-      color: black;
-      padding: 0.7rem 1.5rem;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 1rem;
-      transition: background-color 0.3s ease;
-    }
-
-    .gold-btn:hover {
-      background-color: goldenrod;
-    }
-
-    #app {
-      display: none;
-      padding: 2rem;
-      max-width: 800px;
-      margin: 0 auto;
-      animation: fadeIn 1.2s ease forwards;
+    body.fade-in {
+      animation: fadeIn 2s ease-in forwards;
+      background: #111;
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+      0% { opacity: 0; background: #000; }
+      100% { opacity: 1; background: #f9f9f9; }
     }
 
-    input[type="file"], input[type="text"], input[type="email"], button {
-      font-family: sans-serif;
-      font-size: 1rem;
-      margin-bottom: 1rem;
-      display: block;
-      width: 100%;
+    .start-screen {
+      height: 100vh;
+      background: url('image-bkgr.jpeg') center/cover no-repeat;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .logo-circle {
+      background: white;
+      border-radius: 50%;
+      padding: 1rem;
+      width: 140px;
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 1000;
+      cursor: pointer;
+    }
+
+    .logo-circle img {
+      width: 100px;
+      height: auto;
+      pointer-events: none;
+    }
+
+    .gold-button {
+      background: var(--gold-gradient);
+      color: #000;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 25px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      margin: 0.5rem;
+    }
+
+    .gold-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+      background: linear-gradient(60deg, #FFD700, #FF8C00);
+    }
+
+    .container {
+      padding: 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+      display: none;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    label[for="fileInput"] {
+      display: inline-block;
+      margin: 1rem 0;
+      cursor: pointer;
+    }
+
+    #output button {
+      text-align: left;
+      width: auto;
       max-width: 100%;
     }
 
-    .spoiler-btn {
-      background-color: gold;
-      color: #000;
-      border: none;
-      padding: 0.4rem 0.8rem;
-      border-radius: 5px;
-      cursor: pointer;
+    .spoiler {
       margin-top: 1rem;
-      margin-bottom: 0.5rem;
-      display: inline-block;
-      font-size: 0.95rem;
-      font-weight: bold;
-      transition: background-color 0.3s ease;
-    }
-
-    .spoiler-btn:hover {
-      background-color: goldenrod;
     }
 
     .spoiler-content {
       display: none;
       background: #fff;
-      padding: 1.2rem;
+      padding: 1rem;
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      overflow-x: auto;
       white-space: pre-wrap;
-      margin-bottom: 1.5rem;
+      overflow-x: auto;
     }
 
-    .error {
-      color: red;
-      margin-top: 1rem;
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #FFD700;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 1rem auto;
+      display: none;
     }
 
-    .input-group {
-      margin-bottom: 1rem;
+    @keyframes spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
     }
 
-    @media (max-width: 768px) {
+    .progress-container {
+      width: 100%;
+      background: #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 1rem 0;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 10px;
+      width: 0%;
+      background: var(--gold-gradient);
+      transition: width 0.2s;
+    }
+
+    .socials {
+      margin-top: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .socials input {
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    @media(max-width: 600px) {
       .logo-circle {
         width: 100px;
         height: 100px;
-        margin-bottom: 1rem;
       }
-
-      .gold-btn {
-        font-size: 0.9rem;
-        padding: 0.6rem 1.2rem;
-      }
-
-      #app {
-        padding: 1rem;
+      .logo-circle img {
+        width: 70px;
       }
     }
   </style>
 </head>
-<body>
-  <div id="splash" class="centered">
+<body class="fade-in">
+
+  <div class="start-screen" id="startScreen">
     <div class="logo-circle">
-      <img src="image-logo.jpeg" alt="Logo">
+      <img src="image-logo.jpeg" alt="Logo" />
     </div>
-    <button class="gold-btn" onclick="startApp()">Start</button>
+    <button class="gold-button" onclick="startApp()">Start</button>
   </div>
 
-  <div id="app">
-    <h1 onclick="reloadWithFade()">
-      <div class="logo-circle">
-        <img src="image-logo.jpeg" alt="Logo" />
-      </div>
-    </h1>
-
-    <div class="input-group">
-      <label>LinkedIn:</label>
-      <input type="text" id="linkedin" placeholder="LinkedIn URL" />
-    </div>
-    <div class="input-group">
-      <label>Instagram:</label>
-      <input type="text" id="instagram" placeholder="Instagram handle" />
-    </div>
-    <div class="input-group">
-      <label>Email:</label>
-      <input type="email" id="email" placeholder="your@email.com" />
+  <div class="container" id="mainApp">
+    <div class="logo-circle" onclick="reloadPage()">
+      <img src="image-logo.jpeg" alt="Logo" />
     </div>
 
-    <input type="file" id="videoInput" multiple />
-    <button class="gold-btn" onclick="uploadVideos()">Analyze</button>
+    <label for="fileInput" class="gold-button">📁 Choose Video File(s)</label>
+    <input type="file" id="fileInput" multiple accept="video/*" />
 
-    <div id="loading" style="display:none">⏳ Analyzing video(s)...</div>
-    <div id="error" class="error" style="display:none"></div>
+    <button class="gold-button" onclick="uploadVideos()">Analyze</button>
+
+    <div class="loader" id="loader"></div>
+    <div class="progress-container" id="progressContainer">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
     <div id="output"></div>
+
+    <div class="socials">
+      <input type="text" placeholder="LinkedIn URL" />
+      <input type="text" placeholder="Instagram URL" />
+      <input type="email" placeholder="Your Email" />
+    </div>
   </div>
 
   <script>
-    window.addEventListener("DOMContentLoaded", () => {
-      document.body.classList.add("loaded");
-    });
-
     function startApp() {
-      document.getElementById("splash").style.display = "none";
-      document.getElementById("app").style.display = "block";
+      document.getElementById("startScreen").style.display = "none";
+      document.getElementById("mainApp").style.display = "block";
     }
 
-    function reloadWithFade() {
-      document.body.classList.remove("loaded");
-      setTimeout(() => location.reload(), 300);
+    function reloadPage() {
+      document.body.classList.remove("fade-in");
+      document.body.style.opacity = "0";
+      setTimeout(() => location.reload(), 100);
     }
 
     async function uploadVideos() {
-      const files = document.getElementById("videoInput").files;
-      if (files.length === 0) return alert("Please select one or two files.");
-      if (files.length > 2) return alert("Only one or two files allowed.");
+      const input = document.getElementById("fileInput");
+      const files = input.files;
+      if (!files.length) return alert("Please select at least one video file.");
 
       document.getElementById("output").innerHTML = "";
-      document.getElementById("loading").style.display = "block";
-      document.getElementById("error").style.display = "none";
+      document.getElementById("loader").style.display = "block";
+      document.getElementById("progressContainer").style.display = "block";
 
       for (let i = 0; i < files.length; i++) {
         const formData = new FormData();
         formData.append("file", files[i]);
 
-        try {
-          const res = await fetch("https://video-meta-api.onrender.com/analyze", {
-            method: "POST",
-            body: formData
-          });
+        await new Promise((resolve) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", "https://video-meta-api.onrender.com/analyze");
 
-          if (!res.ok) {
-            const err = await res.text();
-            throw new Error(err);
-          }
+          xhr.upload.onprogress = function (e) {
+            if (e.lengthComputable) {
+              const percent = Math.round((e.loaded / e.total) * 100);
+              document.getElementById("progressBar").style.width = percent + "%";
+            }
+          };
 
-          const data = await res.json();
-          showSpoiler(data.filename, data);
-        } catch (err) {
-          document.getElementById("error").style.display = "block";
-          document.getElementById("error").textContent = "❌ Error: " + err.message;
-        }
+          xhr.onload = function () {
+            if (xhr.status === 200) {
+              const data = JSON.parse(xhr.responseText);
+              showResult(data);
+            } else {
+              alert("Upload failed for file: " + files[i].name);
+            }
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("progressBar").style.width = "0%";
+            document.getElementById("progressContainer").style.display = "none";
+            resolve();
+          };
+
+          xhr.send(formData);
+        });
       }
-
-      document.getElementById("loading").style.display = "none";
     }
 
-    function formatLine(key, value) {
-      const keyPadded = key.padEnd(35, ' ');
-      return `[Main]  ${keyPadded} : ${value}`;
-    }
+    function showResult(data) {
+      const container = document.createElement("div");
+      container.className = "spoiler";
 
-    function showSpoiler(filename, data) {
-      const out = document.getElementById("output");
+      const btn = document.createElement("button");
+      btn.className = "gold-button";
+      btn.textContent = data.filename || "File Result";
+      btn.onclick = () => {
+        content.style.display = content.style.display === "none" ? "block" : "none";
+      };
 
-      const button = document.createElement("button");
-      button.className = "spoiler-btn";
-      button.textContent = filename;
       const content = document.createElement("div");
       content.className = "spoiler-content";
+      content.style.display = "none";
 
       const lines = [];
-
-      lines.push(formatLine("File Name", data.filename || ""));
-      lines.push(formatLine("File Size", `${Math.round(data.size_bytes / 1024)} kB`));
-      lines.push(formatLine("Analyzed At", data.analyzed_at));
+      lines.push(`File Name: ${data.filename}`);
+      lines.push(`File Size: ${Math.round(data.size_bytes / 1024)} kB`);
+      lines.push(`Analyzed At: ${data.analyzed_at}`);
+      lines.push("");
 
       const meta = data.metadata || {};
       const format = meta.format || {};
@@ -271,49 +292,40 @@
 
       for (const key in format) {
         if (typeof format[key] !== "object") {
-          lines.push(formatLine(toTitle(key), format[key]));
+          lines.push(`${key}: ${format[key]}`);
         }
       }
 
       for (const tag in tags) {
-        lines.push(formatLine(toTitle(tag), tags[tag]));
+        lines.push(`${tag}: ${tags[tag]}`);
       }
 
       if (meta.streams?.length) {
         meta.streams.forEach((stream, i) => {
-          lines.push(formatLine("-----", `Stream #${i}`));
+          lines.push(`--- Stream #${i} ---`);
           for (const key in stream) {
             if (typeof stream[key] !== "object") {
-              lines.push(formatLine(toTitle(key), stream[key]));
+              lines.push(`${key}: ${stream[key]}`);
             }
           }
         });
       }
 
-      if (data.gps?.length) {
-        data.gps.forEach((tag) => {
-          lines.push(formatLine("GPS " + tag.tag, `${tag.lat}, ${tag.lon}`));
-          if (tag.address) {
-            lines.push(formatLine("Address", tag.address));
-          }
+      if (data.metadata?.gps?.length) {
+        lines.push("");
+        data.metadata.gps.forEach(gps => {
+          lines.push(`GPS Tag: ${gps.tag}`);
+          lines.push(`Location: ${gps.lat}, ${gps.lon}`);
+          if (gps.address) lines.push(`Address: ${gps.address}`);
         });
       }
 
       content.textContent = lines.join("\n");
-
-      button.addEventListener("click", () => {
-        content.style.display = content.style.display === "none" ? "block" : "none";
-      });
-
-      out.appendChild(button);
-      out.appendChild(content);
-    }
-
-    function toTitle(key) {
-      return key
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, l => l.toUpperCase());
+      container.appendChild(btn);
+      container.appendChild(content);
+      document.getElementById("output").appendChild(container);
     }
   </script>
+
 </body>
 </html>
