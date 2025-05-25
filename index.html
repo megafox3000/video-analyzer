@@ -8,17 +8,42 @@
   <style>
     body {
       font-family: monospace;
-      background: #f9f9f9;
+      background: url('image-bkgr.jpeg') no-repeat center center fixed;
+      background-size: cover;
       color: #333;
       padding: 2rem;
     }
     h1 {
       text-align: center;
     }
-    input[type="file"], button {
+    #logo {
+      display: block;
+      margin: 0 auto 1rem auto;
+      max-width: 120px;
+      border-radius: 50%;
+    }
+    input[type="file"], button, input[type="text"], input[type="email"] {
       font-family: sans-serif;
       font-size: 1rem;
       margin-bottom: 1rem;
+      padding: 0.5rem;
+      display: block;
+      width: 100%;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease-in-out;
+    }
+    button:hover {
+      background-color: #388E3C;
     }
     pre {
       background: #fff;
@@ -27,19 +52,33 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       overflow-x: auto;
       white-space: pre-wrap;
+      margin-top: 1.5rem;
     }
     #loading {
       margin-top: 1rem;
+      text-align: center;
     }
     .error {
       color: red;
       margin-top: 1rem;
+      text-align: center;
+    }
+    .social-inputs {
+      text-align: center;
+      margin-bottom: 2rem;
     }
   </style>
 </head>
 <body>
 
+  <img id="logo" src="image-logo.jpeg" alt="Logo" />
   <h1>📹 Hife Video Analyzer</h1>
+
+  <div class="social-inputs">
+    <input type="text" placeholder="LinkedIn Profile URL" />
+    <input type="text" placeholder="Instagram Handle" />
+    <input type="email" placeholder="Email Address" />
+  </div>
 
   <input type="file" id="videoInput" />
   <button onclick="uploadVideo()">Analyze</button>
@@ -47,6 +86,7 @@
   <div id="loading" style="display:none">⏳ Analyzing video...</div>
   <div id="error" class="error" style="display:none"></div>
   <div id="output"></div>
+  <div id="map" style="text-align:center; margin-top:2rem;"></div>
 
   <script>
     async function uploadVideo() {
@@ -54,6 +94,7 @@
       if (!file) return alert("Please select a file first.");
 
       document.getElementById("output").innerHTML = "";
+      document.getElementById("map").innerHTML = "";
       document.getElementById("loading").style.display = "block";
       document.getElementById("error").style.display = "none";
 
@@ -73,6 +114,7 @@
 
         const data = await res.json();
         showExifStyle(data);
+        renderMap(data.metadata.gps || []);
       } catch (err) {
         document.getElementById("error").style.display = "block";
         document.getElementById("error").textContent = "❌ Error: " + err.message;
@@ -122,17 +164,30 @@
         });
       }
 
-      if (data.gps?.length) {
-        data.gps.forEach((tag) => {
+      if (data.metadata.gps?.length) {
+        data.metadata.gps.forEach((tag) => {
           lines.push(formatLine("GPS " + tag.tag, `${tag.lat}, ${tag.lon}`));
           if (tag.address) {
             lines.push(formatLine("Address", tag.address));
           }
         });
+      } else {
+        lines.push(formatLine("GPS Info", "Not found in video metadata"));
       }
 
       pre.textContent = lines.join("\n");
       out.appendChild(pre);
+    }
+
+    function renderMap(gps) {
+      const map = document.getElementById("map");
+      if (!gps.length) {
+        map.innerHTML = "<p>🗺️ No GPS data found in the video.</p>";
+        return;
+      }
+      const first = gps[0];
+      const link = first.link;
+      map.innerHTML = `<a href="${link}" target="_blank" style="font-size:1.2rem;">🌍 View on Google Maps</a>`;
     }
 
     function toTitle(key) {
