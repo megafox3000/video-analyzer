@@ -6,13 +6,22 @@
   <title>Hife Video Analyzer</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css" />
   <style>
-    body {
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
       font-family: monospace;
       background: url('image-bkgr.jpeg') no-repeat center center fixed;
       background-size: cover;
       color: #333;
-      margin: 0;
-      padding: 2rem;
+      height: 100%;
+      overflow-x: hidden;
+    }
+
+    body {
       opacity: 0;
       transition: opacity 2s ease;
     }
@@ -22,12 +31,16 @@
     }
 
     .centered {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
-      text-align: center;
+      background-color: rgba(0,0,0,0.3);
+      z-index: 999;
     }
 
     .logo-circle {
@@ -38,6 +51,7 @@
       height: 140px;
       margin-bottom: 2rem;
       transition: transform 0.3s ease;
+      background: #fff;
     }
 
     .logo-circle:hover {
@@ -68,6 +82,9 @@
 
     #app {
       display: none;
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
       animation: fadeIn 1.2s ease forwards;
     }
 
@@ -81,6 +98,8 @@
       font-size: 1rem;
       margin-bottom: 1rem;
       display: block;
+      width: 100%;
+      max-width: 100%;
     }
 
     .spoiler-btn {
@@ -120,6 +139,23 @@
 
     .input-group {
       margin-bottom: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .logo-circle {
+        width: 100px;
+        height: 100px;
+        margin-bottom: 1rem;
+      }
+
+      .gold-btn {
+        font-size: 0.9rem;
+        padding: 0.6rem 1.2rem;
+      }
+
+      #app {
+        padding: 1rem;
+      }
     }
   </style>
 </head>
@@ -279,6 +315,5 @@
         .replace(/\b\w/g, l => l.toUpperCase());
     }
   </script>
-
 </body>
 </html>
