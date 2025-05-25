@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Hife Video Analyzer</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="icon" href="image-logo.jpeg" type="image/jpeg" />
   <style>
     :root {
       --gold-gradient: linear-gradient(45deg, #FFD700, #FFA500);
@@ -40,31 +40,7 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      position: relative;
       padding-bottom: 0;
-    }
-
-    .logo-circle {
-      border-radius: 50%;
-      width: 160px;
-      height: 160px;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: fixed;
-      top: 1rem;
-      left: 1rem;
-      z-index: 1000;
-      cursor: pointer;
-    }
-
-    .logo-circle img {
-      width: 160px;
-      height: 160px;
-      object-fit: cover;
-      border-radius: 50%;
-      pointer-events: none;
     }
 
     .gold-button {
@@ -98,11 +74,18 @@
       max-width: 900px;
       margin: 0 auto;
       display: none;
-      padding-bottom: 6rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     input[type="file"] {
       display: none;
+    }
+
+    label[for="fileInput"] {
+      display: inline-block;
+      cursor: pointer;
     }
 
     #output button {
@@ -113,6 +96,7 @@
 
     .spoiler {
       margin-top: 1rem;
+      width: 100%;
     }
 
     .spoiler-content {
@@ -158,7 +142,8 @@
     }
 
     .socials {
-      margin-top: 2rem;
+      margin-top: auto;
+      width: 100%;
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
@@ -169,13 +154,6 @@
       border: 1px solid #ccc;
       border-radius: 8px;
       font-size: 1rem;
-    }
-
-    .file-buttons {
-      display: flex;
-      justify-content: center;
-      gap: 1rem;
-      margin-top: 1rem;
     }
 
     @media(max-width: 600px) {
@@ -189,42 +167,14 @@
         padding: 1rem 2rem;
       }
 
-      .logo-circle {
-        width: 120px;
-        height: 120px;
-        top: 1rem;
-        left: 50%;
-        transform: translateX(-50%);
-      }
-
-      .logo-circle img {
-        width: 120px;
-        height: 120px;
-      }
-
       .container {
-        padding-bottom: 8rem;
-      }
-
-      .file-buttons {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: transparent;
-        padding: 0.5rem;
-        box-shadow: none;
-        z-index: 999;
-      }
-
-      .file-buttons .gold-button {
-        flex: 1;
-        font-size: 1rem;
-        padding: 0.8rem;
+        justify-content: flex-end;
+        padding-bottom: 2rem;
+        min-height: 100dvh;
       }
 
       .socials {
-        margin-top: 5rem;
+        margin-top: 2rem;
       }
     }
   </style>
@@ -232,22 +182,12 @@
 <body class="fade-in">
 
   <div class="start-screen" id="startScreen">
-    <div class="logo-circle">
-      <img src="image-logo.jpeg" alt="Logo" />
-    </div>
     <button class="gold-button" onclick="startApp()">Start</button>
   </div>
 
   <div class="container" id="mainApp">
-    <div class="logo-circle" onclick="reloadPage()">
-      <img src="image-logo.jpeg" alt="Logo" />
-    </div>
-
+    <label for="fileInput" class="gold-button">📁 Upload Video</label>
     <input type="file" id="fileInput" multiple accept="video/*" />
-
-    <div class="file-buttons">
-      <label for="fileInput" class="gold-button" style="background: transparent; box-shadow: none;">📁 Upload Video</label>
-    </div>
 
     <div class="loader" id="loader"></div>
     <div class="progress-container" id="progressContainer">
@@ -266,19 +206,19 @@
   <script>
     function startApp() {
       document.getElementById("startScreen").style.display = "none";
-      document.getElementById("mainApp").style.display = "block";
+      document.getElementById("mainApp").style.display = "flex";
     }
 
-    function reloadPage() {
-      document.body.classList.remove("fade-in");
-      document.body.style.opacity = "0";
-      setTimeout(() => location.reload(), 100);
-    }
+    document.getElementById("fileInput").addEventListener("change", () => {
+      if (document.getElementById("fileInput").files.length) {
+        uploadVideos();
+      }
+    });
 
     async function uploadVideos() {
       const input = document.getElementById("fileInput");
       const files = input.files;
-      if (!files.length) return;
+      if (!files.length) return alert("Please select at least one video file.");
 
       document.getElementById("loader").style.display = "block";
       document.getElementById("progressContainer").style.display = "block";
@@ -314,13 +254,9 @@
           xhr.send(formData);
         });
       }
-    }
 
-    document.getElementById("fileInput").addEventListener("change", function () {
-      if (this.files.length > 0) {
-        uploadVideos();
-      }
-    });
+      input.value = ""; // Reset input
+    }
 
     function showResult(data) {
       const container = document.createElement("div");
@@ -383,6 +319,5 @@
       document.getElementById("output").appendChild(container);
     }
   </script>
-
 </body>
 </html>
