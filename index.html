@@ -98,16 +98,11 @@
       max-width: 900px;
       margin: 0 auto;
       display: none;
+      padding-bottom: 6rem;
     }
 
     input[type="file"] {
       display: none;
-    }
-
-    label[for="fileInput"] {
-      display: inline-block;
-      margin: 1rem 0;
-      cursor: pointer;
     }
 
     #output button {
@@ -176,6 +171,13 @@
       font-size: 1rem;
     }
 
+    .file-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
     @media(max-width: 600px) {
       .start-screen {
         justify-content: flex-end;
@@ -200,14 +202,24 @@
       }
 
       .container {
-        padding-bottom: 3rem;
+        padding-bottom: 8rem;
       }
 
-      .gold-button {
-        display: block;
-        width: 90%;
-        margin: 0.5rem auto;
-        font-size: 1.1rem;
+      .file-buttons {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: #f9f9f9;
+        padding: 0.5rem;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+        z-index: 999;
+      }
+
+      .file-buttons .gold-button {
+        flex: 1;
+        font-size: 1rem;
+        padding: 0.8rem;
       }
     }
   </style>
@@ -226,10 +238,12 @@
       <img src="image-logo.jpeg" alt="Logo" />
     </div>
 
-    <label for="fileInput" class="gold-button">📁 Choose Video File(s)</label>
     <input type="file" id="fileInput" multiple accept="video/*" />
 
-    <button class="gold-button" onclick="uploadVideos()">Analyze</button>
+    <div class="file-buttons">
+      <label for="fileInput" class="gold-button">📁 Choose</label>
+      <button class="gold-button" onclick="uploadVideos()">Analyze</button>
+    </div>
 
     <div class="loader" id="loader"></div>
     <div class="progress-container" id="progressContainer">
@@ -299,6 +313,12 @@
       }
     }
 
+    document.getElementById("fileInput").addEventListener("change", function () {
+      if (this.files.length > 0) {
+        uploadVideos();
+      }
+    });
+
     function showResult(data) {
       const container = document.createElement("div");
       container.className = "spoiler";
@@ -359,13 +379,7 @@
       container.appendChild(content);
       document.getElementById("output").appendChild(container);
     }
-
-    // 🔁 Автоанализ после выбора файла
-    document.getElementById("fileInput").addEventListener("change", () => {
-      if (document.getElementById("fileInput").files.length > 0) {
-        uploadVideos();
-      }
-    });
   </script>
+
 </body>
 </html>
