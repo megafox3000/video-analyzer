@@ -157,15 +157,28 @@ function showResult(data) {
 
   // 📍 GPS Info
   if (gps.length > 0) {
-    card.innerHTML += `<h3>📍 GPS Coordinates</h3>`;
-    gps.forEach(tag => {
-      card.innerHTML += `
-        <p><strong>${tag.tag}</strong>: 
-        <a href="${tag.link}" target="_blank">${tag.lat}, ${tag.lon}</a><br>
-        <em>${tag.address}</em></p>
-      `;
-    });
+    
+// Временные GPS-данные для теста
+data.gps = [
+  {
+    tag: "location",
+    lat: 55.7558,
+    lon: 37.6173,
+    link: "https://maps.google.com/?q=55.7558,37.6173",
+    address: "Москва, Россия"
   }
+];
+
+if (data.gps?.length > 0) {
+  card.innerHTML += `<h3>📍 GPS Coordinates</h3>`;
+  data.gps.forEach(tag => {
+    card.innerHTML += `
+      <p><strong>${tag.tag}</strong>: 
+      <a href="${tag.link}" target="_blank">${tag.lat}, ${tag.lon}</a><br>
+      <em>${tag.address}</em></p>
+    `;
+  });
+}
 
   // 🧾 Raw JSON
   card.innerHTML += `<h3>🧾 Raw JSON</h3><pre>${JSON.stringify(data, null, 2)}</pre>`;
