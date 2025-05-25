@@ -4,49 +4,65 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Hife Video Analyzer</title>
-  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="icon" type="image/jpeg" href="image-logo.jpeg" />
   <style>
-    body, html {
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
       margin: 0;
       padding: 0;
       height: 100%;
+      width: 100%;
       font-family: 'Segoe UI', sans-serif;
-      background: url('image-bkgr.jpeg') center/cover no-repeat;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      align-items: center;
+      overflow: hidden;
     }
 
-   .start-button {
-  background: var(--gold-gradient);
-  color: #000;
-  border: none;
-  padding: 1rem 2rem;
-  border-radius: 50px;
-  font-size: 1.5rem;
-  font-weight: bold;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-  transition: all 0.3s ease;
-  animation: pulse 2s infinite;
-  position: static; /* default */
-  margin-top: 2rem;
+    body {
+      background: url('image-bkgr.jpeg') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
     }
+
+    .start-button {
+      background: linear-gradient(45deg, #FFD700, #FFA500);
+      color: #000;
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 50px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      animation: pulse 2s infinite;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s ease;
+      position: relative;
+      z-index: 2;
+    }
+
+    .start-button:hover {
+      transform: scale(1.05);
+    }
+
     @keyframes pulse {
       0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
+      50% { transform: scale(1.07); }
       100% { transform: scale(1); }
     }
 
-    @media (min-width: 768px) {
-      body {
-        justify-content: center;
+    @media(max-width: 768px) {
+      .start-button {
+        position: absolute;
+        bottom: 2rem;
       }
     }
   </style>
 </head>
 <body>
-  <button class="start-button" onclick="location.href='upload-video.html'">Start</button>
+  <button class="start-button" onclick="window.location.href='upload-video.html'">Start</button>
 </body>
 </html>
