@@ -52,28 +52,45 @@
   <button onclick="uploadVideo()">Analyze</button>
 
   <div id="output"></div>
-
+  <div id="loading" style="display:none">⏳ Analyzing video...</div>
+  <div id="error" style="display:none;color:red;margin-top:1rem"></div>
   <script>
-    async function uploadVideo() {
-      const file = document.getElementById("videoInput").files[0];
-      if (!file) return alert("Please select a file first.");
+   async function uploadVideo() {
+  const file = document.getElementById("videoInput").files[0];
+  if (!file) return alert("Please select a file first.");
 
-      const formData = new FormData();
-      formData.append("file", file);
+  const button = document.querySelector("button");
+  button.disabled = true;
 
-      document.getElementById("output").innerHTML = "<p>⏳ Analyzing...</p>";
+  document.getElementById("output").innerHTML = "";
+  document.getElementById("loading").style.display = "block";
+  document.getElementById("error").style.display = "none";
 
-      try {
-        const res = await fetch("https://video-meta-api.onrender.com/analyze", {
-          method: "POST",
-          body: formData
-        });
-        const data = await res.json();
-        showResult(data);
-      } catch (err) {
-        document.getElementById("output").innerHTML = `<p>❌ Error: ${err}</p>`;
-      }
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const res = await fetch("https://video-meta-api.onrender.com/analyze", {
+      method: "POST",
+      body: formData
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(err);
     }
+
+    const data = await res.json();
+    showResult(data);
+  } catch (err) {
+    document.getElementById("error").style.display = "block";
+    document.getElementById("error").textContent = "❌ Error: " + err.message;
+  } finally {
+    button.disabled = false;
+    document.getElementById("loading").style.display = "none";
+  }
+}
+
 
     function showResult(data) {
       const out = document.getElementById("output");
