@@ -36,22 +36,21 @@ body.fade-in {
 /* Стили для стартового экрана (index.html) */
 .start-screen {
     height: 100dvh;
-    /* Путь к фоновому изображению: из css/ подняться на ../ и зайти в assets/ */
     background: url('../assets/image-bkgr.jpeg') center/cover no-repeat;
-    background-size: cover; /* Убедимся, что изображение покрывает весь фон */
+    background-size: cover;
     display: flex;
-    flex-direction: column;
+    flex-direction: column; /* Важно: элементы располагаются в колонку */
     align-items: center; /* Центрирует содержимое по горизонтали */
     padding: 0 1rem;
     position: relative;
-    text-align: center; /* Центрируем текст */
+    text-align: center;
 }
 
 /* Медиа-запросы для стартового экрана */
 @media(max-width: 600px) {
     .start-screen {
         justify-content: flex-end; /* Перемещаем контент вниз на мобильных */
-        padding-bottom: 3rem; /* Отступ от низа */
+        padding-bottom: 4rem; /* Увеличиваем отступ от низа для мобильных */
     }
 }
 
@@ -64,31 +63,31 @@ body.fade-in {
 
 /* Стили для логотипа (если используется на index.html) */
 .logo {
-    width: 120px; /* Размер логотипа */
+    width: 120px;
     height: 120px;
-    border-radius: 50%; /* Круглый логотип */
-    object-fit: cover; /* Обрезка изображения для заполнения */
+    border-radius: 50%;
+    object-fit: cover;
     margin-bottom: 1.5rem;
-    box-shadow: 0 8px 20px var(--shadow-dark); /* Тень для логотипа */
+    box-shadow: 0 8px 20px var(--shadow-dark);
 }
 
 /* Стили для заголовка (если используется на index.html) */
 h1 {
     font-size: 3.5rem;
     margin-bottom: 0.5rem;
-    text-shadow: 2px 2px 8px var(--shadow-dark); /* Тень для текста */
-    background: var(--gold-gradient); /* Золотой градиент для текста */
+    text-shadow: 2px 2px 8px var(--shadow-dark);
+    background: var(--gold-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    color: transparent; /* Для Firefox/других браузеров */
+    color: transparent;
 }
 
 /* Стили для подзаголовка/слогана (если используется на index.html) */
-.tagline {
+.tagline { /* Этот класс теперь не используется в index.html */
     font-size: 1.5rem;
     margin-bottom: 2rem;
-    color: #E0E0E0; /* Более светлый серый для подзаголовка */
+    color: #E0E0E0;
     text-shadow: 1px 1px 4px var(--shadow-dark);
 }
 
@@ -98,17 +97,17 @@ h1 {
     color: var(--text-color-dark);
     border: none;
     padding: 0.9rem 2rem;
-    border-radius: 25px;
+    border-radius: 25px; /* Общий радиус для обычных кнопок */
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    margin: 1rem; /* Общий отступ */
-    animation: pulse 2s infinite; /* Анимация пульсации */
+    margin: 1rem;
+    animation: pulse 2s infinite;
     font-size: 1.2rem;
-    text-decoration: none; /* Убираем подчеркивание у ссылки */
-    display: inline-block; /* Делаем ссылку блочным элементом для применения padding/margin */
-    min-width: 200px; /* Минимальная ширина кнопки */
+    text-decoration: none;
+    display: inline-block;
+    min-width: 200px;
 }
 
 /* Эффект при наведении на кнопку */
@@ -127,11 +126,11 @@ h1 {
 /* Медиа-запросы для адаптивности на маленьких экранах (общие) */
 @media(max-width: 768px) {
     h1 {
-        font-size: 2.5rem; /* Уменьшаем размер заголовка */
+        font-size: 2.5rem;
     }
 
     .tagline {
-        font-size: 1.2rem; /* Уменьшаем размер подзаголовка */
+        font-size: 1.2rem;
     }
 
     .logo {
@@ -151,28 +150,26 @@ h1 {
 
 /* НОВЫЕ СТИЛИ: Круглая кнопка "Start" */
 .start-button-circle {
-    width: 150px; /* Фиксированный размер для круга */
+    width: 150px;
     height: 150px;
-    border-radius: 50%; /* Делает его круглым */
-    padding: 0; /* Убираем padding от gold-button */
-    min-width: 0; /* Убираем min-width от gold-button */
-    display: flex; /* Для центрирования текста внутри */
+    border-radius: 50% !important; /* !important для гарантии круглой формы */
+    padding: 0;
+    min-width: 0; /* Убираем min-width, чтобы не мешал круглой форме */
+    display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.8rem; /* Увеличиваем размер шрифта для круга */
-    text-decoration: none; /* Убираем подчеркивание у ссылки */
-    margin-top: auto; /* Прижимает к низу в flex-контейнере */
-    margin-bottom: 3rem; /* Отступ от нижнего края */
+    font-size: 1.8rem;
+    text-decoration: none;
+    /* Убираем специфические margin, чтобы родитель .start-screen управлял позицией */
+    margin: 0; /* Перезаписываем margin от .gold-button */
 }
 
 /* Адаптивность для круглой кнопки "Start" на мобильных */
 @media(max-width: 600px) {
     .start-button-circle {
-        width: 120px; /* Меньший размер для мобильных */
+        width: 120px;
         height: 120px;
         font-size: 1.5rem;
-        margin-top: auto; /* Убедимся, что прижимается к низу */
-        margin-bottom: 2rem; /* Отступ от низа экрана на мобильных */
     }
 }
 
@@ -181,11 +178,10 @@ h1 {
 
 .background {
     min-height: 100dvh;
-    /* Добавляем фоновое изображение и затемнение */
     background: url('../assets/image-bkgr.jpeg') center/cover no-repeat;
-    background-size: cover; /* Убедимся, что изображение покрывает весь фон */
-    position: relative; /* Важно для позиционирования псевдоэлемента */
-    z-index: 0; /* Убедимся, что фон находится позади контента */
+    background-size: cover;
+    position: relative;
+    z-index: 0;
 
     display: flex;
     flex-direction: column;
@@ -203,8 +199,8 @@ h1 {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Черный цвет с прозрачностью 50% */
-    z-index: -1; /* Помещаем затемнение под содержимое */
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: -1;
 }
 
 
@@ -218,10 +214,10 @@ h1 {
 .social-form {
     display: flex;
     flex-direction: column;
-    gap: 1rem; /* Пространство между полями */
+    gap: 1rem;
     margin-bottom: 2rem;
     width: 100%;
-    max-width: 400px; /* Ограничиваем ширину формы */
+    max-width: 400px;
 }
 
 .social-form input[type="text"],
@@ -238,13 +234,13 @@ h1 {
 
 .social-form input[type="text"]:focus,
 .social-form input[type="email"]:focus {
-    border-color: #FFD700; /* Золотая рамка при фокусе */
+    border-color: #FFD700;
 }
 
 /* Стиль для поля ввода Instagram при ошибке */
 .social-form input[type="text"][style*="border-color: red"],
 .social-form input[type="email"][style*="border-color: red"] {
-    border-color: red !important; /* Убедимся, что стиль применяется */
+    border-color: red !important;
     box-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
 }
 
@@ -252,10 +248,8 @@ h1 {
 /* Стиль для кнопки загрузки (upload-label теперь является кнопкой) */
 .upload-label {
     cursor: pointer;
-    /* Использует стили .gold-button */
-    width: 100%; /* Чтобы label занимал всю ширину контейнера */
+    width: 100%;
     text-align: center;
-    /* Убираем анимацию пульсации, если она мешает в отключенном состоянии */
     animation: none;
 }
 
@@ -263,12 +257,12 @@ h1 {
 .upload-label.disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    background: #555; /* Более темный фон для отключенного состояния */
+    background: #555;
     box-shadow: none;
 }
 
 .upload-label.disabled:hover {
-    transform: none; /* Убираем эффект наведения */
+    transform: none;
     box-shadow: none;
 }
 
@@ -282,10 +276,10 @@ h1 {
 /* Новый стиль для списка видеоинформации */
 .video-info-list {
     width: 100%;
-    max-width: 600px; /* Увеличим ширину для списка видео */
+    max-width: 600px;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem; /* Пространство между отдельными блоками видео */
+    gap: 1.5rem;
     margin-top: 2rem;
 }
 
@@ -300,7 +294,7 @@ h1 {
 
 
 .spoiler-btn {
-    background: #333; /* Изначальный темный фон кнопки */
+    background: #333;
     color: #fff;
     border: none;
     padding: 0.8rem 1.5rem;
@@ -311,21 +305,21 @@ h1 {
     align-items: center;
     gap: 0.5rem;
     transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
-    width: 100%; /* Кнопка занимает всю ширину контейнера */
-    justify-content: center; /* Центрируем содержимое кнопки */
+    width: 100%;
+    justify-content: center;
 
-    position: relative; /* Для позиционирования псевдоэлемента */
-    overflow: hidden; /* Обрезаем заливку по краям кнопки */
-    z-index: 0; /* Убедимся, что содержимое кнопки поверх заливки */
+    position: relative;
+    overflow: hidden;
+    z-index: 0;
 }
 
 /* Стиль для иконки внутри кнопки спойлера */
 .spoiler-btn .spoiler-icon {
-    width: 24px; /* Размер иконки */
+    width: 24px;
     height: 24px;
-    margin-right: 0.5rem; /* Отступ от текста */
-    object-fit: contain; /* Чтобы изображение не обрезалось */
-    filter: invert(100%) brightness(150%); /* Делаем иконку светлой, если она темная */
+    margin-right: 0.5rem;
+    object-fit: contain;
+    filter: invert(100%) brightness(150%);
 }
 
 
@@ -335,62 +329,60 @@ h1 {
     position: absolute;
     top: 0;
     left: 0;
-    width: var(--upload-progress, 0%); /* Ширина управляется JS */
+    width: var(--upload-progress, 0%);
     height: 100%;
-    background: var(--gold-gradient); /* Золотой градиент для заливки */
-    transition: width 0.1s linear; /* Плавная анимация заливки */
-    z-index: -1; /* Помещаем заливку под содержимое кнопки */
-    border-radius: inherit; /* Наследуем скругление углов от кнопки */
+    background: var(--gold-gradient);
+    transition: width 0.1s linear;
+    z-index: -1;
+    border-radius: inherit;
 }
 
 /* Стили для текста/иконки внутри кнопки спойлера */
 .spoiler-btn span {
-    position: relative; /* Чтобы текст был поверх псевдоэлемента */
+    position: relative;
     z-index: 1;
-    color: #fff; /* Изначальный цвет текста */
-    transition: color 0.3s ease; /* Плавный переход цвета текста */
+    color: #fff;
+    transition: color 0.3s ease;
 }
 
 
 .spoiler-btn:hover {
-    transform: scale(1.01); /* Немного увеличим при наведении */
+    transform: scale(1.01);
 }
 
 /* Стили для кнопки спойлера после успешной загрузки (финальное состояние) */
 .loaded-spoiler-btn {
-    /* Эти стили будут применяться поверх прогрессивной заливки, когда она достигнет 100% */
-    /* background: var(--gold-gradient); // Этот фон уже будет установлен через ::before с width: 100% */
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4); /* Сильная тень */
-    animation: pulse 2s infinite; /* Анимация пульсации */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    animation: pulse 2s infinite;
 }
 
 /* Цвет текста для золотой кнопки спойлера */
 .loaded-spoiler-btn span {
-    color: var(--text-color-dark); /* Темный текст на золотом фоне */
+    color: var(--text-color-dark);
 }
 
 /* Эффект при наведении на золотую кнопку спойлера */
 .loaded-spoiler-btn:hover {
-    transform: scale(1.02); /* Чуть большее увеличение при наведении */
-    box-shadow: 0 6px 18px var(--shadow-dark); /* Усиленная тень */
-    background: linear-gradient(45deg, #FFC700, #EEA500); /* Чуть более светлый градиент при наведении */
+    transform: scale(1.02);
+    box-shadow: 0 6px 18px var(--shadow-dark);
+    background: linear-gradient(45deg, #FFC700, #EEA500);
 }
 
 
 .spoiler-content {
-    background: #222; /* Фон для содержимого спойлера */
-    border: 1px solid #444; /* Граница для содержимого спойлера */
+    background: #222;
+    border: 1px solid #444;
     border-radius: 10px;
-    padding: 0; /* Изначально 0 padding */
+    padding: 0;
     margin-top: 1rem;
-    max-height: 0; /* Изначально скрыто */
+    max-height: 0;
     overflow: hidden;
     transition: max-height 0.5s ease-out, padding 0.5s ease-out;
 }
 
 .spoiler-content.visible {
-    max-height: 500px; /* Достаточно большое значение для раскрытия */
-    padding: 1rem; /* Появляется padding при раскрытии */
+    max-height: 500px;
+    padding: 1rem;
 }
 
 /* Класс для скрытия элементов визуально, но сохранения для скрин-ридеров */
@@ -425,16 +417,206 @@ h1 {
     background-color: var(--gold-gradient);
     width: 0%;
     border-radius: 5px;
-    transition: width 0.1s ease-out; /* Плавное изменение ширины */
+    transition: width 0.1s ease-out;
     position: absolute;
     left: 0;
     top: 0;
 }
 
 .progress-text {
-    position: relative; /* Чтобы текст был поверх бара */
-    color: var(--text-color-dark); /* Цвет текста на баре */
+    position: relative;
+    color: var(--text-color-dark);
     font-weight: bold;
     font-size: 0.9rem;
-    z-index: 1; /* Убедимся, что текст виден */
+    z-index: 1;
+}
+
+/* --- Стили для результатов (results.html) --- */
+
+.header-section {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-top: 2rem;
+    width: 100%;
+    max-width: 800px;
+}
+
+.header-section h2 {
+    font-size: 2.5rem;
+    background: var(--gold-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 2px 2px 8px var(--shadow-dark);
+}
+
+.header-section p {
+    font-size: 1.2rem;
+    color: #E0E0E0;
+    margin-top: 0.5rem;
+}
+
+#uploadNewBtn {
+    margin-top: 1.5rem;
+    animation: none; /* Убираем пульсацию для этой кнопки */
+}
+
+/* Контейнер для "пузырей" */
+.bubbles-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 2rem;
+    padding: 2rem;
+    width: 100%;
+    max-width: 1200px;
+}
+
+/* Стили для отдельного "пузыря" видео */
+.video-bubble {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: var(--gold-gradient);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: var(--text-color-dark);
+    font-weight: bold;
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.video-bubble:hover {
+    transform: scale(1.1);
+    box-shadow: 0 12px 25px rgba(0,0,0,0.6);
+}
+
+.video-bubble .bubble-text {
+    word-wrap: break-word;
+    max-width: 90%;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Адаптивность для пузырей */
+@media (max-width: 768px) {
+    .video-bubble {
+        width: 120px;
+        height: 120px;
+        font-size: 0.8rem;
+    }
+    .bubbles-container {
+        gap: 1.5rem;
+    }
+    .header-section h2 {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .video-bubble {
+        width: 100px;
+        height: 100px;
+        font-size: 0.7rem;
+    }
+    .bubbles-container {
+        gap: 1rem;
+        padding: 1rem;
+    }
+    .header-section h2 {
+        font-size: 1.8rem;
+    }
+    .header-section p {
+        font-size: 1rem;
+    }
+}
+
+/* --- Стили для модального окна --- */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.8);
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+.modal.visible {
+    display: flex;
+}
+
+.modal-content {
+    background-color: #222;
+    margin: auto;
+    padding: 2rem;
+    border: 1px solid #444;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 700px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+    position: relative;
+    color: #f0f0f0;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-content h4 {
+    color: var(--gold-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    text-shadow: 1px 1px 4px var(--shadow-dark);
+}
+
+.modal-content pre {
+    background-color: #1a1a1a;
+    padding: 1rem;
+    border-radius: 5px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: #b0b0b0;
+    border: 1px solid #333;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 2.5rem;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: #FFD700;
+    text-decoration: none;
+    cursor: pointer;
 }
