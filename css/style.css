@@ -249,15 +249,25 @@ h1 {
     color: #c0c0c0;
 }
 
-.video-info-container {
+/* Новый стиль для списка видеоинформации */
+.video-info-list {
     width: 100%;
-    max-width: 400px;
+    max-width: 600px; /* Увеличим ширину для списка видео */
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem; /* Пространство между отдельными блоками видео */
     margin-top: 2rem;
 }
 
-.video-info-container.hidden {
-    display: none; /* Скрывает контейнер полностью */
+/* Стиль для отдельного элемента информации о видео */
+.video-info-item {
+    background: #222;
+    border: 1px solid #444;
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
+
 
 .spoiler-btn {
     background: #333;
@@ -280,8 +290,8 @@ h1 {
 }
 
 .spoiler-content {
-    background: #222;
-    border: 1px solid #444;
+    background: #222; /* Фон для содержимого спойлера */
+    border: 1px solid #444; /* Граница для содержимого спойлера */
     border-radius: 10px;
     padding: 0; /* Изначально 0 padding */
     margin-top: 1rem;
@@ -306,4 +316,37 @@ h1 {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border-width: 0;
+}
+
+/* Стили для прогресс-бара */
+.progress-bar-container {
+    width: 100%;
+    background-color: #444;
+    border-radius: 5px;
+    margin-top: 1rem;
+    height: 20px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--gold-gradient);
+    width: 0%;
+    border-radius: 5px;
+    transition: width 0.1s ease-out; /* Плавное изменение ширины */
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.progress-text {
+    position: relative; /* Чтобы текст был поверх бара */
+    color: var(--text-color-dark); /* Цвет текста на баре */
+    font-weight: bold;
+    font-size: 0.9rem;
+    z-index: 1; /* Убедимся, что текст виден */
 }
