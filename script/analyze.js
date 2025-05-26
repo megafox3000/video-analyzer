@@ -43,6 +43,10 @@ async function uploadVideos(files) {
         spoilerBtn.id = `spoilerBtn-${i}`;
         spoilerBtn.innerHTML = `📁 <span id="fileName-${i}">${file.name} Metadata</span>`;
 
+        // Изначально устанавливаем CSS-переменную для прогресса в 0%
+        spoilerBtn.style.setProperty('--upload-progress', '0%');
+
+
         const progressBarContainer = document.createElement('div');
         progressBarContainer.classList.add('progress-bar-container');
         const progressBar = document.createElement('div');
@@ -78,6 +82,9 @@ async function uploadVideos(files) {
                     progressBar.style.width = percent + "%";
                     progressText.textContent = `${percent}%`;
                     uploadStatus.textContent = `Uploading ${file.name}: ${percent}%`;
+
+                    // *** ИЗМЕНЕНИЕ ЗДЕСЬ: Обновляем CSS-переменную для заливки кнопки ***
+                    spoilerBtn.style.setProperty('--upload-progress', `${percent}%`);
                 }
             };
 
@@ -85,9 +92,14 @@ async function uploadVideos(files) {
                 progressBarContainer.style.display = "none"; // Скрываем прогресс-бар после завершения
                 uploadStatus.textContent = `Finished processing ${file.name}.`;
 
+                // Убедимся, что заливка завершена на 100%
+                spoilerBtn.style.setProperty('--upload-progress', '100%');
+                // *** ИЗМЕНЕНИЕ ЗДЕСЬ: Добавляем класс для финального золотого стиля (с пульсацией) ***
+                spoilerBtn.classList.add('loaded-spoiler-btn');
+
                 if (xhr.status === 200) {
                     const data = JSON.parse(xhr.responseText);
-                    showResult(data, metadataContent, spoilerBtn.querySelector('span')); // Передаем элементы для обновления
+                    showResult(data, metadataContent, spoilerBtn.querySelector('span'));
                 } else {
                     metadataContent.innerHTML = `<p style="color: red;">Upload failed for file: ${file.name}. Status: ${xhr.status}</p>`;
                     alert("Upload failed for file: " + file.name); // Используйте модальное окно вместо alert
@@ -176,7 +188,6 @@ function showResult(data, targetMetadataContent, targetFileNameSpan) {
     targetMetadataContent.innerHTML = ''; // Очищаем перед добавлением
     targetMetadataContent.appendChild(contentPre);
 
-    // *** НЕТ АВТОМАТИЧЕСКОГО ОТКРЫТИЯ СПОЙЛЕРА ЗДЕСЬ ***
     // Спойлер останется закрытым, пока пользователь не кликнет
     targetFileNameSpan.textContent = '📁 ' + data.filename + ' Metadata'; // Убедимся, что иконка закрыта
 }
