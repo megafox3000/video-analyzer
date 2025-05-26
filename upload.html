@@ -24,15 +24,13 @@
         </form>
 
         <div class="upload-container">
-            <input type="file" id="videoUpload" accept="video/*" hidden />
-            <label for="videoUpload" class="gold-button upload-label">Upload Video</label>
+            <input type="file" id="videoUpload" accept="video/*" multiple hidden />
+            <label for="videoUpload" class="gold-button upload-label">Upload Video(s)</label>
             <p id="uploadStatus" class="status-message"></p>
         </div>
 
-        <div id="videoInfo" class="video-info-container hidden">
-            <button id="spoilerBtn" class="spoiler-btn">📁 <span id="fileName">Video Metadata</span></button>
-            <div id="metadataContent" class="spoiler-content"></div>
-        </div>
+        <div id="videoInfoList" class="video-info-list">
+            </div>
     </div>
 
     <script src="script/analyze.js"></script>
