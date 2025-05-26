@@ -84,6 +84,64 @@ async function getVideosByIDs(ids) {
     });
 }
 
+// Вспомогательная функция для форматирования метаданных
+function formatMetadataForDisplay(metadata) {
+    const lines = [];
+
+    lines.push(`File Name: ${metadata.format?.filename || 'N/A'}`);
+    lines.push(`File Size: ${metadata.format?.size ? Math.round(metadata.format.size / 1024) + ' kB' : 'N/A'}`);
+    lines.push(`Duration: ${metadata.format?.duration ? parseFloat(metadata.format.duration).toFixed(2) + ' seconds' : 'N/A'}`);
+    lines.push(`Bit Rate: ${metadata.format?.bit_rate ? Math.round(metadata.format.bit_rate / 1000) + ' kb/s' : 'N/A'}`);
+    lines.push(`Format Name: ${metadata.format?.format_name || 'N/A'}`);
+    lines.push(`Start Time: ${metadata.format?.start_time || 'N/A'}`);
+    lines.push(`Probe Score: ${metadata.format?.probe_score || 'N/A'}`);
+    lines.push(`Tags:`);
+    if (metadata.format?.tags && Object.keys(metadata.format.tags).length > 0) {
+        for (const tag in metadata.format.tags) {
+            lines.push(`  ${tag}: ${metadata.format.tags[tag]}`);
+        }
+    } else {
+        lines.push(`  No format tags.`);
+    }
+
+    if (metadata.streams && metadata.streams.length > 0) {
+        metadata.streams.forEach((stream, i) => {
+            lines.push(`\n--- Stream #${i} ---`);
+            lines.push(`Codec Name: ${stream.codec_name || 'N/A'}`);
+            lines.push(`Codec Type: ${stream.codec_type || 'N/A'}`);
+            if (stream.width && stream.height) {
+                lines.push(`Resolution: ${stream.width}x${stream.height}`);
+            }
+            if (stream.avg_frame_rate) {
+                lines.push(`Frame Rate: ${stream.avg_frame_rate}`);
+            }
+            if (stream.bit_rate) {
+                lines.push(`Stream Bit Rate: ${Math.round(stream.bit_rate / 1000)} kb/s`);
+            }
+            lines.push(`Stream Tags:`);
+            if (stream.tags && Object.keys(stream.tags).length > 0) {
+                for (const tag in stream.tags) {
+                    lines.push(`  ${tag}: ${stream.tags[tag]}`);
+                }
+            } else {
+                lines.push(`  No stream tags.`);
+            }
+        });
+    }
+
+    if (metadata.gps && metadata.gps.length > 0) {
+        lines.push("\n--- GPS Data ---");
+        metadata.gps.forEach(gps => {
+            lines.push(`GPS Tag: ${gps.tag}`);
+            lines.push(`Location: ${gps.lat}, ${gps.lon}`);
+            if (gps.address) lines.push(`Address: ${gps.address}`);
+        });
+    }
+
+    return lines.join('\n');
+}
+
+
 // Функция для загрузки и отображения видео
 async function loadAndDisplayVideos() {
     // Получаем параметры из URL
@@ -136,52 +194,7 @@ async function loadAndDisplayVideos() {
 // --- Функции для управления модальным окном ---
 function openModal(title, metadata) {
     modalTitle.textContent = title;
-    // Форматируем метаданные для отображения в pre-теге
-    let formattedMetadata = '';
-    if (metadata) {
-        // Пример форматирования, можно улучшить
-        formattedMetadata += `File Name: ${metadata.format?.filename || 'N/A'}\n`;
-        formattedMetadata += `File Size: ${Math.round(metadata.format?.size / 1024)} kB\n`;
-        formattedMetadata += `Duration: ${metadata.format?.duration ? parseFloat(metadata.format.duration).toFixed(2) + ' seconds' : 'N/A'}\n`;
-        formattedMetadata += `Bit Rate: ${metadata.format?.bit_rate ? Math.round(metadata.format.bit_rate / 1000) + ' kb/s' : 'N/A'}\n`;
-        
-        if (metadata.format?.tags) {
-            formattedMetadata += "\n--- Format Tags ---\n";
-            for (const tag in metadata.format.tags) {
-                formattedMetadata += `${tag}: ${metadata.format.tags[tag]}\n`;
-            }
-        }
-
-        if (metadata.streams && metadata.streams.length > 0) {
-            metadata.streams.forEach((stream, i) => {
-                formattedMetadata += `\n--- Stream #${i} ---\n`;
-                for (const key in stream) {
-                    if (typeof stream[key] !== "object" && key !== "tags") {
-                        formattedMetadata += `${key}: ${stream[key]}\n`;
-                    }
-                }
-                if (stream.tags) {
-                    formattedMetadata += `  Stream #${i} Tags:\n`;
-                    for (const tag in stream.tags) {
-                        formattedMetadata += `  ${tag}: ${stream.tags[tag]}\n`;
-                    }
-                }
-            });
-        }
-
-        if (metadata.gps && metadata.gps.length > 0) {
-            formattedMetadata += "\n--- GPS Data ---\n";
-            metadata.gps.forEach(gps => {
-                formattedMetadata += `GPS Tag: ${gps.tag}\n`;
-                formattedMetadata += `Location: ${gps.lat}, ${gps.lon}\n`;
-                if (gps.address) formattedMetadata += `Address: ${gps.address}\n`;
-            });
-        }
-
-    } else {
-        formattedMetadata = 'No metadata available.';
-    }
-    modalMetadata.textContent = formattedMetadata;
+    modalMetadata.textContent = formatMetadataForDisplay(metadata); // Используем новую функцию форматирования
     metadataModal.classList.add('visible'); // Показываем модальное окно
 }
 
