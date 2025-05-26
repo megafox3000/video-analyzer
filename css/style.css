@@ -1,42 +1,291 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Upload Video - Hife Video Analyzer</title>
-    <link rel="stylesheet" href="css/style.css" />
-    <link rel="icon" type="image/png" href="assets/favicon.png" />
-    <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script src="https://accounts.google.com/gsi/client" onload="gsiLoaded()"></script>
-</head>
-<body class="fade-in">
-    <div class="background">
-        <h3>Connect Your Socials (Optional)</h3>
-        <form class="social-form">
-            <label for="instagramInput" class="sr-only">Instagram Username</label>
-            <input type="text" id="instagramInput" placeholder="Instagram" name="instagram"/>
+/* Переменные для цветов и градиентов */
+:root {
+    --gold-gradient: linear-gradient(45deg, #FFD700, #FFA500);
+    --text-color-dark: #000;
+    --text-color-light: #fff;
+    --background-color-dark: #000;
+    --shadow-light: rgba(0,0,0,0.3);
+    --shadow-dark: rgba(0,0,0,0.4);
+}
 
-            <label for="linkedinInput" class="sr-only">LinkedIn Profile URL</label>
-            <input type="text" id="linkedinInput" placeholder="LinkedIn" name="linkedin"/>
+/* Общие сбросы и базовые стили */
+* {
+    box-sizing: border-box;
+}
 
-            <label for="emailInput" class="sr-only">Email Address</label>
-            <input type="email" id="emailInput" placeholder="Email" name="email"/>
+html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', sans-serif; /* Хороший выбор шрифта */
+    background: var(--background-color-dark);
+    color: var(--text-color-light);
+    scroll-behavior: smooth; /* Плавная прокрутка */
+    overflow-x: hidden; /* Предотвращает горизонтальную прокрутку */
+}
 
-            <button type="submit" class="gold-button social-form-submit-btn">Save Socials</button>
-        </form>
+/* Анимация появления страницы */
+body.fade-in {
+    animation: fadeIn 2s ease-in forwards;
+}
 
-        <div class="upload-container">
-            <input type="file" id="videoUpload" accept="video/*" hidden />
-            <label for="videoUpload" class="gold-button upload-label">Upload Video</label>
-            <p id="uploadStatus" class="status-message"></p>
-        </div>
+@keyframes fadeIn {
+    0% { opacity: 0; background: var(--background-color-dark); }
+    100% { opacity: 1; background: var(--background-color-dark); }
+}
 
-        <div id="videoInfo" class="video-info-container hidden">
-            <button id="spoilerBtn" class="spoiler-btn">📁 <span id="fileName">Video Metadata</span></button>
-            <div id="metadataContent" class="spoiler-content"></div>
-        </div>
-    </div>
+/* Стили для стартового экрана (index.html) */
+.start-screen {
+    height: 100dvh;
+    /* Путь к фоновому изображению: из css/ подняться на ../ и зайти в assets/ */
+    background: url('../assets/image-bkgr.jpeg') center/cover no-repeat;
+    background-size: cover; /* Убедимся, что изображение покрывает весь фон */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0 1rem;
+    position: relative;
+    text-align: center; /* Центрируем текст */
+}
 
-    <script src="script/analyze.js"></script>
-</body>
-</html>
+/* Стили для логотипа (если используется на index.html) */
+.logo {
+    width: 120px; /* Размер логотипа */
+    height: 120px;
+    border-radius: 50%; /* Круглый логотип */
+    object-fit: cover; /* Обрезка изображения для заполнения */
+    margin-bottom: 1.5rem;
+    box-shadow: 0 8px 20px var(--shadow-dark); /* Тень для логотипа */
+}
+
+/* Стили для заголовка (если используется на index.html) */
+h1 {
+    font-size: 3.5rem;
+    margin-bottom: 0.5rem;
+    text-shadow: 2px 2px 8px var(--shadow-dark); /* Тень для текста */
+    background: var(--gold-gradient); /* Золотой градиент для текста */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent; /* Для Firefox/других браузеров */
+}
+
+/* Стили для подзаголовка/слогана (если используется на index.html) */
+.tagline {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    color: #E0E0E0; /* Более светлый серый для подзаголовка */
+    text-shadow: 1px 1px 4px var(--shadow-dark);
+}
+
+/* Стили для "золотой" кнопки (общие для index.html и upload.html) */
+.gold-button {
+    background: var(--gold-gradient);
+    color: var(--text-color-dark);
+    border: none;
+    padding: 0.9rem 2rem;
+    border-radius: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px var(--shadow-light);
+    margin: 1rem;
+    animation: pulse 2s infinite; /* Анимация пульсации */
+    font-size: 1.2rem;
+    text-decoration: none; /* Убираем подчеркивание у ссылки */
+    display: inline-block; /* Делаем ссылку блочным элементом для применения padding/margin */
+    min-width: 200px; /* Минимальная ширина кнопки */
+}
+
+/* Эффект при наведении на кнопку */
+.gold-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 18px var(--shadow-dark);
+}
+
+/* Анимация пульсации для кнопки */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Медиа-запросы для адаптивности на маленьких экранах (общие) */
+@media(max-width: 768px) {
+    h1 {
+        font-size: 2.5rem; /* Уменьшаем размер заголовка */
+    }
+
+    .tagline {
+        font-size: 1.2rem; /* Уменьшаем размер подзаголовка */
+    }
+
+    .logo {
+        width: 100px;
+        height: 100px;
+    }
+}
+
+@media(max-width: 600px) {
+    .start-screen {
+        justify-content: flex-end; /* Перемещаем контент вниз на мобильных */
+        padding-bottom: 3rem;
+    }
+
+    .gold-button {
+        width: 90%; /* Кнопка занимает почти всю ширину */
+        max-width: 300px; /* Ограничиваем максимальную ширину */
+        font-size: 1.3rem;
+        padding: 1rem;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .tagline {
+        font-size: 1rem;
+    }
+}
+
+@media(max-width: 400px) {
+    h1 {
+        font-size: 1.8rem;
+    }
+    .tagline {
+        font-size: 0.9rem;
+    }
+}
+
+/* --- Стили для upload.html --- */
+
+.background {
+    min-height: 100dvh;
+    background: #1a1a1a; /* Темный фон для страницы загрузки */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #fff;
+}
+
+.background h3 {
+    font-size: 1.8rem;
+    color: #FFD700;
+    margin-bottom: 1.5rem;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+}
+
+.social-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem; /* Пространство между полями */
+    margin-bottom: 2rem;
+    width: 100%;
+    max-width: 400px; /* Ограничиваем ширину формы */
+}
+
+.social-form input[type="text"],
+.social-form input[type="email"] {
+    padding: 0.8rem 1.2rem;
+    border: 1px solid #555;
+    border-radius: 25px;
+    background: #2a2a2a;
+    color: #fff;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+.social-form input[type="text"]:focus,
+.social-form input[type="email"]:focus {
+    border-color: #FFD700; /* Золотая рамка при фокусе */
+}
+
+.social-form-submit-btn {
+    margin-top: 1rem;
+    /* Использует стили .gold-button */
+}
+
+.upload-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    width: 100%;
+    max-width: 400px;
+}
+
+.upload-label {
+    cursor: pointer;
+    /* Использует стили .gold-button */
+    width: 100%; /* Чтобы label занимал всю ширину контейнера */
+    text-align: center;
+}
+
+.status-message {
+    margin-top: 1rem;
+    font-size: 1rem;
+    color: #c0c0c0;
+}
+
+.video-info-container {
+    width: 100%;
+    max-width: 400px;
+    margin-top: 2rem;
+}
+
+.video-info-container.hidden {
+    display: none; /* Скрывает контейнер полностью */
+}
+
+.spoiler-btn {
+    background: #333;
+    color: #fff;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background 0.3s ease;
+    width: 100%; /* Кнопка занимает всю ширину контейнера */
+    justify-content: center; /* Центрируем содержимое кнопки */
+}
+
+.spoiler-btn:hover {
+    background: #555;
+}
+
+.spoiler-content {
+    background: #222;
+    border: 1px solid #444;
+    border-radius: 10px;
+    padding: 0; /* Изначально 0 padding */
+    margin-top: 1rem;
+    max-height: 0; /* Изначально скрыто */
+    overflow: hidden;
+    transition: max-height 0.5s ease-out, padding 0.5s ease-out;
+}
+
+.spoiler-content.visible {
+    max-height: 500px; /* Достаточно большое значение для раскрытия */
+    padding: 1rem; /* Появляется padding при раскрытии */
+}
+
+/* Класс для скрытия элементов визуально, но сохранения для скрин-ридеров */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
