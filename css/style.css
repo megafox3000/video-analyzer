@@ -41,12 +41,26 @@ body.fade-in {
     background-size: cover; /* Убедимся, что изображение покрывает весь фон */
     display: flex;
     flex-direction: column;
-    justify-content: center; /* Это центрирует содержимое по вертикали */
-    align-items: center; /* Это центрирует содержимое по горизонтали */
+    align-items: center; /* Центрирует содержимое по горизонтали */
     padding: 0 1rem;
     position: relative;
     text-align: center; /* Центрируем текст */
 }
+
+/* Медиа-запросы для стартового экрана */
+@media(max-width: 600px) {
+    .start-screen {
+        justify-content: flex-end; /* Перемещаем контент вниз на мобильных */
+        padding-bottom: 3rem; /* Отступ от низа */
+    }
+}
+
+@media(min-width: 601px) {
+    .start-screen {
+        justify-content: center; /* Центрируем контент по вертикали на десктопе */
+    }
+}
+
 
 /* Стили для логотипа (если используется на index.html) */
 .logo {
@@ -89,7 +103,7 @@ h1 {
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    margin: 1rem;
+    margin: 1rem; /* Общий отступ */
     animation: pulse 2s infinite; /* Анимация пульсации */
     font-size: 1.2rem;
     text-decoration: none; /* Убираем подчеркивание у ссылки */
@@ -126,64 +140,6 @@ h1 {
     }
 }
 
-@media(max-width: 600px) {
-    .start-screen {
-        justify-content: flex-end; /* Перемещаем контент вниз на мобильных */
-        padding-bottom: 3rem;
-    }
-
-    .gold-button {
-        width: 90%; /* Кнопка занимает почти всю ширину */
-        max-width: 300px; /* Ограничиваем максимальную ширину */
-        font-size: 1.3rem;
-        padding: 1rem;
-    }
-
-    h1 {
-        font-size: 2rem;
-    }
-
-    .tagline {
-        font-size: 1rem;
-    }
-
-    /* Стили для кнопки загрузки в мобильной версии (как было ранее) */
-    .upload-container {
-        position: fixed;
-        bottom: 2rem;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 90%;
-        max-width: 300px;
-        margin-bottom: 0;
-        z-index: 100;
-        background-color: transparent;
-        box-shadow: none;
-    }
-
-    .upload-label {
-        width: 100%;
-    }
-
-    .upload-container .status-message {
-        display: none;
-    }
-
-    /* Стили: центрирование заголовка "Connect Your Socials" на мобильных */
-    .background h3 {
-        text-align: center;
-    }
-}
-
-/* Стили для кнопки "Start" на стартовом экране для больших экранов */
-@media(min-width: 601px) {
-    .start-screen .gold-button {
-        margin-top: auto; /* Прижимает кнопку к низу flex-контейнера */
-        margin-bottom: 3rem; /* Добавляем отступ от самого низа экрана */
-    }
-}
-
-
 @media(max-width: 400px) {
     h1 {
         font-size: 1.8rem;
@@ -192,6 +148,34 @@ h1 {
         font-size: 0.9rem;
     }
 }
+
+/* НОВЫЕ СТИЛИ: Круглая кнопка "Start" */
+.start-button-circle {
+    width: 150px; /* Фиксированный размер для круга */
+    height: 150px;
+    border-radius: 50%; /* Делает его круглым */
+    padding: 0; /* Убираем padding от gold-button */
+    min-width: 0; /* Убираем min-width от gold-button */
+    display: flex; /* Для центрирования текста внутри */
+    justify-content: center;
+    align-items: center;
+    font-size: 1.8rem; /* Увеличиваем размер шрифта для круга */
+    text-decoration: none; /* Убираем подчеркивание у ссылки */
+    margin-top: auto; /* Прижимает к низу в flex-контейнере */
+    margin-bottom: 3rem; /* Отступ от нижнего края */
+}
+
+/* Адаптивность для круглой кнопки "Start" на мобильных */
+@media(max-width: 600px) {
+    .start-button-circle {
+        width: 120px; /* Меньший размер для мобильных */
+        height: 120px;
+        font-size: 1.5rem;
+        margin-top: auto; /* Убедимся, что прижимается к низу */
+        margin-bottom: 2rem; /* Отступ от низа экрана на мобильных */
+    }
+}
+
 
 /* --- Стили для upload.html --- */
 
