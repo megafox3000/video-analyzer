@@ -1,45 +1,207 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Upload Video - Hife Video Analyzer</title>
-    <link rel="stylesheet" href="css/style.css" />
-    <link rel="icon" type="image/png" href="assets/favicon.png" />
-    <!-- Или, если вы используете image-logo.jpeg как фавикон, то так:
-    <link rel="icon" type="image/jpeg" href="assets/image-logo.jpeg" />
-    -->
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script src="https://accounts.google.com/gsi/client"></script>
-</head>
-<body class="fade-in">
-    <div class="background">
-        <h3>Connect Your Socials (Optional)</h3>
-        <form class="social-form">
-            <label for="instagramInput" class="sr-only">Instagram Username</label>
-            <input type="text" id="instagramInput" placeholder="Instagram" name="instagram"/>
+// analyze.js
 
-            <label for="linkedinInput" class="sr-only">LinkedIn Profile URL</label>
-            <input type="text" id="linkedinInput" placeholder="LinkedIn" name="linkedin"/>
+// ВАЖНО: Замените 'YOUR_CLIENT_ID' на ваш фактический Client ID из Google Cloud Console
+const CLIENT_ID = 'YOUR_CLIENT_ID';
+const API_KEY = ''; // Для Google Drive API обычно не нужен API Key для клиентской стороны, если используется OAuth.
+                    // Оставьте пустым, если не используете другие API, требующие его.
 
-            <label for="emailInput" class="sr-only">Email Address</label>
-            <input type="email" id="emailInput" placeholder="Email" name="email"/>
+// Области доступа (scopes) для Google Drive API
+// 'https://www.googleapis.com/auth/drive.file' - доступ только к файлам, созданным или открытым этим приложением
+// 'https://www.googleapis.com/auth/drive.upload' - разрешение на загрузку файлов
+const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.upload';
 
-            <button type="submit" class="gold-button social-form-submit-btn">Save Socials</button>
-        </form>
+let tokenClient;
+let gapiInited = false;
+let gsiInited = false;
 
-        <div class="upload-container">
-            <input type="file" id="videoUpload" accept="video/*" hidden />
-            <label for="videoUpload" class="gold-button upload-label">Upload Video</label>
-            <p id="uploadStatus" class="status-message"></p>
-        </div>
+// Получаем ссылки на элементы DOM для страницы upload.html
+const authorizeButton = document.getElementById('authorize_button');
+const signoutButton = document.getElementById('signout_button');
+const uploadSection = document.getElementById('upload-section'); // Этот элемент может быть неактуален, если вы не используете его в текущем upload.html
+const fileInput = document.getElementById('videoUpload'); // Изменено на 'videoUpload'
+const uploadButton = document.getElementById('uploadButton'); // Возможно, вам понадобится отдельная кнопка для запуска загрузки на GD
+const uploadLabel = document.getElementById('videoUpload'); // Используем label для стилизации input file
+const uploadStatus = document.getElementById('uploadStatus'); // Для сообщений о статусе загрузки
 
-        <div id="videoInfo" class="video-info-container hidden">
-            <button id="spoilerBtn" class="spoiler-btn">📁 <span id="fileName">Video Metadata</span></button>
-            <div id="metadataContent" class="spoiler-content"></div>
-        </div>
-    </div>
+const spoilerBtn = document.getElementById('spoilerBtn');
+const metadataContent = document.getElementById('metadataContent');
+const fileNameSpan = document.getElementById('fileName'); // Для изменения текста в спойлере
+const videoInfoContainer = document.getElementById('videoInfo'); // Контейнер для метаданных
 
-    <script src="script/analyze.js"></script>
-</body>
-</html>
+// Инициализация Google API Client Library (gapi)
+function gapiLoaded() {
+    gapi.load('client', initializeGapiClient);
+}
+
+// Инициализация клиента gapi
+async function initializeGapiClient() {
+    await gapi.client.init({
+        apiKey: API_KEY,
+        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+    });
+    gapiInited = true;
+    // Если кнопки авторизации не используются на этой странице, можно убрать вызов maybeEnableButtons()
+    // или адаптировать его для вашей текущей логики
+    // maybeEnableButtons();
+}
+
+// Инициализация Google Identity Services (GSI) для аутентификации
+function gsiLoaded() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: '', // Будет установлено позже в handleAuthClick
+    });
+    gsiInited = true;
+    // maybeEnableButtons();
+}
+
+// Функция для обработки авторизации (если будете использовать Google Drive)
+// Эта функция может быть вызвана при клике на кнопку "Авторизоваться с Google"
+async function handleGoogleAuth() {
+    return new Promise((resolve, reject) => {
+        tokenClient.callback = async (resp) => {
+            if (resp.error !== undefined) {
+                console.error('Authorization error:', resp);
+                reject(new Error('Authorization failed. Check console for details.'));
+            } else {
+                console.log('Authorized successfully!');
+                resolve();
+            }
+        };
+
+        if (gapi.client.getToken() === null) {
+            tokenClient.requestAccessToken({prompt: 'consent'});
+        } else {
+            tokenClient.requestAccessToken({prompt: ''});
+        }
+    });
+}
+
+// Функция для загрузки файла на Google Диск
+async function uploadFileToDrive(file) {
+    if (!file) {
+        uploadStatus.textContent = 'No file selected for upload.';
+        return;
+    }
+
+    uploadStatus.textContent = 'Authorizing with Google...';
+    try {
+        await handleGoogleAuth(); // Сначала авторизуемся
+
+        uploadStatus.textContent = 'Uploading to Google Drive...';
+        // uploadButton.disabled = true; // Если есть отдельная кнопка загрузки
+        uploadLabel.style.pointerEvents = 'none'; // Отключаем label во время загрузки
+        uploadLabel.style.opacity = '0.7';
+
+        const metadata = {
+            name: file.name,
+            mimeType: file.type,
+        };
+
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+        form.append('file', file);
+
+        const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+            method: 'POST',
+            headers: new Headers({'Authorization': 'Bearer ' + gapi.client.getToken().access_token}),
+            body: form,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Upload failed: ${response.status} ${response.statusText} - ${errorData.error.message}`);
+        }
+
+        const data = await response.json();
+        uploadStatus.textContent = `File uploaded successfully! File ID: ${data.id}`;
+        console.log('Uploaded file to Google Drive:', data);
+        // fileInput.value = ''; // Очищаем поле выбора файла
+
+    } catch (error) {
+        uploadStatus.textContent = `Error during Google Drive upload: ${error.message}`;
+        console.error('Google Drive upload error:', error);
+    } finally {
+        // uploadButton.disabled = false;
+        uploadLabel.style.pointerEvents = 'auto'; // Включаем label обратно
+        uploadLabel.style.opacity = '1';
+    }
+}
+
+
+// --- Логика для обработки загрузки файла (локально или для анализа) ---
+fileInput.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        uploadStatus.textContent = `Selected file: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+        videoInfoContainer.classList.remove('hidden'); // Показываем контейнер с информацией о видео
+
+        // Здесь вы можете вызвать функцию для загрузки на Google Drive
+        uploadFileToDrive(file);
+
+        // Или обработать файл локально для получения метаданных
+        getMetadata(file);
+    } else {
+        uploadStatus.textContent = 'No file selected.';
+        videoInfoContainer.classList.add('hidden'); // Скрываем контейнер, если файл не выбран
+    }
+});
+
+// --- Логика для получения метаданных видео (пример) ---
+function getMetadata(file) {
+    // В реальном приложении здесь будет более сложная логика
+    // Например, использование MediaSource API или сторонних библиотек для парсинга видео
+    // Для демонстрации, просто покажем базовые данные файла
+    const metadataHtml = `
+        <p><strong>Name:</strong> ${file.name}</p>
+        <p><strong>Type:</strong> ${file.type}</p>
+        <p><strong>Size:</strong> ${(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+        <p><strong>Last Modified:</strong> ${new Date(file.lastModified).toLocaleDateString()}</p>
+        <p><em>(More detailed video analysis would go here)</em></p>
+    `;
+    metadataContent.innerHTML = metadataHtml;
+    fileNameSpan.textContent = file.name; // Обновляем текст кнопки спойлера именем файла
+    // Убедимся, что спойлер изначально закрыт, если он не должен быть открыт по умолчанию
+    metadataContent.classList.remove('visible');
+    fileNameSpan.textContent = '📁 ' + file.name + ' Metadata';
+}
+
+
+// --- Логика для переключения спойлера ---
+function toggleSpoiler() {
+    metadataContent.classList.toggle('visible');
+    if (metadataContent.classList.contains('visible')) {
+        fileNameSpan.textContent = '📂 ' + fileNameSpan.textContent.replace('📁 ', '').replace(' Metadata', '') + ' Metadata (Hide)';
+    } else {
+        fileNameSpan.textContent = '📁 ' + fileNameSpan.textContent.replace('📂 ', '').replace(' Metadata (Hide)', '') + ' Metadata';
+    }
+}
+
+// Добавляем слушатель события для кнопки спойлера
+if (spoilerBtn) {
+    spoilerBtn.addEventListener('click', toggleSpoiler);
+}
+
+// --- Логика для обработки формы социальных сетей (пример) ---
+const socialForm = document.querySelector('.social-form');
+if (socialForm) {
+    socialForm.addEventListener('submit', (event) => {
+        event.preventDefault(); // Предотвращаем стандартную отправку формы
+
+        const instagram = document.getElementById('instagramInput').value;
+        const linkedin = document.getElementById('linkedinInput').value;
+        const email = document.getElementById('emailInput').value;
+
+        console.log('Socials submitted:', { instagram, linkedin, email });
+        // Здесь вы можете отправить эти данные на сервер или сохранить их локально
+        alert('Socials saved! (This is a demo alert, replace with better UI)');
+        // В реальном приложении используйте модальное окно или другое уведомление вместо alert()
+    });
+}
+
+
+// Убедитесь, что gapi и gsi загружаются при старте
+// Эти функции вызываются из <script> тегов в upload.html
+// window.gapiLoaded = gapiLoaded;
+// window.gsiLoaded = gsiLoaded;
