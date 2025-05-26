@@ -1,93 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Hife Video Analyzer</title>
-  <link rel="icon" href="image-logo.jpeg" type="image/jpeg">
-  <style>
-    :root {
-      --gold-gradient: linear-gradient(45deg, #FFD700, #FFA500);
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html, body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #000;
-      color: #fff;
-      scroll-behavior: smooth;
-    }
-
-    body.fade-in {
-      animation: fadeIn 2s ease-in forwards;
-    }
-
-    @keyframes fadeIn {
-      0% { opacity: 0; background: #000; }
-      100% { opacity: 1; background: #000; }
-    }
-
-    .start-screen {
-      height: 100dvh;
-      background: url('image-bkgr.jpeg') center/cover no-repeat;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 0 1rem;
-      position: relative;
-    }
-
-    .gold-button {
-      background: var(--gold-gradient);
-      color: #000;
-      border: none;
-      padding: 0.9rem 2rem;
-      border-radius: 25px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      margin: 1rem;
-      animation: pulse 2s infinite;
-      font-size: 1.2rem;
-    }
-
-    .gold-button:hover {
-      transform: scale(1.05);
-      box-shadow: 0 6px 18px rgba(0,0,0,0.4);
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
-    }
-
-    @media(max-width: 600px) {
-      .start-screen {
-        justify-content: flex-end;
-        padding-bottom: 3rem;
-      }
-
-      .gold-button {
-        width: 100%;
-        font-size: 1.3rem;
-        padding: 1rem;
-      }
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Hife Video Analyzer</title>
+    <link rel="icon" href="image-logo.jpeg" type="image/jpeg">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="fade-in">
 
-  <div class="start-screen">
-    <button class="gold-button" onclick="location.href='upload.html'">Start</button>
-  </div>
+    <div class="start-screen">
+        <button class="gold-button" onclick="location.href='upload.html'">Start</button>
+    </div>
 
 </body>
 </html>
