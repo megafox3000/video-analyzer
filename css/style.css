@@ -161,7 +161,11 @@ h1 {
 
 .background {
     min-height: 100dvh;
-    background: #1a1a1a; /* Темный фон для страницы загрузки */
+    /* Добавляем фоновое изображение и затемнение */
+    background: url('../assets/image-bkgr.jpeg') center/cover no-repeat;
+    position: relative; /* Важно для позиционирования псевдоэлемента */
+    z-index: 0; /* Убедимся, что фон находится позади контента */
+
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -169,6 +173,19 @@ h1 {
     padding: 2rem;
     color: #fff;
 }
+
+/* Псевдоэлемент для затемнения фонового изображения */
+.background::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Черный цвет с прозрачностью 50% */
+    z-index: -1; /* Помещаем затемнение под содержимое */
+}
+
 
 .background h3 {
     font-size: 1.8rem;
