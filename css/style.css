@@ -133,7 +133,7 @@ h1 {
     }
 
     .gold-button {
-        width: 100%; /* Кнопка занимает почти всю ширину */
+        width: 90%; /* Кнопка занимает почти всю ширину */
         max-width: 300px; /* Ограничиваем максимальную ширину */
         font-size: 1.3rem;
         padding: 1rem;
@@ -221,6 +221,14 @@ h1 {
     border-color: #FFD700; /* Золотая рамка при фокусе */
 }
 
+/* Стиль для поля ввода Instagram при ошибке */
+.social-form input[type="text"][style*="border-color: red"],
+.social-form input[type="email"][style*="border-color: red"] {
+    border-color: red !important; /* Убедимся, что стиль применяется */
+    box-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+}
+
+
 .social-form-submit-btn {
     margin-top: 1rem;
     /* Использует стили .gold-button */
@@ -288,6 +296,16 @@ h1 {
     overflow: hidden; /* Обрезаем заливку по краям кнопки */
     z-index: 0; /* Убедимся, что содержимое кнопки поверх заливки */
 }
+
+/* Стиль для иконки внутри кнопки спойлера */
+.spoiler-btn .spoiler-icon {
+    width: 24px; /* Размер иконки */
+    height: 24px;
+    margin-right: 0.5rem; /* Отступ от текста */
+    object-fit: contain; /* Чтобы изображение не обрезалось */
+    filter: invert(100%) brightness(150%); /* Делаем иконку светлой, если она темная */
+}
+
 
 /* Псевдоэлемент для прогрессивной золотой заливки */
 .spoiler-btn::before {
