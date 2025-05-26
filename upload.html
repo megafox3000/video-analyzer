@@ -19,12 +19,11 @@
 
             <label for="emailInput" class="sr-only">Email Address</label>
             <input type="email" id="emailInput" placeholder="Email" name="email"/>
-
-            </form>
+        </form>
 
         <div class="upload-container">
             <input type="file" id="videoUpload" accept="video/*" multiple hidden />
-            <label for="videoUpload" class="gold-button upload-label">Upload Video(s)</label>
+            <button type="button" id="uploadButton" class="gold-button upload-label disabled">Upload Video(s)</button>
             <p id="uploadStatus" class="status-message"></p>
         </div>
 
