@@ -146,6 +146,33 @@ h1 {
     .tagline {
         font-size: 1rem;
     }
+
+    /* НОВЫЕ СТИЛИ ДЛЯ КНОПКИ ЗАГРУЗКИ В МОБИЛЬНОЙ ВЕРСИИ */
+    .upload-container {
+        position: fixed; /* Фиксируем позицию */
+        bottom: 2rem; /* Отступ от нижнего края */
+        left: 50%; /* Центрируем по горизонтали */
+        transform: translateX(-50%); /* Точная центровка */
+        width: 90%; /* Ширина контейнера */
+        max-width: 300px; /* Максимальная ширина */
+        margin-bottom: 0; /* Убираем лишний отступ */
+        z-index: 100; /* Убедимся, что кнопка поверх других элементов */
+        background-color: transparent; /* Убедимся, что фон прозрачный */
+        box-shadow: none; /* Убираем тень, если она мешает */
+    }
+
+    .upload-label {
+        width: 100%; /* Кнопка занимает всю ширину контейнера */
+    }
+
+    .upload-container .status-message {
+        display: none; /* Скрываем статус сообщения под кнопкой на мобильных, чтобы не загромождать */
+    }
+
+    /* НОВЫЙ СТИЛЬ: центрирование заголовка "Connect Your Socials" на мобильных */
+    .background h3 {
+        text-align: center;
+    }
 }
 
 @media(max-width: 400px) {
