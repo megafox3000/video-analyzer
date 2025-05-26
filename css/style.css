@@ -491,14 +491,23 @@ h1 {
     padding: 0.5rem;
     box-shadow: 0 8px 20px rgba(0,0,0,0.5);
     cursor: pointer;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, animation 0.3s ease; /* Добавляем transition для animation */
     flex-shrink: 0;
     position: relative;
+    animation: float 3s ease-in-out infinite; /* Применяем анимацию плавания */
+}
+
+/* Анимация плавания для пузырей */
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
 }
 
 .video-bubble:hover {
     transform: scale(1.1);
     box-shadow: 0 12px 25px rgba(0,0,0,0.6);
+    animation-play-state: paused; /* Приостанавливаем плавание при наведении */
 }
 
 .video-bubble .bubble-text {
@@ -558,10 +567,16 @@ h1 {
     justify-content: center;
     align-items: center;
     padding: 2rem;
+    animation: fadeInModal 0.3s ease-out; /* Анимация появления модального окна */
 }
 
 .modal.visible {
     display: flex;
+}
+
+@keyframes fadeInModal {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .modal-content {
@@ -577,7 +592,14 @@ h1 {
     color: #f0f0f0;
     max-height: 90vh;
     overflow-y: auto;
+    animation: slideInModal 0.4s ease-out; /* Анимация появления содержимого модального окна */
 }
+
+@keyframes slideInModal {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
 
 .modal-content h4 {
     color: var(--gold-gradient);
