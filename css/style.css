@@ -133,7 +133,7 @@ h1 {
     }
 
     .gold-button {
-        width: 90%; /* Кнопка занимает почти всю ширину */
+        width: 100%; /* Кнопка занимает почти всю ширину */
         max-width: 300px; /* Ограничиваем максимальную ширину */
         font-size: 1.3rem;
         padding: 1rem;
@@ -270,7 +270,7 @@ h1 {
 
 
 .spoiler-btn {
-    background: #333;
+    background: #333; /* Изначальный темный фон кнопки */
     color: #fff;
     border: none;
     padding: 0.8rem 1.5rem;
@@ -280,14 +280,62 @@ h1 {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    transition: background 0.3s ease;
+    transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
     width: 100%; /* Кнопка занимает всю ширину контейнера */
     justify-content: center; /* Центрируем содержимое кнопки */
+
+    position: relative; /* Для позиционирования псевдоэлемента */
+    overflow: hidden; /* Обрезаем заливку по краям кнопки */
+    z-index: 0; /* Убедимся, что содержимое кнопки поверх заливки */
 }
 
-.spoiler-btn:hover {
-    background: #555;
+/* Псевдоэлемент для прогрессивной золотой заливки */
+.spoiler-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--upload-progress, 0%); /* Ширина управляется JS */
+    height: 100%;
+    background: var(--gold-gradient); /* Золотой градиент для заливки */
+    transition: width 0.1s linear; /* Плавная анимация заливки */
+    z-index: -1; /* Помещаем заливку под содержимое кнопки */
+    border-radius: inherit; /* Наследуем скругление углов от кнопки */
 }
+
+/* Стили для текста/иконки внутри кнопки спойлера */
+.spoiler-btn span {
+    position: relative; /* Чтобы текст был поверх псевдоэлемента */
+    z-index: 1;
+    color: #fff; /* Изначальный цвет текста */
+    transition: color 0.3s ease; /* Плавный переход цвета текста */
+}
+
+
+.spoiler-btn:hover {
+    transform: scale(1.01); /* Немного увеличим при наведении */
+}
+
+/* Стили для кнопки спойлера после успешной загрузки (финальное состояние) */
+.loaded-spoiler-btn {
+    /* Эти стили будут применяться поверх прогрессивной заливки, когда она достигнет 100% */
+    /* background: var(--gold-gradient); // Этот фон уже будет установлен через ::before с width: 100% */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4); /* Сильная тень */
+    animation: pulse 2s infinite; /* Анимация пульсации */
+}
+
+/* Цвет текста для золотой кнопки спойлера */
+.loaded-spoiler-btn span {
+    color: var(--text-color-dark); /* Темный текст на золотом фоне */
+}
+
+/* Эффект при наведении на золотую кнопку спойлера */
+.loaded-spoiler-btn:hover {
+    transform: scale(1.02); /* Чуть большее увеличение при наведении */
+    box-shadow: 0 6px 18px var(--shadow-dark); /* Усиленная тень */
+    background: linear-gradient(45deg, #FFC700, #EEA500); /* Чуть более светлый градиент при наведении */
+}
+
 
 .spoiler-content {
     background: #222; /* Фон для содержимого спойлера */
