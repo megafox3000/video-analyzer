@@ -1,28 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Upload Video</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="stylesheet" href="css/style.css" />
-  <link rel="icon" href="assets/image-logo.jpeg" type="image/jpeg" />
+  <link rel="icon" type="image/jpeg" href="assets/image-logo.jpeg" />
+  <title>Upload Video</title>
 </head>
 <body class="fade-in">
-  <div class="background"></div>
-  <div class="upload-container">
-    <form class="socials-form">
-      <input type="text" placeholder="Instagram" class="social-input" />
-      <input type="text" placeholder="LinkedIn" class="social-input" />
-      <input type="email" placeholder="Email" class="social-input" />
+  <div class="background">
+    <form class="social-form">
+      <input type="text" placeholder="Instagram" name="instagram"/>
+      <input type="text" placeholder="LinkedIn" name="linkedin"/>
+      <input type="email" placeholder="Email" name="email"/>
     </form>
-    <input type="file" id="videoInput" accept="video/*" hidden />
-    <label for="videoInput" class="upload-button">Upload Video</label>
-    <div id="videoInfoContainer" class="video-info hidden">
-      <div id="videoTitle" class="video-title"></div>
-      <div id="videoMetadata"></div>
-      <div id="map" style="height: 300px; width: 100%;"></div>
+
+    <div class="upload-container">
+      <input type="file" id="videoUpload" accept="video/*" hidden />
+      <label for="videoUpload" class="gold-button upload-label">Upload Video</label>
+    </div>
+
+    <div id="videoInfo" class="video-info-container hidden">
+      <button class="spoiler-btn" onclick="toggleSpoiler()">📁 <span id="fileName">Video Metadata</span></button>
+      <div id="metadataContent" class="spoiler-content"></div>
     </div>
   </div>
-  <script src="../script/analyze.js"></script>
+
+  <script src="scripts/analyze.js"></script>
 </body>
 </html>
