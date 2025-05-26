@@ -1,102 +1,91 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const input = document.getElementById("fileInput");
-  if (input) {
-    input.addEventListener("change", () => {
-      if (input.files.length) uploadVideos(input.files);
-    });
-  }
-});
+// analyze.js
 
-async function uploadVideos(files) {
-  const loader = document.getElementById("loader");
-  const progressBar = document.getElementById("progressBar");
-  const progressContainer = document.getElementById("progressContainer");
-  const output = document.getElementById("output");
+// Получаем ссылки на элементы DOM для страницы upload.html
+// Убедитесь, что эти ID соответствуют вашему upload.html
+const fileInput = document.getElementById('videoUpload');
+const uploadLabel = document.querySelector('.upload-label'); // Используем класс, так как это label
+const uploadStatus = document.getElementById('uploadStatus');
 
-  for (let i = 0; i < files.length; i++) {
-    const formData = new FormData();
-    formData.append("file", files[i]);
+const spoilerBtn = document.getElementById('spoilerBtn');
+const metadataContent = document.getElementById('metadataContent');
+const fileNameSpan = document.getElementById('fileName');
+const videoInfoContainer = document.getElementById('videoInfo');
 
-    loader.style.display = "block";
-    progressContainer.style.display = "block";
 
-    await new Promise((resolve) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", "https://video-meta-api.onrender.com/analyze");
+// --- Логика для обработки загрузки файла (локально или для анализа) ---
+if (fileInput) {
+    fileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            uploadStatus.textContent = `Selected file: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+            if (videoInfoContainer) {
+                videoInfoContainer.classList.remove('hidden'); // Показываем контейнер с информацией о видео
+            }
 
-      xhr.upload.onprogress = function (e) {
-        if (e.lengthComputable) {
-          const percent = Math.round((e.loaded / e.total) * 100);
-          progressBar.style.width = percent + "%";
-        }
-      };
-
-      xhr.onload = function () {
-        loader.style.display = "none";
-        progressBar.style.width = "0%";
-        progressContainer.style.display = "none";
-
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText);
-          showResult(data);
+            // Только получаем и отображаем метаданные файла локально
+            getMetadata(file);
         } else {
-          alert("Upload failed for file: " + files[i].name);
+            uploadStatus.textContent = 'No file selected.';
+            if (videoInfoContainer) {
+                videoInfoContainer.classList.add('hidden'); // Скрываем контейнер, если файл не выбран
+            }
         }
-        resolve();
-      };
-
-      xhr.send(formData);
     });
-  }
 }
 
-function showResult(data) {
-  const container = document.createElement("div");
-  container.className = "spoiler";
 
-  const content = document.createElement("pre");
-  const lines = [];
+// --- Логика для получения метаданных видео (пример) ---
+function getMetadata(file) {
+    if (!metadataContent || !fileNameSpan) return; // Проверка на существование элементов
 
-  lines.push(`File Name: ${data.filename}`);
-  lines.push(`File Size: ${Math.round(data.size_bytes / 1024)} kB`);
-  lines.push(`Analyzed At: ${data.analyzed_at}`);
-  lines.push("");
+    // В реальном приложении здесь будет более сложная логика
+    // Например, использование MediaSource API или сторонних библиотек для парсинга видео
+    // Для демонстрации, просто покажем базовые данные файла
+    const metadataHtml = `
+        <p><strong>Name:</strong> ${file.name}</p>
+        <p><strong>Type:</strong> ${file.type}</p>
+        <p><strong>Size:</strong> ${(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+        <p><strong>Last Modified:</strong> ${new Date(file.lastModified).toLocaleDateString()}</p>
+        <p><em>(More detailed video analysis would go here)</em></p>
+    `;
+    metadataContent.innerHTML = metadataHtml;
+    fileNameSpan.textContent = file.name; // Обновляем текст кнопки спойлера именем файла
+    // Убедимся, что спойлер изначально закрыт, если он не должен быть открыт по умолчанию
+    metadataContent.classList.remove('visible');
+    fileNameSpan.textContent = '📁 ' + file.name + ' Metadata';
+}
 
-  const meta = data.metadata || {};
-  const format = meta.format || {};
-  const tags = format.tags || {};
 
-  for (const key in format) {
-    if (typeof format[key] !== "object") {
-      lines.push(`${key}: ${format[key]}`);
+// --- Логика для переключения спойлера ---
+function toggleSpoiler() {
+    if (!metadataContent || !fileNameSpan) return; // Проверка на существование элементов
+
+    metadataContent.classList.toggle('visible');
+    if (metadataContent.classList.contains('visible')) {
+        fileNameSpan.textContent = '📂 ' + fileNameSpan.textContent.replace('📁 ', '').replace(' Metadata', '') + ' Metadata (Hide)';
+    } else {
+        fileNameSpan.textContent = '📁 ' + fileNameSpan.textContent.replace('📂 ', '').replace(' Metadata (Hide)', '') + ' Metadata';
     }
-  }
+}
 
-  for (const tag in tags) {
-    lines.push(`${tag}: ${tags[tag]}`);
-  }
+// Добавляем слушатель события для кнопки спойлера
+if (spoilerBtn) {
+    spoilerBtn.addEventListener('click', toggleSpoiler);
+}
 
-  if (meta.streams?.length) {
-    meta.streams.forEach((stream, i) => {
-      lines.push(`--- Stream #${i} ---`);
-      for (const key in stream) {
-        if (typeof stream[key] !== "object") {
-          lines.push(`${key}: ${stream[key]}`);
-        }
-      }
+// --- Логика для обработки формы социальных сетей (пример) ---
+const socialForm = document.querySelector('.social-form');
+if (socialForm) {
+    socialForm.addEventListener('submit', (event) => {
+        event.preventDefault(); // Предотвращаем стандартную отправку формы
+
+        const instagram = document.getElementById('instagramInput').value;
+        const linkedin = document.getElementById('linkedinInput').value;
+        const email = document.getElementById('emailInput').value;
+
+        console.log('Socials submitted:', { instagram, linkedin, email });
+        // Здесь вы можете отправить эти данные на сервер или сохранить их локально
+        // В реальном приложении используйте модальное окно или другое уведомление вместо alert()
+        alert('Socials saved! (This is a demo alert, replace with better UI)');
     });
-  }
-
-  if (data.metadata?.gps?.length) {
-    lines.push("");
-    data.metadata.gps.forEach(gps => {
-      lines.push(`GPS Tag: ${gps.tag}`);
-      lines.push(`Location: ${gps.lat}, ${gps.lon}`);
-      if (gps.address) lines.push(`Address: ${gps.address}`);
-    });
-  }
-
-  content.textContent = lines.join("\n");
-  container.appendChild(content);
-  document.getElementById("output").appendChild(container);
 }
