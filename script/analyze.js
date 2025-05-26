@@ -44,7 +44,7 @@ function openDatabase() {
     });
 }
 
-// Функция для сохранения/обновления пользователя (может быть вызвана при загрузке видео)
+// Функция для сохранения/обновления пользователя
 async function saveUser(instagramUsername, linkedin, email) {
     if (!db) await openDatabase(); // Убедимся, что база данных открыта
     return new Promise((resolve, reject) => {
@@ -144,8 +144,8 @@ async function uploadVideos(files, instagramUsername) { // Добавлен inst
         const spoilerBtn = document.createElement('button');
         spoilerBtn.classList.add('spoiler-btn');
         spoilerBtn.id = `spoilerBtn-${i}`;
-        // Изначальный текст кнопки спойлера с именем файла
-        spoilerBtn.innerHTML = `📁 <span id="fileName-${i}">${file.name}</span>`; // Убрано "Metadata"
+        // *** ИЗМЕНЕНИЕ ЗДЕСЬ: Используем img для иконки ***
+        spoilerBtn.innerHTML = `<img src="assets/image-logo.jpeg" alt="Video Icon" class="spoiler-icon"><span id="fileName-${i}">@${instagramUsername} - ${file.name}</span>`;
 
         // Устанавливаем CSS-переменную для прогресса в 0%
         spoilerBtn.style.setProperty('--upload-progress', '0%');
@@ -314,8 +314,8 @@ function showResult(data, targetMetadataContent, targetFileNameSpan, uploadedByI
     targetMetadataContent.innerHTML = ''; // Очищаем перед добавлением
     targetMetadataContent.appendChild(contentPre);
 
-    // *** ИЗМЕНЕНИЕ ЗДЕСЬ: Текст кнопки спойлера теперь содержит имя Instagram и имя файла без "Metadata" ***
-    targetFileNameSpan.textContent = `📁 @${uploadedByInstagram} - ${data.filename}`;
+    // *** ИЗМЕНЕНИЕ ЗДЕСЬ: Текст кнопки спойлера теперь содержит имя Instagram и имя файла без иконки ***
+    targetFileNameSpan.textContent = `@${uploadedByInstagram} - ${data.filename}`;
 }
 
 // --- Логика для переключения спойлера ---
@@ -324,11 +324,11 @@ function toggleSpoiler(metadataContentElement, fileNameSpanElement) {
 
     metadataContentElement.classList.toggle('visible');
     if (metadataContentElement.classList.contains('visible')) {
-        // Обновляем текст кнопки при открытии спойлера
-        fileNameSpanElement.textContent = '📂 ' + fileNameSpanElement.textContent.replace('📁 ', '') + ' (Hide)';
+        // Обновляем текст кнопки при открытии спойлера: добавляем " (Hide)"
+        fileNameSpanElement.textContent = fileNameSpanElement.textContent + ' (Hide)';
     } else {
-        // Обновляем текст кнопки при закрытии спойлера
-        fileNameSpanElement.textContent = '📁 ' + fileNameSpanElement.textContent.replace('📂 ', '').replace(' (Hide)', '');
+        // Обновляем текст кнопки при закрытии спойлера: убираем "(Hide)"
+        fileNameSpanElement.textContent = fileNameSpanElement.textContent.replace(' (Hide)', '');
     }
 }
 
