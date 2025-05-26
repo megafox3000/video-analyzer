@@ -5,14 +5,108 @@ const fileInput = document.getElementById('videoUpload');
 const uploadLabel = document.querySelector('.upload-label'); // Используем класс, так как это label
 const uploadStatus = document.getElementById('uploadStatus');
 const videoInfoList = document.getElementById('videoInfoList'); // Контейнер для списка видео
+const instagramInput = document.getElementById('instagramInput'); // Получаем поле Instagram
+
+// --- IndexedDB Setup ---
+const DB_NAME = 'HifeVideoAnalyzerDB';
+const DB_VERSION = 1;
+const USER_STORE_NAME = 'users';
+const VIDEO_STORE_NAME = 'videos';
+
+let db;
+
+// Функция для открытия/создания базы данных IndexedDB
+function openDatabase() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onupgradeneeded = (event) => {
+            db = event.target.result;
+            if (!db.objectStoreNames.contains(USER_STORE_NAME)) {
+                db.createObjectStore(USER_STORE_NAME, { keyPath: 'instagramUsername' });
+            }
+            if (!db.objectStoreNames.contains(VIDEO_STORE_NAME)) {
+                const videoStore = db.createObjectStore(VIDEO_STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                videoStore.createIndex('by_instagram', 'instagramUsername', { unique: false });
+            }
+        };
+
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            console.log('IndexedDB opened successfully.');
+            resolve(db);
+        };
+
+        request.onerror = (event) => {
+            console.error('IndexedDB error:', event.target.errorCode);
+            reject('IndexedDB error');
+        };
+    });
+}
+
+// Функция для сохранения/обновления пользователя
+async function saveUser(instagramUsername, linkedin, email) {
+    if (!db) await openDatabase(); // Убедимся, что база данных открыта
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([USER_STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(USER_STORE_NAME);
+        const user = { instagramUsername, linkedin, email, lastUpdated: new Date().toISOString() };
+        const request = store.put(user); // put() обновляет, если существует, или добавляет
+
+        request.onsuccess = () => {
+            console.log('User saved:', user);
+            resolve();
+        };
+
+        request.onerror = (event) => {
+            console.error('Error saving user:', event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+// Функция для сохранения метаданных видео
+async function saveVideoMetadata(videoData) {
+    if (!db) await openDatabase(); // Убедимся, что база данных открыта
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([VIDEO_STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(VIDEO_STORE_NAME);
+        const request = store.add(videoData); // add() добавляет новую запись
+
+        request.onsuccess = () => {
+            console.log('Video metadata saved:', videoData);
+            resolve();
+        };
+
+        request.onerror = (event) => {
+            console.error('Error saving video metadata:', event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+// Инициализируем базу данных при загрузке скрипта
+openDatabase().catch(error => console.error("Failed to open IndexedDB:", error));
+
 
 // --- Обработчик изменения файла ---
 if (fileInput) {
     fileInput.addEventListener('change', () => {
+        // Проверяем, введено ли имя Instagram
+        const instagramUsername = instagramInput.value.trim();
+        if (!instagramUsername) {
+            uploadStatus.textContent = 'Please enter your Instagram username before uploading videos.';
+            instagramInput.focus(); // Устанавливаем фокус на поле Instagram
+            instagramInput.style.borderColor = 'red'; // Визуальная индикация ошибки
+            return; // Прерываем загрузку
+        } else {
+            instagramInput.style.borderColor = ''; // Сбрасываем рамку, если была ошибка
+        }
+
         if (fileInput.files.length) {
             uploadStatus.textContent = `Selected ${fileInput.files.length} file(s). Starting upload...`;
             videoInfoList.innerHTML = ''; // Очищаем список перед новой загрузкой
-            uploadVideos(fileInput.files);
+            uploadVideos(fileInput.files, instagramUsername); // Передаем имя Instagram
         } else {
             uploadStatus.textContent = 'No files selected.';
             videoInfoList.innerHTML = '';
@@ -21,7 +115,7 @@ if (fileInput) {
 }
 
 // --- Функция для загрузки нескольких видео и отображения прогресса ---
-async function uploadVideos(files) {
+async function uploadVideos(files, instagramUsername) { // Добавлен instagramUsername
     // Отключаем кнопку загрузки на время обработки
     if (uploadLabel) {
         uploadLabel.style.pointerEvents = 'none';
@@ -41,10 +135,13 @@ async function uploadVideos(files) {
         const spoilerBtn = document.createElement('button');
         spoilerBtn.classList.add('spoiler-btn');
         spoilerBtn.id = `spoilerBtn-${i}`;
-        spoilerBtn.innerHTML = `📁 <span id="fileName-${i}">${file.name} Metadata</span>`;
+        // Изначальный текст кнопки спойлера с именем файла
+        spoilerBtn.innerHTML = `📁 <span id="fileName-${i}">${file.name}</span>`; // Убрано "Metadata"
 
-        // Изначально устанавливаем CSS-переменную для прогресса в 0%
+        // Устанавливаем CSS-переменную для прогресса в 0%
         spoilerBtn.style.setProperty('--upload-progress', '0%');
+        // Добавляем класс для золотого стиля сразу при создании кнопки
+        spoilerBtn.classList.add('loaded-spoiler-btn');
 
 
         const progressBarContainer = document.createElement('div');
@@ -83,23 +180,39 @@ async function uploadVideos(files) {
                     progressText.textContent = `${percent}%`;
                     uploadStatus.textContent = `Uploading ${file.name}: ${percent}%`;
 
-                    // *** ИЗМЕНЕНИЕ ЗДЕСЬ: Обновляем CSS-переменную для заливки кнопки ***
+                    // Обновляем CSS-переменную для заливки кнопки
                     spoilerBtn.style.setProperty('--upload-progress', `${percent}%`);
                 }
             };
 
-            xhr.onload = function () {
+            xhr.onload = async function () { // Асинхронная функция для await
                 progressBarContainer.style.display = "none"; // Скрываем прогресс-бар после завершения
                 uploadStatus.textContent = `Finished processing ${file.name}.`;
 
                 // Убедимся, что заливка завершена на 100%
                 spoilerBtn.style.setProperty('--upload-progress', '100%');
-                // *** ИЗМЕНЕНИЕ ЗДЕСЬ: Добавляем класс для финального золотого стиля (с пульсацией) ***
-                spoilerBtn.classList.add('loaded-spoiler-btn');
+                // Класс 'loaded-spoiler-btn' уже добавлен ранее
 
                 if (xhr.status === 200) {
                     const data = JSON.parse(xhr.responseText);
-                    showResult(data, metadataContent, spoilerBtn.querySelector('span'));
+                    // Передаем имя Instagram в showResult
+                    showResult(data, metadataContent, spoilerBtn.querySelector('span'), instagramUsername);
+
+                    // *** НОВОЕ: Сохраняем метаданные видео в IndexedDB ***
+                    const videoMetadataToSave = {
+                        filename: data.filename,
+                        size_bytes: data.size_bytes,
+                        analyzed_at: data.analyzed_at,
+                        instagramUsername: instagramUsername, // Привязываем к пользователю
+                        metadata: data.metadata // Сохраняем все метаданные
+                    };
+                    try {
+                        await saveVideoMetadata(videoMetadataToSave);
+                    } catch (dbError) {
+                        console.error("Failed to save video metadata to IndexedDB:", dbError);
+                        // Опционально: показать сообщение пользователю об ошибке сохранения
+                    }
+
                 } else {
                     metadataContent.innerHTML = `<p style="color: red;">Upload failed for file: ${file.name}. Status: ${xhr.status}</p>`;
                     alert("Upload failed for file: " + file.name); // Используйте модальное окно вместо alert
@@ -128,9 +241,13 @@ async function uploadVideos(files) {
 }
 
 // --- Функция для отображения результатов анализа под спойлером ---
-function showResult(data, targetMetadataContent, targetFileNameSpan) {
+function showResult(data, targetMetadataContent, targetFileNameSpan, uploadedByInstagram) { // Добавлен uploadedByInstagram
     const lines = [];
 
+    // Добавляем имя Instagram пользователя
+    if (uploadedByInstagram) {
+        lines.push(`Uploaded By: @${uploadedByInstagram}`);
+    }
     lines.push(`File Name: ${data.filename}`);
     lines.push(`File Size: ${Math.round(data.size_bytes / 1024)} kB`);
     lines.push(`Analyzed At: ${data.analyzed_at}`);
@@ -188,8 +305,8 @@ function showResult(data, targetMetadataContent, targetFileNameSpan) {
     targetMetadataContent.innerHTML = ''; // Очищаем перед добавлением
     targetMetadataContent.appendChild(contentPre);
 
-    // Спойлер останется закрытым, пока пользователь не кликнет
-    targetFileNameSpan.textContent = '📁 ' + data.filename + ' Metadata'; // Убедимся, что иконка закрыта
+    // *** ИЗМЕНЕНИЕ ЗДЕСЬ: Текст кнопки спойлера теперь содержит имя Instagram и имя файла без "Metadata" ***
+    targetFileNameSpan.textContent = `📁 @${uploadedByInstagram} - ${data.filename}`;
 }
 
 // --- Логика для переключения спойлера ---
@@ -198,25 +315,41 @@ function toggleSpoiler(metadataContentElement, fileNameSpanElement) {
 
     metadataContentElement.classList.toggle('visible');
     if (metadataContentElement.classList.contains('visible')) {
-        fileNameSpanElement.textContent = '📂 ' + fileNameSpanElement.textContent.replace('📁 ', '').replace(' Metadata', '') + ' Metadata (Hide)';
+        // Обновляем текст кнопки при открытии спойлера: убираем "📁 " и добавляем " (Hide)"
+        fileNameSpanElement.textContent = '📂 ' + fileNameSpanElement.textContent.replace('📁 ', '') + ' (Hide)';
     } else {
-        fileNameSpanElement.textContent = '📁 ' + fileNameSpanElement.textContent.replace('📂 ', '').replace(' Metadata (Hide)', '') + ' Metadata';
+        // Обновляем текст кнопки при закрытии спойлера: убираем "📂 " и "(Hide)"
+        fileNameSpanElement.textContent = '📁 ' + fileNameSpanElement.textContent.replace('📂 ', '').replace(' (Hide)', '');
     }
 }
 
 // --- Логика для обработки формы социальных сетей (пример) ---
 const socialForm = document.querySelector('.social-form');
 if (socialForm) {
-    socialForm.addEventListener('submit', (event) => {
+    socialForm.addEventListener('submit', async (event) => { // Сделаем функцию асинхронной
         event.preventDefault(); // Предотвращаем стандартную отправку формы
 
-        const instagram = document.getElementById('instagramInput').value;
-        const linkedin = document.getElementById('linkedinInput').value;
-        const email = document.getElementById('emailInput').value;
+        const instagram = document.getElementById('instagramInput').value.trim();
+        const linkedin = document.getElementById('linkedinInput').value.trim();
+        const email = document.getElementById('emailInput').value.trim();
+
+        if (!instagram) {
+            alert('Instagram username is required to save social details!'); // Используйте модальное окно
+            instagramInput.focus();
+            instagramInput.style.borderColor = 'red';
+            return;
+        } else {
+            instagramInput.style.borderColor = '';
+        }
 
         console.log('Socials submitted:', { instagram, linkedin, email });
-        // Здесь вы можете отправить эти данные на сервер или сохранить их локально
-        // В реальном приложении используйте модальное окно или другое уведомление вместо alert()
-        alert('Socials saved! (This is a demo alert, replace with better UI)');
+        // *** НОВОЕ: Сохраняем пользователя в IndexedDB ***
+        try {
+            await saveUser(instagram, linkedin, email);
+            alert('Social details saved locally!'); // Используйте модальное окно
+        } catch (dbError) {
+            console.error("Failed to save user to IndexedDB:", dbError);
+            alert('Failed to save social details locally.'); // Используйте модальное окно
+        }
     });
 }
