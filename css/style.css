@@ -175,12 +175,11 @@ h1 {
     }
 }
 
-/* НОВЫЙ БЛОК: Стили для кнопки "Start" на стартовом экране для больших экранов */
+/* Стили для кнопки "Start" на стартовом экране для больших экранов */
 @media(min-width: 601px) {
     .start-screen .gold-button {
         margin-top: auto; /* Прижимает кнопку к низу flex-контейнера */
         margin-bottom: 3rem; /* Добавляем отступ от самого низа экрана */
-        /* align-self: center; уже не нужен, так как родительский align-items: center; справляется */
     }
 }
 
@@ -266,27 +265,29 @@ h1 {
 }
 
 
-.social-form-submit-btn {
-    margin-top: 1rem;
-    /* Использует стили .gold-button */
-}
-
-.upload-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 2rem;
-    width: 100%;
-    max-width: 400px;
-}
-
+/* Стиль для кнопки загрузки (upload-label теперь является кнопкой) */
 .upload-label {
     cursor: pointer;
     /* Использует стили .gold-button */
     width: 100%; /* Чтобы label занимал всю ширину контейнера */
     text-align: center;
+    /* Убираем анимацию пульсации, если она мешает в отключенном состоянии */
+    animation: none;
 }
+
+/* Стиль для отключенной кнопки загрузки */
+.upload-label.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #555; /* Более темный фон для отключенного состояния */
+    box-shadow: none;
+}
+
+.upload-label.disabled:hover {
+    transform: none; /* Убираем эффект наведения */
+    box-shadow: none;
+}
+
 
 .status-message {
     margin-top: 1rem;
