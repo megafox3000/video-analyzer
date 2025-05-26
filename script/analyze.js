@@ -44,7 +44,7 @@ function openDatabase() {
     });
 }
 
-// Функция для сохранения/обновления пользователя
+// Функция для сохранения/обновления пользователя (может быть вызвана при загрузке видео)
 async function saveUser(instagramUsername, linkedin, email) {
     if (!db) await openDatabase(); // Убедимся, что база данных открыта
     return new Promise((resolve, reject) => {
@@ -102,6 +102,15 @@ if (fileInput) {
         } else {
             instagramInput.style.borderColor = ''; // Сбрасываем рамку, если была ошибка
         }
+
+        // Автоматически сохраняем пользователя при начале загрузки, используя данные из полей
+        const linkedin = document.getElementById('linkedinInput').value.trim();
+        const email = document.getElementById('emailInput').value.trim();
+        saveUser(instagramUsername, linkedin, email).catch(error => {
+            console.error("Failed to save user data automatically:", error);
+            // Опционально: показать сообщение пользователю
+        });
+
 
         if (fileInput.files.length) {
             uploadStatus.textContent = `Selected ${fileInput.files.length} file(s). Starting upload...`;
@@ -315,41 +324,14 @@ function toggleSpoiler(metadataContentElement, fileNameSpanElement) {
 
     metadataContentElement.classList.toggle('visible');
     if (metadataContentElement.classList.contains('visible')) {
-        // Обновляем текст кнопки при открытии спойлера: убираем "📁 " и добавляем " (Hide)"
+        // Обновляем текст кнопки при открытии спойлера
         fileNameSpanElement.textContent = '📂 ' + fileNameSpanElement.textContent.replace('📁 ', '') + ' (Hide)';
     } else {
-        // Обновляем текст кнопки при закрытии спойлера: убираем "📂 " и "(Hide)"
+        // Обновляем текст кнопки при закрытии спойлера
         fileNameSpanElement.textContent = '📁 ' + fileNameSpanElement.textContent.replace('📂 ', '').replace(' (Hide)', '');
     }
 }
 
 // --- Логика для обработки формы социальных сетей (пример) ---
-const socialForm = document.querySelector('.social-form');
-if (socialForm) {
-    socialForm.addEventListener('submit', async (event) => { // Сделаем функцию асинхронной
-        event.preventDefault(); // Предотвращаем стандартную отправку формы
-
-        const instagram = document.getElementById('instagramInput').value.trim();
-        const linkedin = document.getElementById('linkedinInput').value.trim();
-        const email = document.getElementById('emailInput').value.trim();
-
-        if (!instagram) {
-            alert('Instagram username is required to save social details!'); // Используйте модальное окно
-            instagramInput.focus();
-            instagramInput.style.borderColor = 'red';
-            return;
-        } else {
-            instagramInput.style.borderColor = '';
-        }
-
-        console.log('Socials submitted:', { instagram, linkedin, email });
-        // *** НОВОЕ: Сохраняем пользователя в IndexedDB ***
-        try {
-            await saveUser(instagram, linkedin, email);
-            alert('Social details saved locally!'); // Используйте модальное окно
-        } catch (dbError) {
-            console.error("Failed to save user to IndexedDB:", dbError);
-            alert('Failed to save social details locally.'); // Используйте модальное окно
-        }
-    });
-}
+// Удален обработчик submit для формы, так как кнопка "Save Socials" удалена.
+// Данные пользователя теперь сохраняются автоматически при загрузке видео.
