@@ -1,0 +1,19 @@
+{
+  "name": "video-meta-api",
+  "version": "1.0.0",
+  "description": "Backend for video analysis and task management on Render",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "body-parser": "^1.20.2",
+    "multer": "^1.4.5-lts.1",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": "20.x" // Рекомендую использовать LTS версию, например "20.x". Можно и "22.x", если хотите самую свежую.
+  }
+}
