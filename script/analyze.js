@@ -1,19 +1,19 @@
 // analyze.js
-const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // Для теста локально
+const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // Ваш реальный URL бэкенда Render
 // Получаем ссылки на элементы DOM для страницы upload.html
-const fileInput = document.getElementById('videoUpload'); // Скрытый input для выбора файлов
-const uploadButton = document.getElementById('uploadButton'); // Новая кнопка, которая заменяет label
+const fileInput = document.getElementById('videoUpload');
+const uploadButton = document.getElementById('uploadButton');
 const uploadStatus = document.getElementById('uploadStatus');
-const videoInfoList = document.getElementById('videoInfoList'); // Контейнер для списка видео
-const instagramInput = document.getElementById('instagramInput'); // Поле Instagram
-const linkedinInput = document.getElementById('linkedinInput'); // Поле LinkedIn
-const emailInput = document.getElementById('emailInput'); // Поле Email
+const videoInfoList = document.getElementById('videoInfoList');
+const instagramInput = document.getElementById('instagramInput');
+const linkedinInput = document.getElementById('linkedinInput');
+const emailInput = document.getElementById('emailInput');
 
 // --- IndexedDB Setup ---
 const DB_NAME = 'HifeVideoAnalyzerDB';
 const DB_VERSION = 1;
 const USER_STORE_NAME = 'users';
-const VIDEO_STORE_NAME = 'videos';
+const VIDEO_STORE_NAME = 'videos'; // Это хранилище будет использоваться results.js, если данные будут сохраняться локально
 
 let db;
 
@@ -48,12 +48,12 @@ function openDatabase() {
 
 // Функция для сохранения/обновления пользователя
 async function saveUser(instagramUsername, linkedin, email) {
-    if (!db) await openDatabase(); // Убедимся, что база данных открыта
+    if (!db) await openDatabase();
     return new Promise((resolve, reject) => {
         const transaction = db.transaction([USER_STORE_NAME], 'readwrite');
         const store = transaction.objectStore(USER_STORE_NAME);
         const user = { instagramUsername, linkedin, email, lastUpdated: new Date().toISOString() };
-        const request = store.put(user); // put() обновляет, если существует, или добавляет
+        const request = store.put(user);
 
         request.onsuccess = () => {
             console.log('User saved:', user);
@@ -62,26 +62,6 @@ async function saveUser(instagramUsername, linkedin, email) {
 
         request.onerror = (event) => {
             console.error('Error saving user:', event.target.error);
-            reject(event.target.error);
-        };
-    });
-}
-
-// Функция для сохранения метаданных видео
-async function saveVideoMetadata(videoData) {
-    if (!db) await openDatabase(); // Убедимся, что база данных открыта
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction([VIDEO_STORE_NAME], 'readwrite');
-        const store = transaction.objectStore(VIDEO_STORE_NAME);
-        const request = store.add(videoData); // add() добавляет новую запись
-
-        request.onsuccess = () => {
-            console.log('Video metadata saved:', videoData);
-            resolve();
-        };
-
-        request.onerror = (event) => {
-            console.error('Error saving video metadata:', event.target.error);
             reject(event.target.error);
         };
     });
@@ -96,12 +76,12 @@ function updateUploadButtonState() {
                                    linkedinInput.value.trim() !== '' ||
                                    emailInput.value.trim() !== '';
 
-    if (isAnySocialFieldFilled) {
+    if (isAnySocialFieldFilled && instagramInput.value.trim() !== '') { // Instagram поле теперь обязательное
         uploadButton.classList.remove('disabled');
-        uploadButton.disabled = false; // Включаем кнопку
+        uploadButton.disabled = false;
     } else {
         uploadButton.classList.add('disabled');
-        uploadButton.disabled = true; // Отключаем кнопку
+        uploadButton.disabled = true;
     }
 }
 
@@ -121,34 +101,21 @@ if (uploadButton) {
         const linkedinValue = linkedinInput.value.trim();
         const emailValue = emailInput.value.trim();
 
-        // 1. Проверка: хотя бы одно из трех полей должно быть заполнено
-        if (!instagramUsername && !linkedinValue && !emailValue) {
-            uploadStatus.textContent = 'Please fill at least one social media field (Instagram, LinkedIn, or Email) to proceed.';
-            instagramInput.focus(); // Фокус на Instagram как основной
+        if (!instagramUsername) {
+            uploadStatus.textContent = 'Instagram username is required to upload videos.';
+            instagramInput.focus();
             instagramInput.style.borderColor = 'red';
-            linkedinInput.style.borderColor = 'red';
-            emailInput.style.borderColor = 'red';
-            return; // Останавливаемся, не открываем окно выбора файлов
+            linkedinInput.style.borderColor = ''; // Сброс
+            emailInput.style.borderColor = ''; // Сброс
+            return;
         } else {
-            // Сбрасываем подсветку ошибок, если поля заполнены
             instagramInput.style.borderColor = '';
             linkedinInput.style.borderColor = '';
             emailInput.style.borderColor = '';
         }
 
-        // 2. Проверка: поле Instagram должно быть обязательно заполнено
-        if (!instagramUsername) {
-            uploadStatus.textContent = 'Instagram username is required to upload videos.';
-            instagramInput.focus();
-            instagramInput.style.borderColor = 'red';
-            return; // Останавливаемся, не открываем окно выбора файлов
-        } else {
-            instagramInput.style.borderColor = '';
-        }
-
         // Если все проверки пройдены, очищаем предыдущее сообщение о статусе
         uploadStatus.textContent = '';
-        // Программно кликаем по скрытому input type="file", чтобы открыть диалог выбора файлов
         fileInput.click();
     });
 }
@@ -158,7 +125,7 @@ if (fileInput) {
     fileInput.addEventListener('change', () => {
         const files = fileInput.files;
         if (files.length > 0) {
-            const instagramUsername = instagramInput.value.trim(); // Получаем имя Instagram еще раз
+            const instagramUsername = instagramInput.value.trim();
 
             uploadStatus.textContent = `Selected ${files.length} file(s). Starting upload...`;
             videoInfoList.innerHTML = ''; // Очищаем список перед новой загрузкой
@@ -172,21 +139,19 @@ if (fileInput) {
 
 // --- Функция для загрузки нескольких видео и отображения прогресса ---
 async function uploadVideos(files, instagramUsername) {
-    // Отключаем кнопку загрузки на время обработки
     if (uploadButton) {
         uploadButton.style.pointerEvents = 'none';
         uploadButton.style.opacity = '0.7';
     }
 
-    const processedVideoIds = []; // Массив для хранения ID обработанных видео
+    const pendingTaskIds = []; // Массив для хранения ID задач от бэкенда
 
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", file); // Убедитесь, что имя поля соответствует app.post('/analyze', upload.single('file'))
+        formData.append("username", instagramUsername); // Передаем имя пользователя
 
-        // Временно создаем элементы для каждого файла для отображения прогресса на текущей странице
-        // Эти элементы будут удалены после перенаправления
         const videoInfoItem = document.createElement('div');
         videoInfoItem.classList.add('video-info-item');
         videoInfoItem.id = `video-item-${i}`;
@@ -196,7 +161,7 @@ async function uploadVideos(files, instagramUsername) {
         spoilerBtn.id = `spoilerBtn-${i}`;
         spoilerBtn.innerHTML = `<img src="assets/image-logo.jpeg" alt="Video Icon" class="spoiler-icon"><span id="fileName-${i}">@${instagramUsername} - ${file.name}</span>`;
         spoilerBtn.style.setProperty('--upload-progress', '0%');
-        spoilerBtn.classList.add('loaded-spoiler-btn'); // Применяем стиль сразу
+        spoilerBtn.classList.add('loaded-spoiler-btn');
 
         const progressBarContainer = document.createElement('div');
         progressBarContainer.classList.add('progress-bar-container');
@@ -214,11 +179,12 @@ async function uploadVideos(files, instagramUsername) {
         videoInfoItem.appendChild(progressBarContainer);
         videoInfoList.appendChild(videoInfoItem);
 
-
-        // Отправляем файл на API
         await new Promise((resolve) => {
             const xhr = new XMLHttpRequest();
-            xhr.open("POST", "https://video-meta-api.onrender.com/analyze"); // Ваш API для анализа
+            xhr.open("POST", `${RENDER_BACKEND_URL}/analyze`); // Отправляем на /analyze
+            
+            // Если требуется CORS, убедитесь, что ваш Render backend разрешает запросы
+            // xhr.setRequestHeader('Access-Control-Allow-Origin', '*'); // Обычно настраивается на стороне сервера
 
             xhr.upload.onprogress = function (e) {
                 if (e.lengthComputable) {
@@ -232,48 +198,28 @@ async function uploadVideos(files, instagramUsername) {
 
             xhr.onload = async function () {
                 progressBarContainer.style.display = "none";
-                uploadStatus.textContent = `Finished processing ${file.name}.`;
+                uploadStatus.textContent = `Finished uploading ${file.name}. Waiting for analysis...`; 
                 spoilerBtn.style.setProperty('--upload-progress', '100%');
 
                 if (xhr.status === 200) {
                     const data = JSON.parse(xhr.responseText);
-                    const videoMetadataToSave = {
-                        filename: data.filename,
-                        size_bytes: data.size_bytes,
-                        analyzed_at: data.analyzed_at,
-                        instagramUsername: instagramUsername, // Привязываем к пользователю
-                        metadata: data.metadata, // Сохраняем все метаданные
-                        uploadedDate: new Date().toISOString() // Добавляем дату загрузки
-                    };
-                    try {
-                        // Сохраняем метаданные видео в IndexedDB
-                        // При добавлении в IndexedDB, id генерируется автоматически (autoIncrement: true)
-                        // Мы должны дождаться завершения операции, чтобы получить ID
-                        const addRequest = db.transaction([VIDEO_STORE_NAME], 'readwrite')
-                                            .objectStore(VIDEO_STORE_NAME)
-                                            .add(videoMetadataToSave);
-
-                        addRequest.onsuccess = (event) => {
-                            const newVideoId = event.target.result; // Получаем ID нового элемента
-                            processedVideoIds.push(newVideoId); // Добавляем ID в список
-                            console.log('Video metadata saved with ID:', newVideoId);
-                            resolve(); // Завершаем Promise только после сохранения в IndexedDB
-                        };
-
-                        addRequest.onerror = (event) => {
-                            console.error("Failed to save video metadata to IndexedDB:", event.target.error);
-                            resolve(); // Завершаем Promise даже при ошибке сохранения, чтобы продолжить цикл
-                        };
-
-                    } catch (dbError) {
-                        console.error("Failed to save video metadata to IndexedDB (catch):", dbError);
+                    
+                    if (data.taskId) { 
+                        pendingTaskIds.push(data.taskId); // Сохраняем taskId
+                        console.log(`[FRONTEND] Task ID received for ${file.name}: ${data.taskId}`);
+                        // Здесь мы больше не сохраняем метаданные в IndexedDB,
+                        // т.к. бэкенд не возвращает их сразу.
+                        // results.js будет опрашивать бэкенд для получения статуса и метаданных.
+                        resolve(); 
+                    } else {
+                        console.error("No Task ID received for file:", file.name, "Response:", data);
+                        videoInfoItem.innerHTML = `<p style="color: red;">Error processing ${file.name}: No Task ID.</p>`;
                         resolve();
                     }
 
                 } else {
-                    console.error("Upload failed for file:", file.name, "Status:", xhr.status);
-                    // Вместо alert можно обновить статус для конкретного файла
-                    videoInfoItem.innerHTML = `<p style="color: red;">Upload failed for ${file.name}. Status: ${xhr.status}</p>`;
+                    console.error("Upload failed for file:", file.name, "Status:", xhr.status, "Response:", xhr.responseText);
+                    videoInfoItem.innerHTML = `<p style="color: red;">Upload failed for ${file.name}. Status: ${xhr.status}.</p>`;
                     resolve();
                 }
             };
@@ -288,29 +234,16 @@ async function uploadVideos(files, instagramUsername) {
         });
     }
 
-    // Включаем кнопку загрузки обратно после обработки всех файлов
     if (uploadButton) {
         uploadButton.style.pointerEvents = 'auto';
         uploadButton.style.opacity = '1';
     }
-    uploadStatus.textContent = `All files processed. Redirecting...`;
+    uploadStatus.textContent = `All files uploaded. Redirecting to results...`;
 
-    // После обработки всех видео и сохранения их в IndexedDB, перенаправляем пользователя
-    // Передаем имя пользователя Instagram через URL-параметр
-    // и возможно, ID обработанных видео, чтобы results.js знал, что отобразить
+    // После обработки всех видео, сохраняем ID задач в sessionStorage и перенаправляем
+    sessionStorage.setItem('pendingTaskIds', JSON.stringify(pendingTaskIds));
+    sessionStorage.setItem('hifeUsername', instagramUsername); // Сохраняем имя пользователя
     setTimeout(() => {
-        window.location.href = `results.html?user=${encodeURIComponent(instagramUsername)}&videoIds=${processedVideoIds.join(',')}`;
-    }, 1500); // Небольшая задержка для отображения сообщения
+        window.location.href = `results.html`; // Перенаправляем на results.html
+    }, 1500);
 }
-
-// --- Эти функции showResult и toggleSpoiler больше не нужны здесь,
-//     так как вывод результатов перенесен на results.html ---
-/*
-function showResult(data, targetMetadataContent, targetFileNameSpan, uploadedByInstagram) {
-    // ... (логика отображения результатов) ...
-}
-
-function toggleSpoiler(metadataContentElement, fileNameSpanElement) {
-    // ... (логика переключения спойлера) ...
-}
-*/
