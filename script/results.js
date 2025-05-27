@@ -1,5 +1,5 @@
 // results.js
-
+const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // Для теста локально
 // Получаем ссылки на элементы DOM для страницы results.html
 const resultsHeader = document.getElementById('resultsHeader');
 const usernameDisplay = document.getElementById('usernameDisplay');
