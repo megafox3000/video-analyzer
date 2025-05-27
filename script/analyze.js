@@ -1,5 +1,5 @@
 // analyze.js
-
+const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // Для теста локально
 // Получаем ссылки на элементы DOM для страницы upload.html
 const fileInput = document.getElementById('videoUpload'); // Скрытый input для выбора файлов
 const uploadButton = document.getElementById('uploadButton'); // Новая кнопка, которая заменяет label
