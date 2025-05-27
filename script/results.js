@@ -1,6 +1,6 @@
 // results.js
-const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // Для теста локально
-// Получаем ссылки на элементы DOM для страницы results.html
+const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // Ваш реальный URL бэкенда Render
+
 const resultsHeader = document.getElementById('resultsHeader');
 const usernameDisplay = document.getElementById('usernameDisplay');
 const uploadNewBtn = document.getElementById('uploadNewBtn');
@@ -10,82 +10,10 @@ const modalTitle = document.getElementById('modalTitle');
 const modalMetadata = document.getElementById('modalMetadata');
 const closeButton = document.querySelector('.close-button');
 
-// --- IndexedDB Setup (должны совпадать с analyze.js) ---
-const DB_NAME = 'HifeVideoAnalyzerDB';
-const DB_VERSION = 1;
-const USER_STORE_NAME = 'users';
-const VIDEO_STORE_NAME = 'videos';
-
-let db; // Переменная для хранения экземпляра базы данных
-
-// Функция для открытия/создания базы данных IndexedDB
-function openDatabase() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-        request.onupgradeneeded = (event) => {
-            db = event.target.result;
-            // Создаем хранилища объектов, если их нет
-            if (!db.objectStoreNames.contains(USER_STORE_NAME)) {
-                db.createObjectStore(USER_STORE_NAME, { keyPath: 'instagramUsername' });
-            }
-            if (!db.objectStoreNames.contains(VIDEO_STORE_NAME)) {
-                const videoStore = db.createObjectStore(VIDEO_STORE_NAME, { keyPath: 'id', autoIncrement: true });
-                videoStore.createIndex('by_instagram', 'instagramUsername', { unique: false });
-            }
-        };
-
-        request.onsuccess = (event) => {
-            db = event.target.result;
-            console.log('IndexedDB opened successfully on results page.');
-            resolve(db);
-        };
-
-        request.onerror = (event) => {
-            console.error('IndexedDB error on results page:', event.target.errorCode);
-            reject('IndexedDB error');
-        };
-    });
-}
-
-// Функция для получения видео по их ID из IndexedDB
-async function getVideosByIDs(ids) {
-    if (!db) await openDatabase(); // Убедимся, что база данных открыта
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction([VIDEO_STORE_NAME], 'readonly');
-        const store = transaction.objectStore(VIDEO_STORE_NAME);
-        const videos = [];
-        let completedRequests = 0;
-
-        if (ids.length === 0) {
-            resolve([]);
-            return;
-        }
-
-        ids.forEach(id => {
-            const request = store.get(parseInt(id)); // ID в IndexedDB хранятся как числа
-            request.onsuccess = () => {
-                if (request.result) {
-                    videos.push(request.result);
-                }
-                completedRequests++;
-                if (completedRequests === ids.length) {
-                    resolve(videos);
-                }
-            };
-            request.onerror = (event) => {
-                console.error('Error fetching video by ID:', event.target.error);
-                completedRequests++;
-                if (completedRequests === ids.length) {
-                    resolve(videos); // Разрешаем даже при ошибке, возвращаем то, что удалось получить
-                }
-            };
-        });
-    });
-}
-
 // Вспомогательная функция для форматирования метаданных
 function formatMetadataForDisplay(metadata) {
+    if (!metadata) return 'No metadata available yet.';
+
     const lines = [];
 
     lines.push(`File Name: ${metadata.format?.filename || 'N/A'}`);
@@ -141,96 +69,132 @@ function formatMetadataForDisplay(metadata) {
     return lines.join('\n');
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+    const username = sessionStorage.getItem('hifeUsername') || 'Guest';
+    usernameDisplay.textContent = `For: @${username}`;
 
-// Функция для загрузки и отображения видео
-async function loadAndDisplayVideos() {
-    // Получаем параметры из URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const instagramUsername = urlParams.get('user');
-    const videoIdsParam = urlParams.get('videoIds');
-    const videoIds = videoIdsParam ? videoIdsParam.split(',').map(id => parseInt(id)) : [];
+    let pendingTaskIds = JSON.parse(sessionStorage.getItem('pendingTaskIds') || '[]');
 
-    if (instagramUsername) {
-        usernameDisplay.textContent = `For: @${instagramUsername}`;
+    resultsHeader.textContent = 'Your Video Analysis Results';
+    
+    if (pendingTaskIds.length === 0) {
+        bubblesContainer.innerHTML = '<p id="statusMessage">No pending tasks found for this session. Please upload a video from the previous page.</p>';
     } else {
-        usernameDisplay.textContent = 'No user specified.';
+        bubblesContainer.innerHTML = '<p id="statusMessage">Checking status of your videos...</p>';
     }
 
-    if (videoIds.length === 0) {
-        bubblesContainer.innerHTML = '<p class="status-message">No videos found for analysis.</p>';
-        return;
+    uploadNewBtn.addEventListener('click', () => {
+        sessionStorage.removeItem('pendingTaskIds'); // Очищаем ID задач при начале новой загрузки
+        sessionStorage.removeItem('hifeUsername'); // Очищаем имя пользователя
+        window.location.href = 'upload.html'; // Перенаправляем на страницу загрузки
+    });
+
+    const CHECK_STATUS_INTERVAL_MS = 2000; // Опрос каждые 2 секунды
+    const taskBubbles = {}; // Объект для хранения ссылок на элементы "пузырей" по taskId
+
+    // Функция для создания или обновления "пузыря" статуса задачи
+    function createOrUpdateBubble(taskId, data) {
+        let bubble = taskBubbles[taskId];
+        if (!bubble) {
+            bubble = document.createElement('div');
+            bubble.className = 'video-bubble'; // Используем video-bubble
+            bubble.id = `bubble-${taskId}`; 
+            bubblesContainer.appendChild(bubble); 
+            taskBubbles[taskId] = bubble; 
+            
+            const initialMessage = document.getElementById('statusMessage');
+            if (initialMessage && bubblesContainer.children.length > 1) { // Если есть сообщение и добавлен первый пузырь
+                initialMessage.remove(); // Удаляем начальное сообщение
+            }
+        }
+
+        // Обновляем содержимое "пузыря"
+        let content = `<span class="bubble-text">${data.inputFileName || 'Unknown File'}</span><br>`;
+        content += `<strong>Status:</strong> <span class="status-${data.status}">${data.status.replace(/_/g, ' ')}</span><br>`;
+        content += `<strong>Message:</strong> ${data.message || 'No specific message.'}<br>`;
+
+        if (data.status === 'completed' && data.outputDriveId) {
+            const fakeLink = `https://fake.googledrive.com/file/${data.outputDriveId}`;
+            content += `<br><a href="${fakeLink}" target="_blank" class="download-link">Download processed video (Fake)</a>`;
+            if (data.metadata) { // Если метаданные доступны
+                // Сохраняем метаданные в data-атрибуте кнопки
+                content += `<button class="show-details-btn gold-button" data-metadata='${JSON.stringify(data.metadata)}' data-filename="${data.inputFileName}">Show Details</button>`;
+            }
+        }
+
+        bubble.innerHTML = content;
+
+        // Добавляем обработчик для кнопки "Show Details"
+        const showDetailsBtn = bubble.querySelector('.show-details-btn');
+        if (showDetailsBtn) {
+            showDetailsBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const metadata = JSON.parse(showDetailsBtn.dataset.metadata);
+                const filename = showDetailsBtn.dataset.filename;
+                showMetadataModal(filename, metadata);
+            });
+        }
     }
 
-    try {
-        const videos = await getVideosByIDs(videoIds);
-        if (videos.length === 0) {
-            bubblesContainer.innerHTML = '<p class="status-message">No video metadata found in local database for these IDs.</p>';
+    // Функция для периодической проверки статусов задач
+    async function checkTaskStatuses() {
+        if (pendingTaskIds.length === 0) {
+            bubblesContainer.innerHTML = '<p id="statusMessage">No pending tasks found for this session. Please upload a video from the previous page.</p>';
             return;
         }
 
-        bubblesContainer.innerHTML = ''; // Очищаем контейнер перед добавлением пузырей
+        const tasksToKeepPolling = []; // Задачи, которые еще не завершены
 
-        videos.forEach(video => {
-            const bubble = document.createElement('div');
-            bubble.classList.add('video-bubble');
-            bubble.innerHTML = `<span class="bubble-text">${video.filename}</span>`;
-            
-            // Сохраняем полные метаданные в data-атрибуте для доступа при клике
-            bubble.dataset.metadata = JSON.stringify(video.metadata);
-            bubble.dataset.filename = video.filename;
+        for (const taskId of pendingTaskIds) {
+            try {
+                const response = await fetch(`${RENDER_BACKEND_URL}/task-status/${taskId}`);
+                const data = await response.json();
 
-            bubble.addEventListener('click', () => {
-                openModal(video.filename, JSON.parse(bubble.dataset.metadata));
-            });
-            bubblesContainer.appendChild(bubble);
-        });
+                if (response.ok) {
+                    createOrUpdateBubble(taskId, data);
+                    if (data.status !== 'completed' && data.status !== 'error') {
+                        tasksToKeepPolling.push(taskId); // Продолжаем опрос для этой задачи
+                    }
+                } else {
+                    console.error(`[FRONTEND] Ошибка при получении статуса для задачи ${taskId}:`, data.message);
+                    createOrUpdateBubble(taskId, { status: 'error', message: data.message || 'Failed to fetch status.', inputFileName: `Task ${taskId}` });
+                }
+            } catch (error) {
+                console.error(`[FRONTEND] Сетевая ошибка при проверке статуса для задачи ${taskId}:`, error);
+                createOrUpdateBubble(taskId, { status: 'error', message: 'Network error or backend unreachable.', inputFileName: `Task ${taskId}` });
+            }
+        }
+        
+        // Обновляем список задач для опроса
+        pendingTaskIds = tasksToKeepPolling; 
+        sessionStorage.setItem('pendingTaskIds', JSON.stringify(pendingTaskIds)); // Сохраняем обновленный список
 
-    } catch (error) {
-        console.error("Error loading videos:", error);
-        bubblesContainer.innerHTML = `<p class="status-message" style="color: red;">Error loading video data: ${error.message}</p>`;
+        // Если есть еще незавершенные задачи, планируем следующий опрос
+        if (pendingTaskIds.length > 0) {
+            setTimeout(checkTaskStatuses, CHECK_STATUS_INTERVAL_MS);
+        } else {
+            console.log("[FRONTEND] Все задачи завершены или произошла ошибка. Опрос остановлен.");
+            // Опционально: показать окончательное сообщение или кнопку "Upload New Video"
+        }
     }
-}
 
-// --- Функции для управления модальным окном ---
-function openModal(title, metadata) {
-    modalTitle.textContent = title;
-    modalMetadata.textContent = formatMetadataForDisplay(metadata); // Используем новую функцию форматирования
-    metadataModal.classList.add('visible'); // Показываем модальное окно
-}
+    // Функции для модального окна
+    function showMetadataModal(filename, metadata) {
+        modalTitle.textContent = `Metadata for ${filename}`;
+        modalMetadata.textContent = formatMetadataForDisplay(metadata);
+        metadataModal.style.display = 'block';
+    }
 
-function closeModal() {
-    metadataModal.classList.remove('visible'); // Скрываем модальное окно
-}
-
-// --- Обработчики событий ---
-document.addEventListener('DOMContentLoaded', () => {
-    // Инициализируем IndexedDB и загружаем видео
-    openDatabase().then(() => {
-        loadAndDisplayVideos();
-    }).catch(error => {
-        console.error("Failed to initialize IndexedDB on results page:", error);
-        bubblesContainer.innerHTML = `<p class="status-message" style="color: red;">Failed to load video data: ${error.message}</p>`;
+    closeButton.addEventListener('click', () => {
+        metadataModal.style.display = 'none';
     });
 
-    // Кнопка "Upload New Video(s)"
-    uploadNewBtn.addEventListener('click', () => {
-        window.location.href = 'upload.html'; // Перенаправляем обратно на страницу загрузки
-    });
-
-    // Закрытие модального окна по кнопке "x"
-    closeButton.addEventListener('click', closeModal);
-
-    // Закрытие модального окна при клике вне его содержимого
     window.addEventListener('click', (event) => {
-        if (event.target === metadataModal) {
-            closeModal();
+        if (event.target == metadataModal) {
+            metadataModal.style.display = 'none';
         }
     });
 
-    // Закрытие модального окна по кнопке Esc
-    window.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && metadataModal.classList.contains('visible')) {
-            closeModal();
-        }
-    });
+    // Запускаем проверку статусов при загрузке страницы
+    checkTaskStatuses();
 });
