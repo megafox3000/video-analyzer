@@ -104,6 +104,7 @@ app.get('/task-status/:taskId', (req, res) => {
 });
 
 // Запуск сервера
+const port = process.env.PORT || 3000; // Render сам выставит PORT
 app.listen(port, () => {
     console.log(`Render Backend заглушка запущена на порту ${port}`);
     console.log(`Для доступа с фронтенда (если он на другом порту/домене), убедитесь, что CORS включен.`);
