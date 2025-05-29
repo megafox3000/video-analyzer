@@ -215,7 +215,7 @@ h1 {
     color: #FFD700;
     margin-bottom: 1.5rem;
     text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
-    text-align: center; 
+    text-align: center;
 }
 
 .social-form {
@@ -252,16 +252,17 @@ h1 {
 }
 
 
-/* Стиль для кнопки загрузки (upload-label теперь является кнопкой) */
-.upload-label {
+/* Стиль для кнопки загрузки (upload-label теперь является кнопкой) - ИМЯ КЛАССА "upload-label" НЕ СУЩЕСТВУЕТ В HTML! 
+   Этот блок CSS, вероятно, должен был относиться к gold-button, если вы его не используете в HTML.*/
+/* .upload-label {
     cursor: pointer;
     width: 100%;
     text-align: center;
     animation: none;
-}
+} */
 
 /* Стиль для отключенной кнопки загрузки */
-.upload-label.disabled {
+/* .upload-label.disabled {
     opacity: 0.5;
     cursor: not-allowed;
     background: #555;
@@ -271,13 +272,27 @@ h1 {
 .upload-label.disabled:hover {
     transform: none;
     box-shadow: none;
+} */
+
+/* Исправленный стиль для disabled gold-button */
+.gold-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #555; /* Более темный фон для отключенной кнопки */
+    box-shadow: none;
+    animation: none; /* Отключаем пульсацию для отключенной кнопки */
 }
 
+.gold-button:disabled:hover {
+    transform: none; /* Убираем эффект увеличения при наведении для отключенной кнопки */
+    box-shadow: none;
+}
 
 .status-message {
     margin-top: 1rem;
     font-size: 1rem;
     color: #c0c0c0;
+    text-align: center; /* Центрируем сообщения о статусе */
 }
 
 /* Новый стиль для списка видеоинформации */
@@ -485,28 +500,21 @@ h1 {
 /* Стили для отдельной карточки видео (бывший "пузырь") */
 .video-bubble {
     background-color: #3b3b3b; /* Чуть светлее фон для карточки */
-    border-radius: 50%; /* <<-- ВОТ ЗДЕСЬ ИЗМЕНИТЬ ОБРАТНО НА 50% */
-    padding: 15px;
+    border-radius: 50%; /* Снова круглые! */
+    padding: 15px; /* Уменьшен padding для минимализма */
     box-shadow: 0 8px 20px rgba(0,0,0,0.5);
     text-align: center;
     color: var(--text-color-light);
-    width: 280px; /* Верните фиксированную ширину, если хотите круг */
-    height: 280px; /* Добавьте фиксированную высоту, чтобы было круглое */
-    max-width: 300px;
+    width: 280px; /* Фиксированная ширина для круга */
+    height: 280px; /* Фиксированная высота для круга */
+    max-width: 300px; /* Сохраняем, но width и height имеют приоритет */
     box-sizing: border-box;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     flex-shrink: 0;
     position: relative;
-    animation: float 3s ease-in-out infinite;
-    border: 1px solid #4a4a4a;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    overflow: hidden;
-}
+    animation: float 3s ease-in-out infinite; /* Сохраняем анимацию плавания */
+    border: 1px solid #4a4a4a; /* Небольшая рамка */
+    cursor: pointer; /* Делаем весь баббл кликабельным */
 
     /* Внутренние стили для содержимого карточки */
     display: flex;
@@ -514,7 +522,7 @@ h1 {
     align-items: center;
     justify-content: center; /* Центрируем контент */
     gap: 10px; /* Промежуток между элементами внутри карточки */
-    height: 250px; /* Фиксированная высота для единообразия, подстраивается под контент */
+    /* height: 250px; - Убрал, т.к. есть явный height: 280px; для круга */
     overflow: hidden; /* Скрыть всё, что выходит за рамки */
 }
 
@@ -614,12 +622,9 @@ h1 {
 /* Адаптивность для карточек */
 @media (max-width: 768px) {
     .video-bubble {
-        /* Эти стили могут помешать круглой форме, если вы не хотите ее на мобильных */
-        /* Если хотите круглые, возможно, вам нужно будет: */
         width: 200px; /* Меньший круг на мобильных */
         height: 200px; /* Соответствующая высота */
-        max-width: none; /* Убрать это */
-        /* width: 100%; */ /* Убрать это */
+        /* Убрал max-width: none; width: 100%; чтобы сохранить круглость */
     }
     .results-grid {
         grid-template-columns: 1fr; /* Одна колонка на мобильных */
@@ -633,7 +638,8 @@ h1 {
 @media (max-width: 480px) {
     .video-bubble {
         padding: 10px; /* Еще уменьшить padding */
-        height: 200px; /* Еще уменьшить высоту */
+        width: 180px; /* Еще уменьшить круг на очень маленьких экранах */
+        height: 180px; /* Соответствующая высота */
     }
     .header-section h2 {
         font-size: 1.8rem;
