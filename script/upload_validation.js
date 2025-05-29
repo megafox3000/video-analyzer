@@ -1,5 +1,3 @@
-// script/upload_validation.js
-
 document.addEventListener('DOMContentLoaded', () => {
     const videoFileInput = document.getElementById('videoFileInput');
     const selectFilesButton = document.getElementById('selectFilesButton');
@@ -114,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST', 'https://video-meta-api.onrender.com/upload_video', true); // ЗАМЕНИТЕ НА АДРЕС ВАШЕГО СЕРВЕРА
+                xhr.open('POST', 'https://video-meta-api.onrender.com/upload_video', true); // Правильный адрес сервера!
                 
                 xhr.upload.addEventListener('progress', (e) => {
                     if (e.lengthComputable) {
@@ -143,7 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 id: response.taskId, // taskId является public_id
                                 url: response.cloudinary_url,
                                 original_filename: response.original_filename,
-                                metadata: response.metadata // Сохраняем полные метаданные
+                                metadata: response.metadata, // Сохраняем полные метаданные
+                                status: 'pending' // Изначальный статус для results.js
                             });
                             resolve(response);
                         } else {
@@ -181,19 +180,25 @@ document.addEventListener('DOMContentLoaded', () => {
             generalStatusMessage.style.color = 'green';
             finishUploadButton.style.display = 'block'; // Показываем кнопку "Финиш"
             
-            // Сохраняем uploadedVideos в localStorage для следующей страницы
+            // Сохраняем uploadedVideos и hifeUsername в localStorage
             localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
+            localStorage.setItem('hifeUsername', instagramUsername); 
 
         } else if (uploadedVideos.length > 0) {
              generalStatusMessage.textContent = "Некоторые видео загружены, но были ошибки. Проверьте статусы.";
              generalStatusMessage.style.color = 'orange';
              finishUploadButton.style.display = 'block'; // Показываем кнопку "Финиш"
-             localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos)); // Сохраняем то, что удалось
+             // Сохраняем то, что удалось загрузить
+             localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos)); 
+             localStorage.setItem('hifeUsername', instagramUsername); 
         }
         else {
             generalStatusMessage.textContent = "Ни одно видео не было загружено успешно. Пожалуйста, попробуйте снова.";
             generalStatusMessage.style.color = 'red';
             finishUploadButton.style.display = 'none'; // Скрываем кнопку "Финиш"
+            // Очищаем, если ничего не загружено, чтобы не было фантомных задач
+            localStorage.removeItem('uploadedVideos');
+            localStorage.removeItem('hifeUsername');
         }
     }
 
