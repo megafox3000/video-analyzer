@@ -39,3 +39,29 @@ Hife ver 0.15.5
 -Изменение script/analyze.js: После загрузки и анализа видео будет происходить перенаправление на results.html с передачей необходимых данных.
 -Хранение данных: Поскольку нам нужно передавать метаданные между страницами, мы будем использовать IndexedDB, которую вы уже настроили. Это позволит сохранять результаты анализа каждого видео и затем отображать их на новой странице.
 -Новые CSS-стили: Для "пузырей" и модальных окон.
+
+-------------------------------
+Hife ver 0.16
+-------------------------------
+New Feature: Enhanced Video Upload Workflow with Per-File Validation
+This update significantly refines the video upload experience on the platform, introducing robust client-side validation and a more controlled submission process.
+
+Key Additions & Improvements:
+
+Mandatory Instagram Input: The "Upload Video(s)" button is now disabled until at least the Instagram username field is filled out, and at least one social media field (Instagram, LinkedIn, or Email) contains input. This ensures essential user identification before proceeding.
+Staged Upload Process:
+The "Upload Video(s)" button (#selectFilesButton) now serves to open the file selection dialog instead of directly initiating an upload.
+A new "Finish and Upload" button (#finishUploadButton) has been introduced. This button is initially hidden and disabled.
+Client-Side Per-File Validation:
+Upon selecting files, each video file undergoes individual validation directly in the browser.
+Size Validation: Files exceeding 100 MB are flagged.
+Duration Validation: Videos longer than 5 minutes are flagged.
+For each selected file, a clear status message (e.g., "OK," "Too large," "Too long") is displayed in a dedicated list (#fileValidationStatusList).
+Conditional "Finish" Button Activation: The "Finish and Upload" button becomes visible and active only if at least one video file passes all validation checks. If all selected files fail validation, the button remains hidden.
+Controlled Backend Submission: Only after the user clicks the "Finish and Upload" button are the valid files submitted to the backend for Cloudinary upload.
+Individual Upload Progress Tracking: During the final upload phase, each file now displays its own real-time upload progress bar, providing clear feedback.
+Redirect to Results Page: After all valid files have been sent to the backend, the user is automatically redirected to the results.html page to monitor the processing status of their videos.
+Technical Refinements:
+
+Code Separation: The frontend logic has been significantly refactored. upload_validation.js now manages the entire user interaction flow, including social input validation, file selection, and per-file validation. analyze.js is now solely responsible for handling the actual AJAX requests for video uploads and displaying their progress.
+Improved Element IDs: HTML elements on upload.html have been updated with more descriptive IDs to clarify their roles in the new workflow (e.g., videoFileInput, selectFilesButton, finishUploadButton, fileValidationStatusList, videoUploadProgressList).
