@@ -1,4 +1,3 @@
-// script/results.js
 const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // Ваш реальный URL бэкенда Render
 
 const resultsHeader = document.getElementById('resultsHeader');
@@ -35,24 +34,44 @@ function getCloudinaryThumbnailUrl(videoUrl) {
     return `${baseUrl}/upload/${transformations}${publicIdPath}`;
 }
 
-// УДАЛЕНА: Функция formatMetadataForDisplay больше не нужна, так как мы будем отображать JSON.stringify
-// function formatMetadataForDisplay(metadata) { ... }
-
 document.addEventListener('DOMContentLoaded', () => {
-    // Внимание: теперь мы получаем данные из localStorage, а не sessionStorage.
-    // Убедитесь, что ваш upload_validation.js сохраняет данные в localStorage.
+    // Получаем все сохраненные видео, включая те, что уже завершены
     const uploadedVideosData = JSON.parse(localStorage.getItem('uploadedVideos') || '[]');
-    let pendingTaskIds = uploadedVideosData.map(video => video.id); // Получаем taskId (public_id) из сохраненных данных
+    
+    // Определяем, какие задачи все еще нужно опрашивать (pending, processing)
+    let pendingTaskIds = uploadedVideosData
+        .filter(video => video.status !== 'completed' && video.status !== 'error' && video.status !== 'failed')
+        .map(video => video.id);
 
-    const username = localStorage.getItem('hifeUsername') || 'Guest'; // Или получите username из localStorage
+    const username = localStorage.getItem('hifeUsername') || 'Guest'; 
     usernameDisplay.textContent = `For: @${username}`;
 
     resultsHeader.textContent = 'Your Video Analysis Results';
     
-    if (pendingTaskIds.length === 0) {
-        bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">No pending tasks found. Please upload a video from the <a href="upload.html" style="color: #FFD700; text-decoration: underline;">upload page</a>.</p>';
+    // Изначально отображаем все сохраненные бабблы
+    if (uploadedVideosData.length === 0) {
+        bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">No tasks found. Please upload a video from the <a href="upload.html" style="color: #FFD700; text-decoration: underline;">upload page</a>.</p>';
     } else {
-        bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message">Checking status of your videos...</p>';
+        // Создаем бабблы для всех ранее загруженных видео, чтобы они сразу отобразились
+        bubblesContainer.innerHTML = ''; // Очищаем начальное сообщение
+        uploadedVideosData.forEach(video => {
+            createOrUpdateBubble(video.id, video); // Создаем бабблы со статусом, который уже известен
+        });
+        // Если есть задачи для опроса, показываем сообщение "Checking status..."
+        if (pendingTaskIds.length > 0) {
+            const statusMessage = document.createElement('p');
+            statusMessage.id = 'statusMessage';
+            statusMessage.className = 'status-message';
+            statusMessage.textContent = 'Checking status of your videos...';
+            bubblesContainer.prepend(statusMessage); // Добавляем в начало
+        } else {
+            // Если все задачи уже завершены, но мы что-то отображаем
+             const statusMessage = document.createElement('p');
+             statusMessage.id = 'statusMessage';
+             statusMessage.className = 'status-message info';
+             statusMessage.textContent = 'All tasks completed or processed.';
+             bubblesContainer.prepend(statusMessage);
+        }
     }
 
     uploadNewBtn.addEventListener('click', () => {
@@ -62,7 +81,68 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const CHECK_STATUS_INTERVAL_MS = 2000;
-    const taskBubbles = {};
+    const taskBubbles = {}; // Эта карта уже используется для DOM-элементов
+    
+    // Передаем uploadedVideosData в checkTaskStatuses, чтобы она могла оперировать со всем списком
+    checkTaskStatuses(uploadedVideosData); 
+
+    async function checkTaskStatuses(currentVideosData) {
+        const tasksToKeepPolling = []; // Задачи, которые будут продолжать опрашиваться
+        const updatedVideosData = []; // Новый полный список видео для сохранения в localStorage
+
+        if (currentVideosData.length === 0 && bubblesContainer.children.length <= 1) { 
+            bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">No tasks found. Please upload a video from the <a href="upload.html" style="color: #FFD700; text-decoration: underline;">upload page</a>.</p>';
+            return;
+        }
+
+        // Проходимся по всем видео, которые у нас есть (изначально загруженные + те, что уже есть в localStorage)
+        for (const video of currentVideosData) {
+            const taskId = video.id;
+            // Если задача уже завершена или с ошибкой, мы ее не опрашиваем, но сохраняем в updatedVideosData
+            if (video.status === 'completed' || video.status === 'error' || video.status === 'failed') {
+                updatedVideosData.push(video);
+                createOrUpdateBubble(taskId, video); // Убеждаемся, что баббл отображается корректно
+                continue; // Переходим к следующему видео, если оно уже завершено
+            }
+
+            // Если задача pending/processing, опрашиваем
+            try {
+                const response = await fetch(`${RENDER_BACKEND_URL}/task-status/${taskId}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    createOrUpdateBubble(taskId, data);
+                    if (data.status !== 'completed' && data.status !== 'error' && data.status !== 'failed') {
+                        tasksToKeepPolling.push(taskId);
+                        updatedVideosData.push(video); // Задача все еще в обработке, сохраняем ее как есть
+                    } else {
+                        // Задача только что завершилась или выдала ошибку
+                        updatedVideosData.push({ ...video, status: data.status, message: data.message, metadata: data.metadata, cloudinary_url: data.cloudinary_url, original_filename: video.original_filename });
+                    }
+                } else {
+                    console.error(`[FRONTEND] Ошибка при получении статуса для задачи ${taskId}:`, data.message || response.statusText);
+                    createOrUpdateBubble(taskId, { status: 'error', message: data.message || 'Failed to fetch status.', filename: video.original_filename || `Task ${taskId}` });
+                    updatedVideosData.push({ ...video, status: 'error', message: data.message || 'Failed to fetch status.' });
+                }
+            } catch (error) {
+                console.error(`[FRONTEND] Сетевая ошибка при проверке статуса для задачи ${taskId}:`, error);
+                createOrUpdateBubble(taskId, { status: 'error', message: 'Network error or backend unreachable.', filename: video.original_filename || `Task ${taskId}` });
+                updatedVideosData.push({ ...video, status: 'error', message: 'Network error or backend unreachable.' });
+            }
+        }
+        
+        // Сохраняем полный обновленный список видео (включая завершенные)
+        localStorage.setItem('uploadedVideos', JSON.stringify(updatedVideosData)); 
+        
+        // Если еще есть задачи для опроса, продолжаем
+        if (tasksToKeepPolling.length > 0) {
+            setTimeout(() => checkTaskStatuses(updatedVideosData.filter(v => tasksToKeepPolling.includes(v.id))), CHECK_STATUS_INTERVAL_MS);
+            // При следующем вызове передаем только те видео, которые мы опрашиваем
+        } else {
+            console.log("[FRONTEND] Все задачи завершены или произошла ошибка. Опрос остановлен.");
+            // Здесь мы НЕ очищаем localStorage, так как completed/error задачи должны оставаться видимыми
+        }
+    }
 
     // Функция для создания или обновления "пузыря" статуса задачи
     function createOrUpdateBubble(taskId, data) {
@@ -75,19 +155,17 @@ document.addEventListener('DOMContentLoaded', () => {
             taskBubbles[taskId] = bubble;
             
             const initialMessage = document.getElementById('statusMessage');
-            if (initialMessage) {
-                initialMessage.remove();
+            if (initialMessage && initialMessage.textContent === 'No tasks found. Please upload a video from the upload page.') {
+                initialMessage.remove(); // Удаляем сообщение "No tasks found"
             }
         }
 
-        // Используем data.filename, который ваш сервер возвращает
-        let filenameText = `<h3>${data.filename || `Task ${taskId}`}</h3>`; 
+        let filenameText = `<h3>${data.original_filename || `Task ${taskId}`}</h3>`; // Используем original_filename
         let previewHtml = '';
         let statusMessageText = '';
 
         // Логика определения URL превью и статуса
         if (data.status === 'completed') {
-            // Используем Cloudinary URL из data.cloudinary_url
             const thumbnailUrl = getCloudinaryThumbnailUrl(data.cloudinary_url);
             previewHtml = `<img class="bubble-preview-img" src="${thumbnailUrl}" alt="Превью видео">`;
             statusMessageText = '<p class="status-message-bubble status-completed">Обработано. Клик для деталей.</p>';
@@ -115,56 +193,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Добавляем обработчик для открытия модального окна по клику на весь баббл
         // Только если статус "completed" И есть метаданные (metadata)
         if (data.status === 'completed' && data.metadata) {
-            bubble.onclick = () => showMetadataModal(data.filename, data.metadata); // Передаем оригинальное имя и полные метаданные
+            bubble.onclick = () => showMetadataModal(data.original_filename || `Task ${taskId}`, data.metadata); // Передаем оригинальное имя и полные метаданные
             bubble.style.cursor = 'pointer'; // Делаем курсор кликабельным
         } else {
             bubble.onclick = null; 
             bubble.style.cursor = 'default'; 
-        }
-    }
-
-    async function checkTaskStatuses() {
-        if (pendingTaskIds.length === 0 && bubblesContainer.children.length <= 1) {
-            bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">No pending tasks found. Please upload a video from the <a href="upload.html" style="color: #FFD700; text-decoration: underline;">upload page</a>.</p>';
-            return;
-        }
-
-        const tasksToKeepPolling = []; 
-
-        for (const taskId of pendingTaskIds) {
-            try {
-                const response = await fetch(`${RENDER_BACKEND_URL}/task-status/${taskId}`);
-                const data = await response.json();
-
-                if (response.ok) {
-                    createOrUpdateBubble(taskId, data);
-                    if (data.status !== 'completed' && data.status !== 'error' && data.status !== 'failed') {
-                        tasksToKeepPolling.push(taskId); 
-                    }
-                } else {
-                    console.error(`[FRONTEND] Ошибка при получении статуса для задачи ${taskId}:`, data.message || response.statusText);
-                    createOrUpdateBubble(taskId, { status: 'error', message: data.message || 'Failed to fetch status.', filename: `Task ${taskId}` });
-                }
-            } catch (error) {
-                console.error(`[FRONTEND] Сетевая ошибка при проверке статуса для задачи ${taskId}:`, error);
-                createOrUpdateBubble(taskId, { status: 'error', message: 'Network error or backend unreachable.', filename: `Task ${taskId}` });
-            }
-        }
-        
-        // Обновляем список задач для опроса
-        // Важно: если вы хотите сохранять историю для текущей сессии,
-        // то `uploadedVideos` из `localStorage` должны быть пополнены,
-        // а не просто `pendingTaskIds`. Но для текущей логики этого достаточно.
-        localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideosData.filter(video => tasksToKeepPolling.includes(video.id)))); 
-        pendingTaskIds = tasksToKeepPolling;
-
-        if (pendingTaskIds.length > 0) {
-            setTimeout(checkTaskStatuses, CHECK_STATUS_INTERVAL_MS);
-        } else {
-            console.log("[FRONTEND] Все задачи завершены или произошла ошибка. Опрос остановлен.");
-            // Очищаем localStorage после того, как все задачи завершены и отображены
-            localStorage.removeItem('uploadedVideos'); 
-            localStorage.removeItem('hifeUsername'); 
         }
     }
 
@@ -187,5 +220,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Запускаем проверку статусов при загрузке страницы
-    checkTaskStatuses();
+    // checkTaskStatuses(); // Теперь вызывается один раз в начале с uploadedVideosData
 });
