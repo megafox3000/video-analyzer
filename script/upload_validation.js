@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST', 'YOUR_FLASK_SERVER_URL/upload_video', true); // ЗАМЕНИТЕ НА АДРЕС ВАШЕГО СЕРВЕРА
+                xhr.open('POST', 'https://video-meta-api.onrender.com/upload_video', true); // ЗАМЕНИТЕ НА АДРЕС ВАШЕГО СЕРВЕРА
                 
                 xhr.upload.addEventListener('progress', (e) => {
                     if (e.lengthComputable) {
