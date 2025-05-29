@@ -269,7 +269,7 @@ async function uploadVideoAndTrackProgress(file, userInfo) {
         try {
             const xhr = new XMLHttpRequest();
 
-            xhr.open('POST', `${RENDER_BACKEND_URL}/analyze`); // Используем константу URL
+            xhr.open('POST', `${RENDER_BACKEND_URL}/analyze`);
 
             xhr.upload.addEventListener('progress', function(event) {
                 if (event.lengthComputable) {
@@ -312,7 +312,11 @@ finishUploadButton.addEventListener('click', async function() {
         return;
     }
 
-    finishUploadButton.disabled = true;
+    // Скрываем кнопки сразу после нажатия
+    finishUploadButton.style.display = 'none';
+    selectFilesButton.style.display = 'none';
+
+    finishUploadButton.disabled = true; // Деактивируем кнопку, чтобы избежать повторных нажатий
     if (generalStatusMessage) {
         generalStatusMessage.textContent = 'Начинается загрузка проверенных видео...';
         generalStatusMessage.className = 'status-message';
@@ -355,6 +359,9 @@ finishUploadButton.addEventListener('click', async function() {
         }
         window.location.href = 'results.html';
     } else {
+        // Если файлов для загрузки не осталось или все провалились, показываем кнопки снова
+        finishUploadButton.style.display = 'block'; // Можно показать кнопку "Финиш" снова
+        selectFilesButton.style.display = 'block'; // И кнопку выбора файлов
         finishUploadButton.disabled = false;
         if (generalStatusMessage) {
             generalStatusMessage.textContent = 'Нет задач для отслеживания. Пожалуйста, попробуйте еще раз.';
