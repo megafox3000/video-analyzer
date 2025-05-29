@@ -25,7 +25,7 @@ console.log('linkedinInput:', linkedinInput);
 console.log('emailInput:', emailInput);
 console.log('videoFileInput:', videoFileInput);
 console.log('selectFilesButton:', selectFilesButton);
-console.log('generalStatusMessage:', generalStatusMessage); // ОЧЕНЬ ВАЖНО: убедитесь, что здесь не null
+console.log('generalStatusMessage:', generalStatusMessage);
 console.log('fileValidationStatusList:', fileValidationStatusList);
 console.log('finishUploadButton:', finishUploadButton);
 
@@ -40,18 +40,25 @@ function checkSocialInputs() {
     const linkedinValue = linkedinInput.value.trim();
     const emailValue = emailInput.value.trim();
 
-    // Instagram обязателен, и хотя бы одно поле должно быть заполнено
-    const isSocialInputValid = instagramValue !== '' &&
-                               (instagramValue !== '' || linkedinValue !== '' || emailValue !== '');
+    // Instagram обязателен
+    const isInstagramValid = instagramValue !== '';
+    // И хотя бы одно из трех полей должно быть заполнено
+    const isAnySocialFilled = instagramValue !== '' || linkedinValue !== '' || emailValue !== '';
 
-    selectFilesButton.disabled = !isSocialInputValid; // Включаем/отключаем кнопку выбора файлов
-    if (!isSocialInputValid) {
-        if (generalStatusMessage) { // Защита от null, хотя после исправления должно быть OK
+
+    // Кнопка выбора файлов активна, если Instagram заполнен и хотя бы одно из трех полей заполнено
+    const isFormValid = isInstagramValid && isAnySocialFilled;
+
+    selectFilesButton.disabled = !isFormValid;
+    selectFilesButton.classList.toggle('disabled', !isFormValid); // Добавляем/убираем класс 'disabled' для стилей
+
+    if (!isFormValid) {
+        if (generalStatusMessage) {
             generalStatusMessage.textContent = 'Пожалуйста, заполните Instagram и хотя бы одно другое поле соцсети.';
             generalStatusMessage.className = 'status-message error';
         }
     } else {
-        if (generalStatusMessage) { // Защита от null
+        if (generalStatusMessage) {
             generalStatusMessage.textContent = '';
             generalStatusMessage.className = 'status-message';
         }
@@ -69,20 +76,79 @@ document.addEventListener('DOMContentLoaded', checkSocialInputs);
 
 // --- Обработчик клика по кнопке "Upload Video(s)" (открытие диалога выбора файлов) ---
 selectFilesButton.addEventListener('click', function() {
-    videoFileInput.click(); // Открываем скрытый input type="file"
+    if (!selectFilesButton.disabled) {
+        videoFileInput.click(); // Открываем скрытый input type="file"
+    }
 });
 
 
 // --- Функция для отображения статуса отдельного файла ---
-function displayFileStatus(file, statusText, isError = false) {
-    let fileStatusItem = document.getElementById(`file-status-${file.name.replace(/[^a-zA-Z0-9]/g, '-')}`);
+function displayFileStatus(file, statusText, isError = false, progress = -1) {
+    let fileId = `file-status-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`; // Более надежное имя ID
+    let fileStatusItem = document.getElementById(fileId);
+
     if (!fileStatusItem) {
         fileStatusItem = document.createElement('div');
-        fileStatusItem.id = `file-status-${file.name.replace(/[^a-zA-Z0-9]/g, '-')}`;
-        fileStatusItem.className = 'file-status-item';
+        fileStatusItem.id = fileId;
+        fileStatusItem.className = 'video-info-item'; // Используем новый класс для стилей
+
+        // Создаем элементы для прогресса и текста
+        fileStatusItem.innerHTML = `
+            <div class="spoiler-btn" data-upload-progress="0">
+                <img class="spoiler-icon" src="assets/upload-icon.png" alt="Загрузка">
+                <span class="spoiler-text"><strong>${file.name}</strong>: <span class="upload-status-text">${statusText}</span></span>
+            </div>
+            <div class="spoiler-content">
+                <div class="progress-bar-container">
+                    <div class="progress-bar"></div>
+                    <span class="progress-text">0%</span>
+                </div>
+            </div>
+        `;
         fileValidationStatusList.appendChild(fileStatusItem);
+    } else {
+        // Обновляем текст статуса
+        fileStatusItem.querySelector('.upload-status-text').textContent = statusText;
     }
-    fileStatusItem.innerHTML = `<strong>${file.name}</strong>: <span class="${isError ? 'status-message error' : 'status-message success'}">${statusText}</span>`;
+
+    const spoilerBtn = fileStatusItem.querySelector('.spoiler-btn');
+    const spoilerTextSpan = fileStatusItem.querySelector('.spoiler-text');
+    const progressBar = fileStatusItem.querySelector('.progress-bar');
+    const progressText = fileStatusItem.querySelector('.progress-text');
+
+    if (isError) {
+        spoilerBtn.style.setProperty('--upload-progress', '0%'); // Сбросить прогресс
+        spoilerBtn.classList.remove('loaded-spoiler-btn'); // Убрать "золотой" вид
+        spoilerTextSpan.style.color = 'var(--text-color-light)'; // Вернуть светлый текст
+        fileStatusItem.classList.add('error-state'); // Возможно, для красной рамки
+        progressBar.style.width = '0%';
+        progressText.textContent = 'Ошибка';
+    } else {
+        fileStatusItem.classList.remove('error-state');
+    }
+
+    if (progress !== -1) {
+        progressBar.style.width = `${progress}%`;
+        progressText.textContent = `${progress}%`;
+        if (progress === 100) {
+            spoilerBtn.classList.add('loaded-spoiler-btn'); // Добавляем класс для золотого вида
+            spoilerTextSpan.style.color = 'var(--text-color-dark)'; // Меняем цвет текста на темный
+        } else {
+             spoilerBtn.classList.remove('loaded-spoiler-btn');
+             spoilerTextSpan.style.color = 'var(--text-color-light)';
+        }
+        spoilerBtn.style.setProperty('--upload-progress', `${progress}%`);
+    }
+
+    // Если нужна кнопка "Финиш" после валидации, она должна быть видна/активна
+    if (filesReadyForUpload.length > 0 && generalStatusMessage.textContent.includes('готовы к загрузке')) {
+        finishUploadButton.style.display = 'block';
+        finishUploadButton.disabled = false;
+    } else if (fileValidationStatusList.children.length === filesToProcess.length && filesReadyForUpload.length === 0) {
+        // Если все файлы обработаны, но ни один не готов к загрузке
+        finishUploadButton.style.display = 'none';
+        finishUploadButton.disabled = true;
+    }
 }
 
 
@@ -95,14 +161,14 @@ videoFileInput.addEventListener('change', async function() {
     finishUploadButton.disabled = true; // Делаем кнопку неактивной, пока не будет валидных файлов
 
     if (filesToProcess.length === 0) {
-        if (generalStatusMessage) { // Защита от null
+        if (generalStatusMessage) {
             generalStatusMessage.textContent = 'Видеофайлы не выбраны.';
             generalStatusMessage.className = 'status-message error';
         }
         return;
     }
 
-    if (generalStatusMessage) { // Защита от null
+    if (generalStatusMessage) {
         generalStatusMessage.textContent = 'Проверка выбранных видеофайлов...';
         generalStatusMessage.className = 'status-message';
     }
@@ -153,12 +219,12 @@ videoFileInput.addEventListener('change', async function() {
             if (filesReadyForUpload.length > 0) {
                 finishUploadButton.style.display = 'block'; // Показываем кнопку
                 finishUploadButton.disabled = false; // Активируем кнопку
-                if (generalStatusMessage) { // Защита от null
+                if (generalStatusMessage) {
                     generalStatusMessage.textContent = `Проверено ${totalFiles} файлов. ${filesReadyForUpload.length} готовы к загрузке.`;
                     generalStatusMessage.className = 'status-message success';
                 }
             } else {
-                if (generalStatusMessage) { // Защита от null
+                if (generalStatusMessage) {
                     generalStatusMessage.textContent = 'Все выбранные файлы не прошли проверку.';
                     generalStatusMessage.className = 'status-message error';
                 }
@@ -196,76 +262,71 @@ finishUploadButton.addEventListener('click', async function() {
     }
 
     finishUploadButton.disabled = true; // Отключаем кнопку "Финиш" на время загрузки
-    if (generalStatusMessage) { // Защита от null
+    if (generalStatusMessage) {
         generalStatusMessage.textContent = 'Начинается загрузка проверенных видео...';
         generalStatusMessage.className = 'status-message';
     }
 
     const username = instagramInput.value.trim();
-    const linkedin = linkedinInput.value.trim();
-    const email = emailInput.value.trim();
+    // sessionStorage.setItem('hifeUsername', username); // Сохраняем имя пользователя в sessionStorage
 
     let allUploadsSuccessful = true;
     const taskIds = []; // Собираем task IDs для передачи на results.html
 
     for (const file of filesReadyForUpload) {
-        displayFileStatus(file, 'Загружается на Cloudinary...');
-        try {
-            // *** ЭТО ВАЖНЫЙ МОМЕНТ, который нужно связать с analyze.js ***
-            // Этот блок был скопирован из вашего предоставленного кода.
-            // Предполагается, что analyze.js теперь будет просто принимать данные
-            // Если вы переместили логику uploadVideoToCloudinary в analyze.js
-            // и хотите вызывать ее, то нужно убедиться, что analyze.js экспортирует эту функцию,
-            // или что она глобально доступна (например, через window.uploadVideo).
-            // В нашем текущем сценарии analyze.js больше не содержит fetch-запросов,
-            // а upload_validation.js содержит. Это нормально, если вы так решили.
+        // Обновляем статус для каждого файла в списке
+        displayFileStatus(file, 'Загружается на сервер...', false, 0); // Начальный прогресс 0%
 
+        try {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('username', username); // Используем Instagram как username
-            // Можно добавить и другие поля, если бэкенд их ожидает
-            // formData.append('linkedin', linkedin);
-            // formData.append('email', email);
+            formData.append('username', username);
 
-            // Если вы решили оставить fetch-запрос здесь:
             const response = await fetch('https://video-meta-api.onrender.com/analyze', {
                 method: 'POST',
                 body: formData,
+                // Добавляем обработчик прогресса, если бэкенд поддерживает
+                // Этот код для прогресса на фронте, но сервер должен его отправлять
+                // onUploadProgress: (event) => {
+                //     if (event.lengthComputable) {
+                //         const percentCompleted = Math.round((event.loaded * 100) / event.total);
+                //         displayFileStatus(file, `Загрузка: ${percentCompleted}%`, false, percentCompleted);
+                //     }
+                // },
             });
 
             const data = await response.json();
 
             if (response.ok) {
-                displayFileStatus(file, 'Успешно загружено!', false);
-                if (generalStatusMessage) generalStatusMessage.textContent = 'Видео успешно загружено!';
+                displayFileStatus(file, 'Успешно загружено и отправлено на анализ!', false, 100); // 100% после успешной загрузки
                 taskIds.push(data.taskId); // Сохраняем task ID для перехода на страницу результатов
             } else {
-                displayFileStatus(file, `Ошибка загрузки: ${data.error || 'Неизвестная ошибка'}`, true);
-                if (generalStatusMessage) generalStatusMessage.textContent = `Ошибка загрузки: ${data.error || 'Неизвестная ошибка'}`;
+                displayFileStatus(file, `Ошибка загрузки/анализа: ${data.error || 'Неизвестная ошибка'}`, true);
                 allUploadsSuccessful = false;
             }
 
         } catch (error) {
             displayFileStatus(file, `Ошибка сети/сервера: ${error.message}`, true);
-            if (generalStatusMessage) generalStatusMessage.textContent = `Ошибка сети/сервера: ${error.message}`;
             allUploadsSuccessful = false;
         }
     }
 
-    finishUploadButton.disabled = false; // Снова включаем кнопку "Финиш" (на случай, если нужно повторить)
+    // Сохраняем имя пользователя и ID задач в sessionStorage
+    sessionStorage.setItem('hifeUsername', username);
+    sessionStorage.setItem('pendingTaskIds', JSON.stringify(taskIds));
 
-    if (allUploadsSuccessful && taskIds.length > 0) {
-        if (generalStatusMessage) { // Защита от null
-            generalStatusMessage.textContent = 'Все видео успешно загружены. Перенаправление...';
+    // Важно: автоматический переход независимо от успешности всех загрузок,
+    // но только если есть хоть какие-то задачи для отслеживания.
+    if (taskIds.length > 0) {
+        if (generalStatusMessage) {
+            generalStatusMessage.textContent = 'Задачи отправлены на анализ. Перенаправление на страницу результатов...';
             generalStatusMessage.className = 'status-message success';
         }
-        // Сохраняем taskIds в localStorage, чтобы results.html мог их прочитать
-        localStorage.setItem('lastUploadedTaskIds', JSON.stringify(taskIds));
-        // Перенаправляем на страницу результатов
-        window.location.href = 'results.html';
+        window.location.href = 'results.html'; // Автоматический переход
     } else {
-        if (generalStatusMessage) { // Защита от null
-            generalStatusMessage.textContent = 'Не все видео загружены успешно. Проверьте ошибки выше.';
+        finishUploadButton.disabled = false; // Включаем кнопку обратно, если не переходим
+        if (generalStatusMessage) {
+            generalStatusMessage.textContent = 'Нет задач для отслеживания. Пожалуйста, попробуйте еще раз.';
             generalStatusMessage.className = 'status-message error';
         }
     }
