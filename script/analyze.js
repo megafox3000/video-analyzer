@@ -1,212 +1,156 @@
+// script/analyze.js
 
-// --- Получаем ссылки на элементы DOM ---
-const instagramInput = document.getElementById('instagramInput');
-const linkedinInput = document.getElementById('linkedinInput');
-const emailInput = document.getElementById('emailInput');
+// Этот файл теперь содержит функцию для загрузки видео и отслеживания прогресса,
+// а также логику для отображения прогресс-баров и обработки спойлеров.
+// Он больше не объявляет глобальные DOM-элементы, которые уже объявлены в upload_validation.js.
 
-const videoFileInput = document.getElementById('videoFileInput'); // Скрытый input для выбора файлов
-const selectFilesButton = document.getElementById('selectFilesButton'); // Кнопка "Upload Video(s)"
-const generalStatusMessage = document.getElementById('generalStatusMessage'); // Общее сообщение о статусе
-const fileValidationStatusList = document.getElementById('fileValidationStatusList'); // Список статусов по файлам
-const finishUploadButton = document.getElementById('finishUploadButton'); // Кнопка "Финиш"
+// --- Получаем ссылку на контейнер для прогресс-баров ---
+// Это единственный DOM-элемент, который analyze.js должен получить глобально,
+// так как он уникален для функциональности отображения прогресса в этом файле.
+// Он находится в upload.html с id="videoUploadProgressList"
+const videoUploadProgressList = document.getElementById('videoUploadProgressList');
+if (!videoUploadProgressList) {
+    console.error("Элемент #videoUploadProgressList не найден в DOM. Проверьте upload.html.");
+}
 
-// --- Глобальные переменные для хранения состояния ---
-// filesToProcess не нужен, т.к. работаем напрямую с event.target.files
-let filesReadyForUpload = []; // Файлы, прошедшие валидацию и готовые к отправке
+// --- Карта для хранения элементов прогресса по имени файла ---
+const fileProgressElements = new Map();
 
-// --- Функция для проверки полей соцсетей ---
-function checkSocialInputs() {
-    const instagramValue = instagramInput.value.trim();
-    const linkedinValue = linkedinInput.value.trim();
-    const emailValue = emailInput.value.trim();
+/**
+ * Функция для создания или обновления элемента прогресса загрузки для файла.
+ * @param {File} file - Объект файла.
+ * @returns {{itemDiv: HTMLElement, progressBar: HTMLElement, progressText: HTMLElement}} - Элементы прогресс-бара.
+ */
+function createOrUpdateProgressItem(file) {
+    let itemDiv = document.getElementById(`upload-item-${file.name.replace(/[^a-zA-Z0-9]/g, '-')}`);
+    let progressBar;
+    let progressText;
 
-    // Instagram обязателен, и хотя бы одно поле должно быть заполнено
-    const isSocialInputValid = instagramValue !== '' &&
-                               (instagramValue !== '' || linkedinValue !== '' || emailValue !== '');
+    if (!itemDiv) {
+        itemDiv = document.createElement('div');
+        itemDiv.className = 'video-info-item'; // Ваш класс для контейнера
+        itemDiv.id = `upload-item-${file.name.replace(/[^a-zA-Z0-9]/g, '-')}`;
 
-    selectFilesButton.disabled = !isSocialInputValid; // Включаем/отключаем кнопку выбора файлов
-    if (!isSocialInputValid) {
-        generalStatusMessage.textContent = 'Пожалуйста, заполните Instagram и хотя бы одно другое поле соцсети.';
-        generalStatusMessage.className = 'status-message error';
+        const fileName = document.createElement('p');
+        fileName.textContent = `Файл: ${file.name}`;
+        itemDiv.appendChild(fileName);
+
+        const progressBarContainer = document.createElement('div');
+        progressBarContainer.className = 'progress-bar-container';
+        itemDiv.appendChild(progressBarContainer);
+
+        progressBar = document.createElement('div');
+        progressBar.className = 'progress-bar';
+        progressBar.style.width = '0%';
+        progressBarContainer.appendChild(progressBar);
+
+        progressText = document.createElement('span');
+        progressText.className = 'progress-text';
+        progressText.textContent = '0%';
+        progressBarContainer.appendChild(progressText);
+
+        videoUploadProgressList.appendChild(itemDiv);
     } else {
-        generalStatusMessage.textContent = ''; // Очищаем сообщение, если поля заполнены
-        generalStatusMessage.className = 'status-message';
+        // Если элемент уже существует, находим его дочерние элементы
+        progressBar = itemDiv.querySelector('.progress-bar');
+        progressText = itemDiv.querySelector('.progress-text');
+    }
+
+    // Сохраняем ссылки на элементы для последующего обновления
+    fileProgressElements.set(file.name, { itemDiv, progressBar, progressText });
+
+    return { itemDiv, progressBar, progressText };
+}
+
+/**
+ * Обновляет прогресс загрузки для конкретного файла.
+ * @param {File} file - Объект файла.
+ * @param {number} progress - Прогресс в процентах (0-100).
+ */
+function updateFileUploadProgress(file, progress) {
+    const elements = fileProgressElements.get(file.name);
+    if (elements) {
+        elements.progressBar.style.width = `${progress}%`;
+        elements.progressText.textContent = `${progress.toFixed(0)}%`;
     }
 }
 
-// --- Обработчики ввода для полей соцсетей ---
-instagramInput.addEventListener('input', checkSocialInputs);
-linkedinInput.addEventListener('input', checkSocialInputs);
-emailInput.addEventListener('input', checkSocialInputs);
+/**
+ * Отправляет видео на Cloudinary и отслеживает прогресс.
+ * Эта функция теперь доступна глобально через `window.uploadVideoAndTrackProgress`.
+ * @param {File} file - Файл видео для загрузки.
+ * @param {string} instagramUsername - Имя пользователя Instagram.
+ * @param {string} linkedinValue - URL LinkedIn.
+ * @param {string} emailValue - Email пользователя.
+ * @returns {Promise<object>} - Promise, который разрешается объектом с taskId.
+ */
+window.uploadVideoAndTrackProgress = async function(file, instagramUsername, linkedinValue, emailValue) {
+    // Создаем элементы прогресса для файла
+    const { progressBar, progressText } = createOrUpdateProgressItem(file);
 
-// Изначальная проверка при загрузке страницы
-document.addEventListener('DOMContentLoaded', checkSocialInputs);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('username', instagramUsername); // Используем Instagram как username
+    if (linkedinValue) formData.append('linkedin', linkedinValue);
+    if (emailValue) formData.append('email', emailValue);
 
+    return new Promise(async (resolve, reject) => {
+        try {
+            const xhr = new XMLHttpRequest();
 
-// --- Обработчик клика по кнопке "Upload Video(s)" (открытие диалога выбора файлов) ---
-selectFilesButton.addEventListener('click', function() {
-    videoFileInput.click(); // Открываем скрытый input type="file"
-});
+            xhr.open('POST', 'https://video-meta-api.onrender.com/analyze');
 
-
-// --- Функция для отображения статуса отдельного файла ---
-function displayFileValidationStatus(file, statusText, isError = false) {
-    // Создаем или находим существующий элемент для файла
-    let fileStatusItem = document.getElementById(`validation-status-${file.name.replace(/[^a-zA-Z0-9]/g, '-')}`);
-    if (!fileStatusItem) {
-        fileStatusItem = document.createElement('div');
-        fileStatusItem.id = `validation-status-${file.name.replace(/[^a-zA-Z0-9]/g, '-')}`;
-        fileStatusItem.className = 'file-validation-item';
-        fileValidationStatusList.appendChild(fileStatusItem);
-    }
-    fileStatusItem.innerHTML = `<span><strong>${file.name}</strong>: </span><span class="status-text ${isError ? 'status-message error' : 'status-message success'}">${statusText}</span>`;
-}
-
-
-// --- Обработчик изменения файла (после выбора файлов) ---
-videoFileInput.addEventListener('change', async function() {
-    const selectedFiles = Array.from(this.files); // Получаем выбранные файлы как массив
-    filesReadyForUpload = []; // Очищаем список готовых к загрузке файлов
-    fileValidationStatusList.innerHTML = ''; // Очищаем предыдущий список статусов
-    finishUploadButton.style.display = 'none'; // Скрываем кнопку "Финиш"
-    finishUploadButton.disabled = true; // Делаем кнопку неактивной
-
-    if (selectedFiles.length === 0) {
-        generalStatusMessage.textContent = 'Видеофайлы не выбраны.';
-        generalStatusMessage.className = 'status-message error';
-        return;
-    }
-
-    generalStatusMessage.textContent = 'Проверка выбранных видеофайлов...';
-    generalStatusMessage.className = 'status-message';
-
-    let validatedCount = 0;
-    const totalFiles = selectedFiles.length;
-
-    for (const file of selectedFiles) {
-        let isValid = true;
-        let statusMessage = '';
-
-        // 1. Проверка типа файла
-        if (!file.type.startsWith('video/')) {
-            isValid = false;
-            statusMessage = 'Не является видеофайлом.';
-            displayFileValidationStatus(file, statusMessage, true);
-        }
-        // 2. Проверка размера
-        else if (file.size > maxFileSize) {
-            isValid = false;
-            statusMessage = `Слишком большой (макс. ${MAX_FILE_SIZE_MB} МБ).`;
-            displayFileValidationStatus(file, statusMessage, true);
-        }
-        // 3. Проверка продолжительности (асинхронно)
-        else {
-            displayFileValidationStatus(file, 'Проверка длительности...');
-            try {
-                const duration = await getVideoDuration(file);
-                if (duration > maxDuration) {
-                    isValid = false;
-                    statusMessage = `Слишком длинное (макс. ${MAX_DURATION_MINUTES} мин).`;
-                    displayFileValidationStatus(file, statusMessage, true);
-                } else {
-                    statusMessage = `ОК (длительность: ${duration.toFixed(0)} сек).`;
-                    displayFileValidationStatus(file, statusMessage, false);
-                    filesReadyForUpload.push(file); // Добавляем в список готовых к загрузке
+            xhr.upload.addEventListener('progress', function(event) {
+                if (event.lengthComputable) {
+                    const percentComplete = (event.loaded / event.total) * 100;
+                    updateFileUploadProgress(file, percentComplete);
                 }
-            } catch (error) {
-                isValid = false;
-                statusMessage = `Ошибка чтения длительности: ${error.message || 'файл поврежден'}.`;
-                displayFileValidationStatus(file, statusMessage, true);
-            }
-        }
-        validatedCount++;
+            });
 
-        // После обработки всех файлов, если есть хоть один валидный, показываем кнопку "Финиш"
-        if (validatedCount === totalFiles) {
-            if (filesReadyForUpload.length > 0) {
-                finishUploadButton.style.display = 'block'; // Показываем кнопку
-                finishUploadButton.disabled = false; // Активируем кнопку
-                generalStatusMessage.textContent = `Проверено ${totalFiles} файлов. ${filesReadyForUpload.length} готовы к загрузке.`;
-                generalStatusMessage.className = 'status-message success';
-            } else {
-                generalStatusMessage.textContent = 'Все выбранные файлы не прошли проверку.';
-                generalStatusMessage.className = 'status-message error';
-                finishUploadButton.style.display = 'none'; // Скрываем кнопку, если нет валидных файлов
-                finishUploadButton.disabled = true;
-            }
+            xhr.onload = function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    const data = JSON.parse(xhr.responseText);
+                    updateFileUploadProgress(file, 100); // Убедиться, что прогресс 100% после успешной загрузки
+                    resolve(data); // Предполагаем, что data содержит taskId
+                } else {
+                    const errorData = JSON.parse(xhr.responseText);
+                    reject(new Error(`Ошибка сервера: ${errorData.error || xhr.statusText}`));
+                }
+            };
+
+            xhr.onerror = function() {
+                reject(new Error('Ошибка сети при загрузке файла.'));
+            };
+
+            xhr.send(formData);
+
+        } catch (error) {
+            reject(new Error(`Ошибка при подготовке загрузки: ${error.message}`));
         }
-    }
+    });
+};
+
+
+// --- Логика для сворачивающихся (spoiler) элементов (если она нужна) ---
+// Этот код предполагает, что spoiler-кнопки будут создаваться динамически
+// на странице results.html или другой странице, а не upload.html.
+// Если он не используется, этот блок можно удалить.
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Эта функция будет искать и настраивать spoiler-кнопки
+    // Использовать только на страницах, где есть спойлеры (например, results.html)
+    setupSpoilerButtons();
 });
 
-// --- Вспомогательная функция для асинхронного получения длительности видео ---
-function getVideoDuration(file) {
-    return new Promise((resolve, reject) => {
-        const videoElement = document.createElement('video');
-        videoElement.preload = 'metadata';
-
-        videoElement.onloadedmetadata = function() {
-            window.URL.revokeObjectURL(videoElement.src);
-            resolve(videoElement.duration);
-        };
-
-        videoElement.onerror = function() {
-            window.URL.revokeObjectURL(videoElement.src);
-            reject(new Error('Не удалось получить длительность видео.'));
-        };
-
-        videoElement.src = URL.createObjectURL(file);
+function setupSpoilerButtons() {
+    const spoilerButtons = document.querySelectorAll('.spoiler-btn');
+    spoilerButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const content = button.nextElementSibling; // Следующий элемент - это контент спойлера
+            if (content && content.classList.contains('spoiler-content')) {
+                content.classList.toggle('active');
+                button.classList.toggle('active'); // Можно добавить класс для стилизации активной кнопки
+            }
+        });
     });
 }
-
-
-// --- Обработчик клика по кнопке "Финиш" ---
-finishUploadButton.addEventListener('click', async function() {
-    if (filesReadyForUpload.length === 0) {
-        alert('Нет файлов, прошедших проверку, для загрузки!');
-        return;
-    }
-
-    finishUploadButton.disabled = true; // Отключаем кнопку "Финиш" на время загрузки
-    generalStatusMessage.textContent = 'Начинается загрузка проверенных видео...';
-    generalStatusMessage.className = 'status-message';
-
-    const instagramUsername = instagramInput.value.trim();
-    const linkedinValue = linkedinInput.value.trim();
-    const emailValue = emailInput.value.trim();
-
-    const pendingTaskIds = []; // Массив для хранения ID задач от бэкенда для results.html
-
-    // Здесь вызываем функцию из analyze.js для каждого валидного файла
-    // Используем window.uploadVideoAndTrackProgress, которая будет определена в analyze.js
-    for (const file of filesReadyForUpload) {
-        displayFileValidationStatus(file, 'Загружается на Cloudinary...'); // Обновляем статус для каждого файла
-        try {
-            // Предполагаем, что uploadVideoAndTrackProgress вернет TaskId при успешной загрузке
-            const taskData = await window.uploadVideoAndTrackProgress(file, instagramUsername, linkedinValue, emailValue);
-            if (taskData && taskData.taskId) {
-                pendingTaskIds.push(taskData.taskId);
-                displayFileValidationStatus(file, 'Успешно загружено!', false);
-            } else {
-                throw new Error('Не получен Task ID от сервера.');
-            }
-        } catch (error) {
-            displayFileValidationStatus(file, `Ошибка загрузки: ${error.message}`, true);
-            console.error(`Ошибка загрузки файла ${file.name}:`, error);
-        }
-    }
-
-    finishUploadButton.disabled = false; // Включаем кнопку "Финиш" (на случай, если нужно повторить)
-
-    if (pendingTaskIds.length > 0) {
-        generalStatusMessage.textContent = 'Все валидные видео отправлены. Перенаправление на страницу результатов...';
-        generalStatusMessage.className = 'status-message success';
-        // Сохраняем taskIds в sessionStorage, чтобы results.html мог их прочитать
-        sessionStorage.setItem('pendingTaskIds', JSON.stringify(pendingTaskIds));
-        sessionStorage.setItem('hifeUsername', instagramUsername); // Сохраняем имя пользователя
-        // Перенаправляем на страницу результатов
-        window.location.href = 'results.html';
-    } else {
-        generalStatusMessage.textContent = 'Ни один файл не был успешно загружен на сервер.';
-        generalStatusMessage.className = 'status-message error';
-    }
-});
