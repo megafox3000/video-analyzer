@@ -2,9 +2,9 @@
 const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // Ваш реальный URL бэкенда Render
 
 const resultsHeader = document.getElementById('resultsHeader');
-const usernameDisplay = document.getElementById('usernameDisplay'); // Используется для приветствия и статуса
+const usernameDisplay = document.getElementById('usernameDisplay');
 const uploadNewBtn = document.getElementById('uploadNewBtn');
-const bubblesContainer = document.getElementById('bubblesContainer'); // Главный контейнер для бабблов
+const bubblesContainer = document.getElementById('bubblesContainer');
 const metadataModal = document.getElementById('metadataModal');
 const modalTitle = document.getElementById('modalTitle');
 const modalMetadata = document.getElementById('modalMetadata');
@@ -110,64 +110,54 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        let statusClass = `status-${data.status}`;
-        let statusText = data.status.replace(/_/g, ' ');
         let previewHtml = ''; // Переменная для HTML превью
-        let metadataBtnHtml = ''; // Переменная для кнопки метаданных
-        let downloadLinkHtml = ''; // Переменная для ссылки на скачивание
+        let filenameText = `<h3>${data.inputFileName || `Task ${taskId}`}</h3>`;
+        let statusMessageText = '';
 
-        // Логика определения URL превью и кнопки "Show Details"
+        // Логика определения URL превью
         if (data.status === 'completed') {
             if (data.previewUrl) { // Проверяем наличие previewUrl в ответе бэкенда
                 previewHtml = `<img class="bubble-preview-img" src="${data.previewUrl}" alt="Превью видео">`;
             } else {
                 previewHtml = `<img class="bubble-preview-img" src="assets/no_preview.png" alt="Превью недоступно">`; // Плейсхолдер
-            }
-            if (data.outputDriveId) {
-                const downloadLink = `https://fake.googledrive.com/file/${data.outputDriveId}`; // Замените на реальную ссылку
-                downloadLinkHtml = `<a href="${downloadLink}" target="_blank" class="download-link gold-button">Скачать видео</a>`;
-            }
-            if (data.metadata) {
-                metadataBtnHtml = `<button class="show-details-btn gold-button" data-metadata='${JSON.stringify(data.metadata)}' data-filename="${data.inputFileName || 'Unknown File'}">Показать детали</button>`;
+                statusMessageText = '<p class="status-message-bubble">Превью недоступно.</p>';
             }
             bubble.classList.remove('loading'); // Убираем индикатор загрузки
         } else if (data.status === 'pending' || data.status === 'processing') {
             previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Видео в обработке">`;
+            statusMessageText = '<p class="status-message-bubble">Видео в обработке...</p>';
             bubble.classList.add('loading'); // Сохраняем индикатор загрузки
         } else if (data.status === 'error' || data.status === 'failed') {
             previewHtml = `<img class="bubble-preview-img" src="assets/error_placeholder.png" alt="Ошибка обработки">`;
+            statusMessageText = `<p class="status-message-bubble">Ошибка: ${data.message || 'Неизвестная ошибка.'}</p>`;
             bubble.classList.remove('loading'); // Убираем индикатор загрузки
         } else {
             // Дефолтный плейсхолдер для неизвестных статусов
             previewHtml = `<img class="bubble-preview-img" src="assets/placeholder.png" alt="Статус неизвестен">`;
+            statusMessageText = '<p class="status-message-bubble">Получение статуса...</p>';
             bubble.classList.add('loading'); // Можно оставить, если ожидается дальнейшая обработка
         }
 
         // Обновляем содержимое "пузыря"
         bubble.innerHTML = `
-            <h3>${data.inputFileName || `Task ${taskId}`}</h3>
+            ${filenameText}
             ${previewHtml}
-            <p class="status-text">Статус: <span class="${statusClass}">${statusText}</span></p>
-            <p class="message-text">Сообщение: ${data.message || 'Нет конкретного сообщения.'}</p>
-            ${downloadLinkHtml}
-            ${metadataBtnHtml}
+            ${statusMessageText}
         `;
 
-        // Добавляем обработчик для кнопки "Show Details" (если она есть)
-        const showDetailsBtn = bubble.querySelector('.show-details-btn');
-        if (showDetailsBtn) {
-            showDetailsBtn.addEventListener('click', (event) => {
-                event.stopPropagation(); // Предотвращаем всплытие события
-                const metadata = JSON.parse(showDetailsBtn.dataset.metadata);
-                const filename = showDetailsBtn.dataset.filename;
-                showMetadataModal(filename, metadata);
-            });
+        // Добавляем обработчик для открытия модального окна по клику на весь баббл
+        // Только если статус "completed" и есть метаданные
+        if (data.status === 'completed' && data.metadata) {
+            bubble.onclick = () => showMetadataModal(data.inputFileName, data.metadata);
+        } else {
+            bubble.onclick = null; // Отключить клик, если нет данных или не завершено
+            bubble.style.cursor = 'default'; // Изменить курсор
         }
     }
 
     // Функция для периодической проверки статусов задач
     async function checkTaskStatuses() {
-        if (pendingTaskIds.length === 0 && bubblesContainer.children.length <= 1) { // Учитываем, что statusMessage может быть дочерним
+        if (pendingTaskIds.length === 0 && bubblesContainer.children.length <= 1) {
             bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">No pending tasks found for this session. Please upload a video from the previous page.</p>';
             return;
         }
@@ -203,15 +193,14 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(checkTaskStatuses, CHECK_STATUS_INTERVAL_MS);
         } else {
             console.log("[FRONTEND] Все задачи завершены или произошла ошибка. Опрос остановлен.");
-            // Опционально: показать окончательное сообщение или кнопку "Upload New Video"
         }
     }
 
     // Функции для модального окна
     function showMetadataModal(filename, metadata) {
         modalTitle.textContent = `Metadata for ${filename}`;
-        modalMetadata.textContent = formatMetadataForDisplay(metadata); // Используем pre-formatted текст
-        metadataModal.style.display = 'block';
+        modalMetadata.textContent = formatMetadataForDisplay(metadata);
+        metadataModal.style.display = 'flex'; // Используем flex для центрирования
     }
 
     closeButton.addEventListener('click', () => {
