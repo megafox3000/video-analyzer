@@ -485,20 +485,28 @@ h1 {
 /* Стили для отдельной карточки видео (бывший "пузырь") */
 .video-bubble {
     background-color: #3b3b3b; /* Чуть светлее фон для карточки */
-    border-radius: 10px; /* Скругленные углы, но не полностью круг */
-    padding: 15px; /* Уменьшен padding для минимализма */
+    border-radius: 50%; /* <<-- ВОТ ЗДЕСЬ ИЗМЕНИТЬ ОБРАТНО НА 50% */
+    padding: 15px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.5);
     text-align: center;
     color: var(--text-color-light);
-    width: 100%;
-    max-width: 300px; /* Максимальная ширина карточки, может быть немного меньше */
+    width: 280px; /* Верните фиксированную ширину, если хотите круг */
+    height: 280px; /* Добавьте фиксированную высоту, чтобы было круглое */
+    max-width: 300px;
     box-sizing: border-box;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     flex-shrink: 0;
     position: relative;
-    animation: float 3s ease-in-out infinite; /* Сохраняем анимацию плавания */
-    border: 1px solid #4a4a4a; /* Небольшая рамка */
-    cursor: pointer; /* Делаем весь баббл кликабельным */
+    animation: float 3s ease-in-out infinite;
+    border: 1px solid #4a4a4a;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    overflow: hidden;
+}
 
     /* Внутренние стили для содержимого карточки */
     display: flex;
@@ -606,9 +614,12 @@ h1 {
 /* Адаптивность для карточек */
 @media (max-width: 768px) {
     .video-bubble {
-        max-width: none; /* Убрать max-width на мобильных для адаптивности */
-        width: 100%; /* Занимать всю доступную ширину */
-        height: 220px; /* Немного уменьшить высоту на мобильных */
+        /* Эти стили могут помешать круглой форме, если вы не хотите ее на мобильных */
+        /* Если хотите круглые, возможно, вам нужно будет: */
+        width: 200px; /* Меньший круг на мобильных */
+        height: 200px; /* Соответствующая высота */
+        max-width: none; /* Убрать это */
+        /* width: 100%; */ /* Убрать это */
     }
     .results-grid {
         grid-template-columns: 1fr; /* Одна колонка на мобильных */
