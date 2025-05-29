@@ -1,4 +1,4 @@
-// upload_validation.js
+// script/upload_validation.js
 
 // --- Настройки для валидации ---
 const MAX_FILE_SIZE_MB = 100; // Максимальный размер файла в мегабайтах
@@ -6,6 +6,7 @@ const MAX_DURATION_MINUTES = 5; // Максимальная продолжите
 
 const maxFileSize = MAX_FILE_SIZE_MB * 1024 * 1024; // Переводим МБ в байты
 const maxDuration = MAX_DURATION_MINUTES * 60; // Переводим минуты в секунды
+const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // URL бэкенда
 
 // --- Получаем ссылки на элементы DOM ---
 const instagramInput = document.getElementById('instagramInput');
@@ -14,7 +15,7 @@ const emailInput = document.getElementById('emailInput');
 
 const videoFileInput = document.getElementById('videoFileInput'); // Скрытый input для выбора файлов
 const selectFilesButton = document.getElementById('selectFilesButton'); // Кнопка "Upload Video(s)"
-const generalStatusMessage = document.getElementById('generalStatusMessage'); // Общее сообщение о статусе (ИСПРАВЛЕНО ИМЯ ID)
+const generalStatusMessage = document.getElementById('generalStatusMessage'); // Общее сообщение о статусе
 const fileValidationStatusList = document.getElementById('fileValidationStatusList'); // Список статусов по файлам
 const finishUploadButton = document.getElementById('finishUploadButton'); // Кнопка "Финиш"
 
@@ -40,17 +41,13 @@ function checkSocialInputs() {
     const linkedinValue = linkedinInput.value.trim();
     const emailValue = emailInput.value.trim();
 
-    // Instagram обязателен
     const isInstagramValid = instagramValue !== '';
-    // И хотя бы одно из трех полей должно быть заполнено
     const isAnySocialFilled = instagramValue !== '' || linkedinValue !== '' || emailValue !== '';
 
-
-    // Кнопка выбора файлов активна, если Instagram заполнен и хотя бы одно из трех полей заполнено
     const isFormValid = isInstagramValid && isAnySocialFilled;
 
     selectFilesButton.disabled = !isFormValid;
-    selectFilesButton.classList.toggle('disabled', !isFormValid); // Добавляем/убираем класс 'disabled' для стилей
+    selectFilesButton.classList.toggle('disabled', !isFormValid);
 
     if (!isFormValid) {
         if (generalStatusMessage) {
@@ -77,22 +74,21 @@ document.addEventListener('DOMContentLoaded', checkSocialInputs);
 // --- Обработчик клика по кнопке "Upload Video(s)" (открытие диалога выбора файлов) ---
 selectFilesButton.addEventListener('click', function() {
     if (!selectFilesButton.disabled) {
-        videoFileInput.click(); // Открываем скрытый input type="file"
+        videoFileInput.click();
     }
 });
 
 
-// --- Функция для отображения статуса отдельного файла ---
+// --- Функция для отображения статуса отдельного файла (будет также обновлять прогресс) ---
 function displayFileStatus(file, statusText, isError = false, progress = -1) {
-    let fileId = `file-status-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`; // Более надежное имя ID
+    let fileId = `file-status-${file.name.replace(/[^a-zA-Z0-9.-]/g, '-')}`;
     let fileStatusItem = document.getElementById(fileId);
 
     if (!fileStatusItem) {
         fileStatusItem = document.createElement('div');
         fileStatusItem.id = fileId;
-        fileStatusItem.className = 'video-info-item'; // Используем новый класс для стилей
+        fileStatusItem.className = 'video-info-item';
 
-        // Создаем элементы для прогресса и текста
         fileStatusItem.innerHTML = `
             <div class="spoiler-btn" data-upload-progress="0">
                 <img class="spoiler-icon" src="assets/upload-icon.png" alt="Загрузка">
@@ -107,7 +103,6 @@ function displayFileStatus(file, statusText, isError = false, progress = -1) {
         `;
         fileValidationStatusList.appendChild(fileStatusItem);
     } else {
-        // Обновляем текст статуса
         fileStatusItem.querySelector('.upload-status-text').textContent = statusText;
     }
 
@@ -115,14 +110,17 @@ function displayFileStatus(file, statusText, isError = false, progress = -1) {
     const spoilerTextSpan = fileStatusItem.querySelector('.spoiler-text');
     const progressBar = fileStatusItem.querySelector('.progress-bar');
     const progressText = fileStatusItem.querySelector('.progress-text');
+    const spoilerContent = fileStatusItem.querySelector('.spoiler-content');
+
 
     if (isError) {
-        spoilerBtn.style.setProperty('--upload-progress', '0%'); // Сбросить прогресс
-        spoilerBtn.classList.remove('loaded-spoiler-btn'); // Убрать "золотой" вид
-        spoilerTextSpan.style.color = 'var(--text-color-light)'; // Вернуть светлый текст
-        fileStatusItem.classList.add('error-state'); // Возможно, для красной рамки
+        spoilerBtn.style.setProperty('--upload-progress', '0%');
+        spoilerBtn.classList.remove('loaded-spoiler-btn');
+        spoilerTextSpan.style.color = 'var(--text-color-light)';
+        fileStatusItem.classList.add('error-state');
         progressBar.style.width = '0%';
         progressText.textContent = 'Ошибка';
+        if (spoilerContent) spoilerContent.classList.add('visible');
     } else {
         fileStatusItem.classList.remove('error-state');
     }
@@ -131,21 +129,30 @@ function displayFileStatus(file, statusText, isError = false, progress = -1) {
         progressBar.style.width = `${progress}%`;
         progressText.textContent = `${progress}%`;
         if (progress === 100) {
-            spoilerBtn.classList.add('loaded-spoiler-btn'); // Добавляем класс для золотого вида
-            spoilerTextSpan.style.color = 'var(--text-color-dark)'; // Меняем цвет текста на темный
+            spoilerBtn.classList.add('loaded-spoiler-btn');
+            spoilerTextSpan.style.color = 'var(--text-color-dark)';
+            if (spoilerContent) spoilerContent.classList.remove('visible');
         } else {
              spoilerBtn.classList.remove('loaded-spoiler-btn');
              spoilerTextSpan.style.color = 'var(--text-color-light)';
+             if (spoilerContent) spoilerContent.classList.add('visible');
         }
         spoilerBtn.style.setProperty('--upload-progress', `${progress}%`);
     }
 
-    // Если нужна кнопка "Финиш" после валидации, она должна быть видна/активна
+    if (spoilerBtn && !spoilerBtn.dataset.hasClickListener) {
+        spoilerBtn.addEventListener('click', () => {
+            if (spoilerContent) {
+                spoilerContent.classList.toggle('visible');
+            }
+        });
+        spoilerBtn.dataset.hasClickListener = 'true';
+    }
+
     if (filesReadyForUpload.length > 0 && generalStatusMessage.textContent.includes('готовы к загрузке')) {
         finishUploadButton.style.display = 'block';
         finishUploadButton.disabled = false;
     } else if (fileValidationStatusList.children.length === filesToProcess.length && filesReadyForUpload.length === 0) {
-        // Если все файлы обработаны, но ни один не готов к загрузке
         finishUploadButton.style.display = 'none';
         finishUploadButton.disabled = true;
     }
@@ -154,11 +161,11 @@ function displayFileStatus(file, statusText, isError = false, progress = -1) {
 
 // --- Обработчик изменения файла (после выбора файлов) ---
 videoFileInput.addEventListener('change', async function() {
-    filesToProcess = Array.from(this.files); // Получаем выбранные файлы как массив
-    filesReadyForUpload = []; // Очищаем список готовых к загрузке файлов
-    fileValidationStatusList.innerHTML = ''; // Очищаем предыдущий список статусов
-    finishUploadButton.style.display = 'none'; // Скрываем кнопку "Финиш"
-    finishUploadButton.disabled = true; // Делаем кнопку неактивной, пока не будет валидных файлов
+    filesToProcess = Array.from(this.files);
+    filesReadyForUpload = [];
+    fileValidationStatusList.innerHTML = '';
+    finishUploadButton.style.display = 'none';
+    finishUploadButton.disabled = true;
 
     if (filesToProcess.length === 0) {
         if (generalStatusMessage) {
@@ -180,20 +187,15 @@ videoFileInput.addEventListener('change', async function() {
         let isValid = true;
         let statusMessage = '';
 
-        // 1. Проверка типа файла (повторно, если вдруг)
         if (!file.type.startsWith('video/')) {
             isValid = false;
             statusMessage = 'Не является видеофайлом.';
             displayFileStatus(file, statusMessage, true);
-        }
-        // 2. Проверка размера
-        else if (file.size > maxFileSize) {
+        } else if (file.size > maxFileSize) {
             isValid = false;
             statusMessage = `Слишком большой (макс. ${MAX_FILE_SIZE_MB} МБ).`;
             displayFileStatus(file, statusMessage, true);
-        }
-        // 3. Проверка продолжительности (асинхронно)
-        else {
+        } else {
             displayFileStatus(file, 'Проверка длительности...');
             try {
                 const duration = await getVideoDuration(file);
@@ -204,7 +206,7 @@ videoFileInput.addEventListener('change', async function() {
                 } else {
                     statusMessage = `ОК (длительность: ${duration.toFixed(0)} сек).`;
                     displayFileStatus(file, statusMessage, false);
-                    filesReadyForUpload.push(file); // Добавляем в список готовых к загрузке
+                    filesReadyForUpload.push(file);
                 }
             } catch (error) {
                 isValid = false;
@@ -214,11 +216,10 @@ videoFileInput.addEventListener('change', async function() {
         }
         allFilesProcessed++;
 
-        // После обработки всех файлов, если есть хоть один валидный, показываем кнопку "Финиш"
         if (allFilesProcessed === totalFiles) {
             if (filesReadyForUpload.length > 0) {
-                finishUploadButton.style.display = 'block'; // Показываем кнопку
-                finishUploadButton.disabled = false; // Активируем кнопку
+                finishUploadButton.style.display = 'block';
+                finishUploadButton.disabled = false;
                 if (generalStatusMessage) {
                     generalStatusMessage.textContent = `Проверено ${totalFiles} файлов. ${filesReadyForUpload.length} готовы к загрузке.`;
                     generalStatusMessage.className = 'status-message success';
@@ -254,6 +255,56 @@ function getVideoDuration(file) {
 }
 
 
+// --- Функция для загрузки видео и отслеживания прогресса (перенесена из analyze.js) ---
+async function uploadVideoAndTrackProgress(file, userInfo) {
+    displayFileStatus(file, 'Начинается загрузка на сервер...', false, 0);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('username', userInfo.username);
+    if (userInfo.linkedin) formData.append('linkedin', userInfo.linkedin);
+    if (userInfo.email) formData.append('email', userInfo.email);
+
+    return new Promise((resolve, reject) => {
+        try {
+            const xhr = new XMLHttpRequest();
+
+            xhr.open('POST', `${RENDER_BACKEND_URL}/analyze`); // Используем константу URL
+
+            xhr.upload.addEventListener('progress', function(event) {
+                if (event.lengthComputable) {
+                    const percentComplete = Math.round((event.loaded / event.total) * 100);
+                    displayFileStatus(file, `Загрузка: ${percentComplete}%`, false, percentComplete);
+                }
+            });
+
+            xhr.onload = function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    const data = JSON.parse(xhr.responseText);
+                    displayFileStatus(file, 'Успешно загружено и отправлено на анализ!', false, 100);
+                    resolve(data);
+                } else {
+                    const errorData = JSON.parse(xhr.responseText);
+                    displayFileStatus(file, `Ошибка сервера: ${errorData.error || xhr.statusText}`, true);
+                    reject(new Error(`Ошибка сервера: ${errorData.error || xhr.statusText}`));
+                }
+            };
+
+            xhr.onerror = function() {
+                displayFileStatus(file, 'Ошибка сети при загрузке файла.', true);
+                reject(new Error('Ошибка сети при загрузке файла.'));
+            };
+
+            xhr.send(formData);
+
+        } catch (error) {
+            displayFileStatus(file, `Ошибка при подготовке загрузки: ${error.message}`, true);
+            reject(new Error(`Ошибка при подготовке загрузки: ${error.message}`));
+        }
+    });
+}
+
+
 // --- Обработчик клика по кнопке "Финиш" ---
 finishUploadButton.addEventListener('click', async function() {
     if (filesReadyForUpload.length === 0) {
@@ -261,70 +312,50 @@ finishUploadButton.addEventListener('click', async function() {
         return;
     }
 
-    finishUploadButton.disabled = true; // Отключаем кнопку "Финиш" на время загрузки
+    finishUploadButton.disabled = true;
     if (generalStatusMessage) {
         generalStatusMessage.textContent = 'Начинается загрузка проверенных видео...';
         generalStatusMessage.className = 'status-message';
     }
 
     const username = instagramInput.value.trim();
-    // sessionStorage.setItem('hifeUsername', username); // Сохраняем имя пользователя в sessionStorage
+    const linkedin = linkedinInput.value.trim();
+    const email = emailInput.value.trim();
 
     let allUploadsSuccessful = true;
-    const taskIds = []; // Собираем task IDs для передачи на results.html
+    const taskIds = [];
+
+    const userInfo = {
+        username: username,
+        linkedin: linkedin,
+        email: email
+    };
 
     for (const file of filesReadyForUpload) {
-        // Обновляем статус для каждого файла в списке
-        displayFileStatus(file, 'Загружается на сервер...', false, 0); // Начальный прогресс 0%
-
         try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('username', username);
-
-            const response = await fetch('https://video-meta-api.onrender.com/analyze', {
-                method: 'POST',
-                body: formData,
-                // Добавляем обработчик прогресса, если бэкенд поддерживает
-                // Этот код для прогресса на фронте, но сервер должен его отправлять
-                // onUploadProgress: (event) => {
-                //     if (event.lengthComputable) {
-                //         const percentCompleted = Math.round((event.loaded * 100) / event.total);
-                //         displayFileStatus(file, `Загрузка: ${percentCompleted}%`, false, percentCompleted);
-                //     }
-                // },
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                displayFileStatus(file, 'Успешно загружено и отправлено на анализ!', false, 100); // 100% после успешной загрузки
-                taskIds.push(data.taskId); // Сохраняем task ID для перехода на страницу результатов
+            const data = await uploadVideoAndTrackProgress(file, userInfo); // Вызываем локальную функцию
+            if (data && data.taskId) {
+                taskIds.push(data.taskId);
             } else {
-                displayFileStatus(file, `Ошибка загрузки/анализа: ${data.error || 'Неизвестная ошибка'}`, true);
+                displayFileStatus(file, `Ошибка: не получен ID задачи`, true);
                 allUploadsSuccessful = false;
             }
-
         } catch (error) {
-            displayFileStatus(file, `Ошибка сети/сервера: ${error.message}`, true);
             allUploadsSuccessful = false;
         }
     }
 
-    // Сохраняем имя пользователя и ID задач в sessionStorage
     sessionStorage.setItem('hifeUsername', username);
     sessionStorage.setItem('pendingTaskIds', JSON.stringify(taskIds));
 
-    // Важно: автоматический переход независимо от успешности всех загрузок,
-    // но только если есть хоть какие-то задачи для отслеживания.
     if (taskIds.length > 0) {
         if (generalStatusMessage) {
             generalStatusMessage.textContent = 'Задачи отправлены на анализ. Перенаправление на страницу результатов...';
             generalStatusMessage.className = 'status-message success';
         }
-        window.location.href = 'results.html'; // Автоматический переход
+        window.location.href = 'results.html';
     } else {
-        finishUploadButton.disabled = false; // Включаем кнопку обратно, если не переходим
+        finishUploadButton.disabled = false;
         if (generalStatusMessage) {
             generalStatusMessage.textContent = 'Нет задач для отслеживания. Пожалуйста, попробуйте еще раз.';
             generalStatusMessage.className = 'status-message error';
