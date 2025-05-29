@@ -1,4 +1,4 @@
-// results.js
+// script/results.js
 const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // Ваш реальный URL бэкенда Render
 
 const resultsHeader = document.getElementById('resultsHeader');
@@ -10,135 +10,102 @@ const modalTitle = document.getElementById('modalTitle');
 const modalMetadata = document.getElementById('modalMetadata');
 const closeButton = document.querySelector('.close-button');
 
-// Вспомогательная функция для форматирования метаданных
-function formatMetadataForDisplay(metadata) {
-    if (!metadata) return 'No metadata available yet.';
-
-    const lines = [];
-
-    lines.push(`File Name: ${metadata.format?.filename || 'N/A'}`);
-    lines.push(`File Size: ${metadata.format?.size ? Math.round(metadata.format.size / 1024) + ' kB' : 'N/A'}`);
-    lines.push(`Duration: ${metadata.format?.duration ? parseFloat(metadata.format.duration).toFixed(2) + ' seconds' : 'N/A'}`);
-    lines.push(`Bit Rate: ${metadata.format?.bit_rate ? Math.round(metadata.format.bit_rate / 1000) + ' kb/s' : 'N/A'}`);
-    lines.push(`Format Name: ${metadata.format?.format_name || 'N/A'}`);
-    lines.push(`Start Time: ${metadata.format?.start_time || 'N/A'}`);
-    lines.push(`Probe Score: ${metadata.format?.probe_score || 'N/A'}`);
-    lines.push(`Tags:`);
-    if (metadata.format?.tags && Object.keys(metadata.format.tags).length > 0) {
-        for (const tag in metadata.format.tags) {
-            lines.push(`  ${tag}: ${metadata.format.tags[tag]}`);
-        }
-    } else {
-        lines.push(`  No format tags.`);
+// НОВАЯ ФУНКЦИЯ: Вспомогательная функция для создания URL превью из URL видео Cloudinary
+function getCloudinaryThumbnailUrl(videoUrl) {
+    if (!videoUrl || !videoUrl.includes('res.cloudinary.com')) {
+        return 'assets/default_video_thumbnail.png'; // Заглушка, если это не Cloudinary URL
     }
 
-    if (metadata.streams && metadata.streams.length > 0) {
-        metadata.streams.forEach((stream, i) => {
-            lines.push(`\n--- Stream #${i} ---`);
-            lines.push(`Codec Name: ${stream.codec_name || 'N/A'}`);
-            lines.push(`Codec Type: ${stream.codec_type || 'N/A'}`);
-            if (stream.width && stream.height) {
-                lines.push(`Resolution: ${stream.width}x${stream.height}`);
-            }
-            if (stream.avg_frame_rate) {
-                lines.push(`Frame Rate: ${stream.avg_frame_rate}`);
-            }
-            if (stream.bit_rate) {
-                lines.push(`Stream Bit Rate: ${Math.round(stream.bit_rate / 1000)} kb/s`);
-            }
-            lines.push(`Stream Tags:`);
-            if (stream.tags && Object.keys(stream.tags).length > 0) {
-                for (const tag in stream.tags) {
-                    lines.push(`  ${tag}: ${stream.tags[tag]}`);
-                }
-            } else {
-                lines.push(`  No stream tags.`);
-            }
-        });
+    const parts = videoUrl.split('/upload/');
+    if (parts.length < 2) {
+        return 'assets/default_video_thumbnail.png';
     }
 
-    if (metadata.gps && metadata.gps.length > 0) {
-        lines.push("\n--- GPS Data ---");
-        metadata.gps.forEach(gps => {
-            lines.push(`GPS Tag: ${gps.tag}`);
-            lines.push(`Location: ${gps.lat}, ${gps.lon}`);
-            if (gps.address) lines.push(`Address: ${gps.address}`);
-        });
-    }
+    const baseUrl = parts[0];
+    // c_fill,w_200,h_150,g_auto,q_auto,f_jpg,so_auto
+    // crop fill (c_fill), width 200, height 150, auto gravity (g_auto), auto quality (q_auto), format jpg, start offset auto
+    const transformations = 'c_fill,w_200,h_150,g_auto,q_auto,f_jpg,so_auto/'; 
 
-    return lines.join('\n');
+    let publicIdPath = parts[1];
+    publicIdPath = publicIdPath.replace(/v\d+\//, ''); // Убираем версию (vXXXXXXXX/) если она есть
+    
+    // Убираем расширение видео и добавляем .jpg
+    publicIdPath = publicIdPath.substring(0, publicIdPath.lastIndexOf('.')) + '.jpg';
+
+    return `${baseUrl}/upload/${transformations}${publicIdPath}`;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const username = sessionStorage.getItem('hifeUsername') || 'Guest';
-    usernameDisplay.textContent = `For: @${username}`;
+// УДАЛЕНА: Функция formatMetadataForDisplay больше не нужна, так как мы будем отображать JSON.stringify
+// function formatMetadataForDisplay(metadata) { ... }
 
-    let pendingTaskIds = JSON.parse(sessionStorage.getItem('pendingTaskIds') || '[]');
+document.addEventListener('DOMContentLoaded', () => {
+    // Внимание: теперь мы получаем данные из localStorage, а не sessionStorage.
+    // Убедитесь, что ваш upload_validation.js сохраняет данные в localStorage.
+    const uploadedVideosData = JSON.parse(localStorage.getItem('uploadedVideos') || '[]');
+    let pendingTaskIds = uploadedVideosData.map(video => video.id); // Получаем taskId (public_id) из сохраненных данных
+
+    const username = localStorage.getItem('hifeUsername') || 'Guest'; // Или получите username из localStorage
+    usernameDisplay.textContent = `For: @${username}`;
 
     resultsHeader.textContent = 'Your Video Analysis Results';
     
-    // Начальное сообщение о статусе
     if (pendingTaskIds.length === 0) {
-        bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">No pending tasks found for this session. Please upload a video from the previous page.</p>';
+        bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">No pending tasks found. Please upload a video from the <a href="upload.html" style="color: #FFD700; text-decoration: underline;">upload page</a>.</p>';
     } else {
         bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message">Checking status of your videos...</p>';
     }
 
     uploadNewBtn.addEventListener('click', () => {
-        sessionStorage.removeItem('pendingTaskIds'); // Очищаем ID задач при начале новой загрузки
-        sessionStorage.removeItem('hifeUsername'); // Очищаем имя пользователя
+        localStorage.removeItem('uploadedVideos'); // Очищаем данные при начале новой загрузки
+        localStorage.removeItem('hifeUsername'); // Очищаем имя пользователя
         window.location.href = 'upload.html'; // Перенаправляем на страницу загрузки
     });
 
-    const CHECK_STATUS_INTERVAL_MS = 2000; // Опрос каждые 2 секунды
-    const taskBubbles = {}; // Объект для хранения ссылок на элементы "пузырей" по taskId
+    const CHECK_STATUS_INTERVAL_MS = 2000;
+    const taskBubbles = {};
 
     // Функция для создания или обновления "пузыря" статуса задачи
     function createOrUpdateBubble(taskId, data) {
         let bubble = taskBubbles[taskId];
         if (!bubble) {
             bubble = document.createElement('div');
-            bubble.className = 'video-bubble loading'; // Добавляем класс loading для индикации
-            bubble.id = `bubble-${taskId}`; 
-            bubblesContainer.appendChild(bubble); 
-            taskBubbles[taskId] = bubble; 
+            bubble.className = 'video-bubble loading'; 
+            bubble.id = `bubble-${taskId}`;
+            bubblesContainer.appendChild(bubble);
+            taskBubbles[taskId] = bubble;
             
-            // Удаляем начальное сообщение, как только появляется первый баббл
             const initialMessage = document.getElementById('statusMessage');
             if (initialMessage) {
-                initialMessage.remove(); 
+                initialMessage.remove();
             }
         }
 
-        let previewHtml = ''; // Переменная для HTML превью
-        let filenameText = `<h3>${data.inputFileName || `Task ${taskId}`}</h3>`;
+        // Используем data.filename, который ваш сервер возвращает
+        let filenameText = `<h3>${data.filename || `Task ${taskId}`}</h3>`; 
+        let previewHtml = '';
         let statusMessageText = '';
 
-        // Логика определения URL превью
+        // Логика определения URL превью и статуса
         if (data.status === 'completed') {
-            if (data.previewUrl) { // Проверяем наличие previewUrl в ответе бэкенда
-                previewHtml = `<img class="bubble-preview-img" src="${data.previewUrl}" alt="Превью видео">`;
-            } else {
-                previewHtml = `<img class="bubble-preview-img" src="assets/no_preview.png" alt="Превью недоступно">`; // Плейсхолдер
-                statusMessageText = '<p class="status-message-bubble">Превью недоступно.</p>';
-            }
-            bubble.classList.remove('loading'); // Убираем индикатор загрузки
+            // Используем Cloudinary URL из data.cloudinary_url
+            const thumbnailUrl = getCloudinaryThumbnailUrl(data.cloudinary_url);
+            previewHtml = `<img class="bubble-preview-img" src="${thumbnailUrl}" alt="Превью видео">`;
+            statusMessageText = '<p class="status-message-bubble status-completed">Обработано. Клик для деталей.</p>';
+            bubble.classList.remove('loading'); 
         } else if (data.status === 'pending' || data.status === 'processing') {
             previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Видео в обработке">`;
-            statusMessageText = '<p class="status-message-bubble">Видео в обработке...</p>';
-            bubble.classList.add('loading'); // Сохраняем индикатор загрузки
+            statusMessageText = '<p class="status-message-bubble status-pending">Видео в обработке...</p>';
+            bubble.classList.add('loading');
         } else if (data.status === 'error' || data.status === 'failed') {
             previewHtml = `<img class="bubble-preview-img" src="assets/error_placeholder.png" alt="Ошибка обработки">`;
-            statusMessageText = `<p class="status-message-bubble">Ошибка: ${data.message || 'Неизвестная ошибка.'}</p>`;
-            bubble.classList.remove('loading'); // Убираем индикатор загрузки
+            statusMessageText = `<p class="status-message-bubble status-error">Ошибка: ${data.message || 'Неизвестная ошибка.'}</p>`;
+            bubble.classList.remove('loading'); 
         } else {
-            // Дефолтный плейсхолдер для неизвестных статусов
             previewHtml = `<img class="bubble-preview-img" src="assets/placeholder.png" alt="Статус неизвестен">`;
-            statusMessageText = '<p class="status-message-bubble">Получение статуса...</p>';
-            bubble.classList.add('loading'); // Можно оставить, если ожидается дальнейшая обработка
+            statusMessageText = '<p class="status-message-bubble status-info">Получение статуса...</p>';
+            bubble.classList.add('loading'); 
         }
 
-        // Обновляем содержимое "пузыря"
         bubble.innerHTML = `
             ${filenameText}
             ${previewHtml}
@@ -146,23 +113,23 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         // Добавляем обработчик для открытия модального окна по клику на весь баббл
-        // Только если статус "completed" и есть метаданные
+        // Только если статус "completed" И есть метаданные (metadata)
         if (data.status === 'completed' && data.metadata) {
-            bubble.onclick = () => showMetadataModal(data.inputFileName, data.metadata);
+            bubble.onclick = () => showMetadataModal(data.filename, data.metadata); // Передаем оригинальное имя и полные метаданные
+            bubble.style.cursor = 'pointer'; // Делаем курсор кликабельным
         } else {
-            bubble.onclick = null; // Отключить клик, если нет данных или не завершено
-            bubble.style.cursor = 'default'; // Изменить курсор
+            bubble.onclick = null; 
+            bubble.style.cursor = 'default'; 
         }
     }
 
-    // Функция для периодической проверки статусов задач
     async function checkTaskStatuses() {
         if (pendingTaskIds.length === 0 && bubblesContainer.children.length <= 1) {
-            bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">No pending tasks found for this session. Please upload a video from the previous page.</p>';
+            bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">No pending tasks found. Please upload a video from the <a href="upload.html" style="color: #FFD700; text-decoration: underline;">upload page</a>.</p>';
             return;
         }
 
-        const tasksToKeepPolling = []; // Задачи, которые еще не завершены
+        const tasksToKeepPolling = []; 
 
         for (const taskId of pendingTaskIds) {
             try {
@@ -172,35 +139,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     createOrUpdateBubble(taskId, data);
                     if (data.status !== 'completed' && data.status !== 'error' && data.status !== 'failed') {
-                        tasksToKeepPolling.push(taskId); // Продолжаем опрос для этой задачи
+                        tasksToKeepPolling.push(taskId); 
                     }
                 } else {
                     console.error(`[FRONTEND] Ошибка при получении статуса для задачи ${taskId}:`, data.message || response.statusText);
-                    createOrUpdateBubble(taskId, { status: 'error', message: data.message || 'Failed to fetch status.', inputFileName: `Task ${taskId}` });
+                    createOrUpdateBubble(taskId, { status: 'error', message: data.message || 'Failed to fetch status.', filename: `Task ${taskId}` });
                 }
             } catch (error) {
                 console.error(`[FRONTEND] Сетевая ошибка при проверке статуса для задачи ${taskId}:`, error);
-                createOrUpdateBubble(taskId, { status: 'error', message: 'Network error or backend unreachable.', inputFileName: `Task ${taskId}` });
+                createOrUpdateBubble(taskId, { status: 'error', message: 'Network error or backend unreachable.', filename: `Task ${taskId}` });
             }
         }
         
         // Обновляем список задач для опроса
-        pendingTaskIds = tasksToKeepPolling; 
-        sessionStorage.setItem('pendingTaskIds', JSON.stringify(pendingTaskIds)); // Сохраняем обновленный список
+        // Важно: если вы хотите сохранять историю для текущей сессии,
+        // то `uploadedVideos` из `localStorage` должны быть пополнены,
+        // а не просто `pendingTaskIds`. Но для текущей логики этого достаточно.
+        localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideosData.filter(video => tasksToKeepPolling.includes(video.id)))); 
+        pendingTaskIds = tasksToKeepPolling;
 
-        // Если есть еще незавершенные задачи, планируем следующий опрос
         if (pendingTaskIds.length > 0) {
             setTimeout(checkTaskStatuses, CHECK_STATUS_INTERVAL_MS);
         } else {
             console.log("[FRONTEND] Все задачи завершены или произошла ошибка. Опрос остановлен.");
+            // Очищаем localStorage после того, как все задачи завершены и отображены
+            localStorage.removeItem('uploadedVideos'); 
+            localStorage.removeItem('hifeUsername'); 
         }
     }
 
     // Функции для модального окна
     function showMetadataModal(filename, metadata) {
-        modalTitle.textContent = `Metadata for ${filename}`;
-        modalMetadata.textContent = formatMetadataForDisplay(metadata);
-        metadataModal.style.display = 'flex'; // Используем flex для центрирования
+        modalTitle.textContent = `Метаданные для: ${filename}`;
+        // Теперь отображаем полные JSON-метаданные
+        modalMetadata.textContent = JSON.stringify(metadata, null, 2); 
+        metadataModal.style.display = 'flex'; 
     }
 
     closeButton.addEventListener('click', () => {
