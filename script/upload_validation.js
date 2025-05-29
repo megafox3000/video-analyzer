@@ -1,3 +1,5 @@
+// upload_validation.js
+
 // --- Настройки для валидации ---
 const MAX_FILE_SIZE_MB = 100; // Максимальный размер файла в мегабайтах
 const MAX_DURATION_MINUTES = 5; // Максимальная продолжительность видео в минутах
@@ -12,9 +14,21 @@ const emailInput = document.getElementById('emailInput');
 
 const videoFileInput = document.getElementById('videoFileInput'); // Скрытый input для выбора файлов
 const selectFilesButton = document.getElementById('selectFilesButton'); // Кнопка "Upload Video(s)"
-const generalUploadStatus = document.getElementById('generalUploadStatus'); // Общий статус
+const generalStatusMessage = document.getElementById('generalStatusMessage'); // Общее сообщение о статусе (ИСПРАВЛЕНО ИМЯ ID)
 const fileValidationStatusList = document.getElementById('fileValidationStatusList'); // Список статусов по файлам
 const finishUploadButton = document.getElementById('finishUploadButton'); // Кнопка "Финиш"
+
+// --- ДОБАВЛЕНЫ ОТЛАДОЧНЫЕ КОНСОЛИ ---
+console.log('DOM elements initialized in upload_validation.js:');
+console.log('instagramInput:', instagramInput);
+console.log('linkedinInput:', linkedinInput);
+console.log('emailInput:', emailInput);
+console.log('videoFileInput:', videoFileInput);
+console.log('selectFilesButton:', selectFilesButton);
+console.log('generalStatusMessage:', generalStatusMessage); // ОЧЕНЬ ВАЖНО: убедитесь, что здесь не null
+console.log('fileValidationStatusList:', fileValidationStatusList);
+console.log('finishUploadButton:', finishUploadButton);
+
 
 // --- Глобальные переменные для хранения состояния ---
 let filesToProcess = []; // Сырые файлы, выбранные пользователем
@@ -32,11 +46,15 @@ function checkSocialInputs() {
 
     selectFilesButton.disabled = !isSocialInputValid; // Включаем/отключаем кнопку выбора файлов
     if (!isSocialInputValid) {
-        generalUploadStatus.textContent = 'Пожалуйста, заполните Instagram и хотя бы одно другое поле соцсети.';
-        generalUploadStatus.className = 'status-message error';
+        if (generalStatusMessage) { // Защита от null, хотя после исправления должно быть OK
+            generalStatusMessage.textContent = 'Пожалуйста, заполните Instagram и хотя бы одно другое поле соцсети.';
+            generalStatusMessage.className = 'status-message error';
+        }
     } else {
-        generalUploadStatus.textContent = '';
-        generalUploadStatus.className = 'status-message';
+        if (generalStatusMessage) { // Защита от null
+            generalStatusMessage.textContent = '';
+            generalStatusMessage.className = 'status-message';
+        }
     }
 }
 
@@ -74,15 +92,20 @@ videoFileInput.addEventListener('change', async function() {
     filesReadyForUpload = []; // Очищаем список готовых к загрузке файлов
     fileValidationStatusList.innerHTML = ''; // Очищаем предыдущий список статусов
     finishUploadButton.style.display = 'none'; // Скрываем кнопку "Финиш"
+    finishUploadButton.disabled = true; // Делаем кнопку неактивной, пока не будет валидных файлов
 
     if (filesToProcess.length === 0) {
-        generalUploadStatus.textContent = 'Видеофайлы не выбраны.';
-        generalUploadStatus.className = 'status-message error';
+        if (generalStatusMessage) { // Защита от null
+            generalStatusMessage.textContent = 'Видеофайлы не выбраны.';
+            generalStatusMessage.className = 'status-message error';
+        }
         return;
     }
 
-    generalUploadStatus.textContent = 'Проверка выбранных видеофайлов...';
-    generalUploadStatus.className = 'status-message';
+    if (generalStatusMessage) { // Защита от null
+        generalStatusMessage.textContent = 'Проверка выбранных видеофайлов...';
+        generalStatusMessage.className = 'status-message';
+    }
 
     let allFilesProcessed = 0;
     const totalFiles = filesToProcess.length;
@@ -129,11 +152,16 @@ videoFileInput.addEventListener('change', async function() {
         if (allFilesProcessed === totalFiles) {
             if (filesReadyForUpload.length > 0) {
                 finishUploadButton.style.display = 'block'; // Показываем кнопку
-                generalUploadStatus.textContent = `Проверено ${totalFiles} файлов. ${filesReadyForUpload.length} готовы к загрузке.`;
-                generalUploadStatus.className = 'status-message success';
+                finishUploadButton.disabled = false; // Активируем кнопку
+                if (generalStatusMessage) { // Защита от null
+                    generalStatusMessage.textContent = `Проверено ${totalFiles} файлов. ${filesReadyForUpload.length} готовы к загрузке.`;
+                    generalStatusMessage.className = 'status-message success';
+                }
             } else {
-                generalUploadStatus.textContent = 'Все выбранные файлы не прошли проверку.';
-                generalUploadStatus.className = 'status-message error';
+                if (generalStatusMessage) { // Защита от null
+                    generalStatusMessage.textContent = 'Все выбранные файлы не прошли проверку.';
+                    generalStatusMessage.className = 'status-message error';
+                }
             }
         }
     }
@@ -168,22 +196,14 @@ finishUploadButton.addEventListener('click', async function() {
     }
 
     finishUploadButton.disabled = true; // Отключаем кнопку "Финиш" на время загрузки
-    generalUploadStatus.textContent = 'Начинается загрузка проверенных видео...';
-    generalUploadStatus.className = 'status-message';
+    if (generalStatusMessage) { // Защита от null
+        generalStatusMessage.textContent = 'Начинается загрузка проверенных видео...';
+        generalStatusMessage.className = 'status-message';
+    }
 
     const username = instagramInput.value.trim();
     const linkedin = linkedinInput.value.trim();
     const email = emailInput.value.trim();
-
-    // Здесь вам нужно убедиться, что analyze.js экспортирует функцию для загрузки
-    // (например, uploadVideoToCloudinary(file, username, email, linkedin))
-    // или что вы можете напрямую вызвать логику отправки.
-
-    // Пример вызова функции из analyze.js для каждого файла
-    // Если analyze.js не экспортирует, вам нужно будет либо
-    // 1. Сделать функцию глобальной (не рекомендуется)
-    // 2. Экспортировать её из analyze.js и импортировать сюда (нужен bundler, например Webpack/Parcel)
-    // 3. Или встроить логику fetch API прямо здесь (что может сделать этот файл слишком большим)
 
     let allUploadsSuccessful = true;
     const taskIds = []; // Собираем task IDs для передачи на results.html
@@ -192,18 +212,14 @@ finishUploadButton.addEventListener('click', async function() {
         displayFileStatus(file, 'Загружается на Cloudinary...');
         try {
             // *** ЭТО ВАЖНЫЙ МОМЕНТ, который нужно связать с analyze.js ***
-            // Я предполагаю, что в analyze.js есть функция, которую можно вызвать
-            // для отправки одного файла, и которая возвращает Promise с результатом.
-            // Например: window.uploadVideo(file, username, email, linkedin);
-            // Или если analyze.js использует глобальные переменные, то можно получить доступ к ним.
+            // Этот блок был скопирован из вашего предоставленного кода.
+            // Предполагается, что analyze.js теперь будет просто принимать данные
+            // Если вы переместили логику uploadVideoToCloudinary в analyze.js
+            // и хотите вызывать ее, то нужно убедиться, что analyze.js экспортирует эту функцию,
+            // или что она глобально доступна (например, через window.uploadVideo).
+            // В нашем текущем сценарии analyze.js больше не содержит fetch-запросов,
+            // а upload_validation.js содержит. Это нормально, если вы так решили.
 
-            // ВАРИАНТ 1: Если analyze.js делает свою работу и вы просто хотите вызвать её
-            // Вам нужно убедиться, что analyze.js имеет функцию, которую можно вызвать извне
-            // и которая принимает файл, username, email, linkedin.
-            // Например, если в analyze.js есть функция function uploadVideo(file, username, ...) {...}
-            // window.uploadVideo(file, username, email, linkedin); // Вызовите вашу функцию из analyze.js
-
-            // ВАРИАНТ 2: Встроить логику отправки fetch API прямо сюда (если analyze.js не адаптирован)
             const formData = new FormData();
             formData.append('file', file);
             formData.append('username', username); // Используем Instagram как username
@@ -211,29 +227,27 @@ finishUploadButton.addEventListener('click', async function() {
             // formData.append('linkedin', linkedin);
             // formData.append('email', email);
 
+            // Если вы решили оставить fetch-запрос здесь:
             const response = await fetch('https://video-meta-api.onrender.com/analyze', {
                 method: 'POST',
                 body: formData,
-                // headers: {
-                //    'Content-Type': 'multipart/form-data' // НЕ УСТАНАВЛИВАЙТЕ Content-Type для FormData, браузер сделает это сам
-                // }
             });
 
             const data = await response.json();
 
             if (response.ok) {
                 displayFileStatus(file, 'Успешно загружено!', false);
-                generalUploadStatus.textContent = 'Видео успешно загружено!';
+                if (generalStatusMessage) generalStatusMessage.textContent = 'Видео успешно загружено!';
                 taskIds.push(data.taskId); // Сохраняем task ID для перехода на страницу результатов
             } else {
                 displayFileStatus(file, `Ошибка загрузки: ${data.error || 'Неизвестная ошибка'}`, true);
-                generalUploadStatus.textContent = `Ошибка загрузки: ${data.error || 'Неизвестная ошибка'}`;
+                if (generalStatusMessage) generalStatusMessage.textContent = `Ошибка загрузки: ${data.error || 'Неизвестная ошибка'}`;
                 allUploadsSuccessful = false;
             }
 
         } catch (error) {
             displayFileStatus(file, `Ошибка сети/сервера: ${error.message}`, true);
-            generalUploadStatus.textContent = `Ошибка сети/сервера: ${error.message}`;
+            if (generalStatusMessage) generalStatusMessage.textContent = `Ошибка сети/сервера: ${error.message}`;
             allUploadsSuccessful = false;
         }
     }
@@ -241,14 +255,18 @@ finishUploadButton.addEventListener('click', async function() {
     finishUploadButton.disabled = false; // Снова включаем кнопку "Финиш" (на случай, если нужно повторить)
 
     if (allUploadsSuccessful && taskIds.length > 0) {
-        generalUploadStatus.textContent = 'Все видео успешно загружены. Перенаправление...';
-        generalUploadStatus.className = 'status-message success';
+        if (generalStatusMessage) { // Защита от null
+            generalStatusMessage.textContent = 'Все видео успешно загружены. Перенаправление...';
+            generalStatusMessage.className = 'status-message success';
+        }
         // Сохраняем taskIds в localStorage, чтобы results.html мог их прочитать
         localStorage.setItem('lastUploadedTaskIds', JSON.stringify(taskIds));
         // Перенаправляем на страницу результатов
         window.location.href = 'results.html';
     } else {
-        generalUploadStatus.textContent = 'Не все видео загружены успешно. Проверьте ошибки выше.';
-        generalUploadStatus.className = 'status-message error';
+        if (generalStatusMessage) { // Защита от null
+            generalStatusMessage.textContent = 'Не все видео загружены успешно. Проверьте ошибки выше.';
+            generalStatusMessage.className = 'status-message error';
+        }
     }
 });
