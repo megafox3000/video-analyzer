@@ -1,9 +1,3 @@
-// --- Настройки для валидации ---
-const MAX_FILE_SIZE_MB = 100; // Максимальный размер файла в мегабайтах
-const MAX_DURATION_MINUTES = 5; // Максимальная продолжительность видео в минутах
-
-const maxFileSize = MAX_FILE_SIZE_MB * 1024 * 1024; // Переводим МБ в байты
-const maxDuration = MAX_DURATION_MINUTES * 60; // Переводим минуты в секунды
 
 // --- Получаем ссылки на элементы DOM ---
 const instagramInput = document.getElementById('instagramInput');
