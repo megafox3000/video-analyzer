@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function createOrUpdateBubble(taskId, data) {
+function createOrUpdateBubble(taskId, data) {
         let bubble = taskBubbles[taskId];
         if (!bubble) {
             bubble = document.createElement('div');
@@ -146,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Изменения начинаются здесь ---
         // Заголовок (имя файла)
+        // Оставляем только имя файла
         let filenameText = `<h3 class="bubble-title-overlay">${data.original_filename || `Задача ${taskId}`}</h3>`;
         let previewHtml = '';
         let statusMessageText = '';
@@ -153,7 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.status === 'completed') {
             const thumbnailUrl = getCloudinaryThumbnailUrl(data.cloudinary_url);
             previewHtml = `<img class="bubble-preview-img" src="${thumbnailUrl}" alt="Превью видео">`;
-            statusMessageText = '<p class="status-message-bubble status-completed">Обработано. Клик для деталей.</p>';
+            // Заменяем "Обработано. Клик для деталей." на "Клик"
+            statusMessageText = '<p class="status-message-bubble status-completed">Click</p>';
             bubble.classList.remove('loading');
         } else if (data.status === 'pending' || data.status === 'processing') {
             previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Видео в обработке">`;
@@ -169,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bubble.classList.add('loading');
         }
 
-        // Новый innerHTML с оберткой для текста
+        // Теперь в innerHTML будет только превью, имя файла и статус
         bubble.innerHTML = `
             ${previewHtml}
             <div class="bubble-text-overlay">
