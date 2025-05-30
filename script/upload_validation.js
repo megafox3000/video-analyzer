@@ -8,14 +8,7 @@ const existingUploadedVideos = localStorage.getItem('uploadedVideos');
 const existingUsername = localStorage.getItem('hifeUsername');
 const existingEmail = localStorage.getItem('hifeEmail');
 
-// Теперь перенаправление на index.html для новых пользователей УДАЛЕНО.
 // Новый пользователь попадет на upload.html и сможет ввести данные.
-
-// Если есть данные пользователя И загруженные видео, перенаправляем на results.html
-// Эта проверка остается, чтобы возвращать пользователя на страницу результатов, если у него уже есть данные.
-if ((existingUsername || existingEmail) && existingUploadedVideos) {
-    window.location.replace('results.html');
-}
 
 // Если есть данные пользователя И загруженные видео, перенаправляем на results.html
 // Эта проверка должна идти после проверки на полный сброс/отсутствие данных.
