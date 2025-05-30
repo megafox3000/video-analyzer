@@ -19,8 +19,8 @@ if ((existingUsername || existingEmail) && existingUploadedVideos) {
 document.addEventListener('DOMContentLoaded', () => {
     const instagramInput = document.getElementById('instagramInput');
     const emailInput = document.getElementById('emailInput');
-    const videoInput = document.getElementById('videoInput');
-    const startUploadButton = document.getElementById('startUploadButton');
+    const videoInput = document.getElementById('videoFileInput'); // ИЗМЕНЕНО с 'videoInput' на 'videoFileInput'
+    const startUploadButton = document.getElementById('selectFilesButton'); // ИЗМЕНЕНО с 'startUploadButton' на 'selectFilesButton'
     const finishUploadButton = document.getElementById('finishUploadButton'); // Получаем кнопку "Финиш"
     const uploadStatusContainer = document.getElementById('uploadStatusContainer');
     const generalStatusMessage = document.getElementById('generalStatusMessage');
