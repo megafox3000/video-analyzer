@@ -130,21 +130,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function createOrUpdateBubble(taskId, data) {
-        let bubble = taskBubbles[taskId]; // Теперь taskBubbles доступна!
+        let bubble = taskBubbles[taskId];
         if (!bubble) {
             bubble = document.createElement('div');
-            bubble.className = 'video-bubble loading'; 
+            bubble.className = 'video-bubble loading';
             bubble.id = `bubble-${taskId}`;
             bubblesContainer.appendChild(bubble);
             taskBubbles[taskId] = bubble;
-            
+
             const initialMessage = document.getElementById('statusMessage');
-            if (initialMessage && initialMessage.textContent === 'No tasks found. Please upload a video from the upload page.') {
-                initialMessage.remove(); 
+            if (initialMessage && initialMessage.textContent === 'Задач не найдено. Пожалуйста, загрузите видео со страницы загрузки.') {
+                initialMessage.remove();
             }
         }
 
-        let filenameText = `<h3>${data.original_filename || `Task ${taskId}`}</h3>`; 
+        // --- Изменения начинаются здесь ---
+        // Заголовок (имя файла)
+        let filenameText = `<h3 class="bubble-title-overlay">${data.original_filename || `Задача ${taskId}`}</h3>`;
         let previewHtml = '';
         let statusMessageText = '';
 
@@ -152,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const thumbnailUrl = getCloudinaryThumbnailUrl(data.cloudinary_url);
             previewHtml = `<img class="bubble-preview-img" src="${thumbnailUrl}" alt="Превью видео">`;
             statusMessageText = '<p class="status-message-bubble status-completed">Обработано. Клик для деталей.</p>';
-            bubble.classList.remove('loading'); 
+            bubble.classList.remove('loading');
         } else if (data.status === 'pending' || data.status === 'processing') {
             previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Видео в обработке">`;
             statusMessageText = '<p class="status-message-bubble status-pending">Видео в обработке...</p>';
@@ -160,25 +162,29 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (data.status === 'error' || data.status === 'failed') {
             previewHtml = `<img class="bubble-preview-img" src="assets/error_placeholder.png" alt="Ошибка обработки">`;
             statusMessageText = `<p class="status-message-bubble status-error">Ошибка: ${data.message || 'Неизвестная ошибка.'}</p>`;
-            bubble.classList.remove('loading'); 
+            bubble.classList.remove('loading');
         } else {
             previewHtml = `<img class="bubble-preview-img" src="assets/placeholder.png" alt="Статус неизвестен">`;
             statusMessageText = '<p class="status-message-bubble status-info">Получение статуса...</p>';
-            bubble.classList.add('loading'); 
+            bubble.classList.add('loading');
         }
 
+        // Новый innerHTML с оберткой для текста
         bubble.innerHTML = `
-            ${filenameText}
             ${previewHtml}
-            ${statusMessageText}
+            <div class="bubble-text-overlay">
+                ${filenameText}
+                ${statusMessageText}
+            </div>
         `;
+        // --- Изменения заканчиваются здесь ---
 
         if (data.status === 'completed' && data.metadata) {
-            bubble.onclick = () => showMetadataModal(data.original_filename || `Task ${taskId}`, data.metadata); 
-            bubble.style.cursor = 'pointer'; 
+            bubble.onclick = () => showMetadataModal(data.original_filename || `Задача ${taskId}`, data.metadata);
+            bubble.style.cursor = 'pointer';
         } else {
-            bubble.onclick = null; 
-            bubble.style.cursor = 'default'; 
+            bubble.onclick = null;
+            bubble.style.cursor = 'default';
         }
     }
 
