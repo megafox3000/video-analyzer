@@ -3,17 +3,18 @@
 
 // Проверяем, есть ли уже загруженные видео и имя пользователя (т.е. пользователь уже прошел начальную загрузку)
 // Получаем существующие данные пользователя для логики перенаправления
+// (Эти переменные используются ТОЛЬКО для следующей проверки на results.html)
 const existingUploadedVideos = localStorage.getItem('uploadedVideos');
 const existingUsername = localStorage.getItem('hifeUsername');
 const existingEmail = localStorage.getItem('hifeEmail');
 
-// Проверяем, есть ли какие-либо ключи в localStorage
-// Если localStorage пуст (или если нет наших ключевых данных, что означает новый старт),
-// перенаправляем на index.html
-// Мы используем существующие переменные, а не localStorage.length,
-// чтобы быть уверенными, что перенаправляем только если НЕТ наших данных.
-if (!existingUploadedVideos && !existingUsername && !existingEmail) {
-    window.location.replace('index.html');
+// Теперь перенаправление на index.html для новых пользователей УДАЛЕНО.
+// Новый пользователь попадет на upload.html и сможет ввести данные.
+
+// Если есть данные пользователя И загруженные видео, перенаправляем на results.html
+// Эта проверка остается, чтобы возвращать пользователя на страницу результатов, если у него уже есть данные.
+if ((existingUsername || existingEmail) && existingUploadedVideos) {
+    window.location.replace('results.html');
 }
 
 // Если есть данные пользователя И загруженные видео, перенаправляем на results.html
