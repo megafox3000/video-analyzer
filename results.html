@@ -1,27 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Video Analysis Results - Hife Video Analyzer</title>
+    <title>Результаты анализа видео - Hife Video Analyzer</title>
     <link rel="stylesheet" href="css/style.css" />
     <link rel="icon" type="image/png" href="assets/favicon.png" />
 </head>
 <body class="fade-in">
     <div class="background">
         <div class="header-section">
-            <h1 id="resultsHeader">Your Video(s)</h1>
+            <h1 id="resultsHeader">Ваши Видео</h1>
             <p id="usernameDisplay"></p>
-            <button id="uploadNewBtn" class="gold-button">Upload New Video(s)</button>
+            <button id="uploadNewBtn" class="gold-button">Загрузить новое видео</button>
         </div>
 
         <div id="bubblesContainer" class="results-grid">
             </div>
 
+        <input type="file" id="videoFileInput" accept="video/*" style="display: none;" />
+
+        <div id="dynamicUploadStatusContainer" class="upload-status-container hidden">
+            <p id="uploadStatusText" class="status-message info">Готов к загрузке нового видео.</p>
+            <div class="progress-bar-container" style="display: none;">
+                <div class="progress-bar" id="progressBar"></div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+        </div>
         <div id="metadataModal" class="modal">
             <div class="modal-content">
                 <span class="close-button">&times;</span>
-                <h4 id="modalTitle">Video Metadata</h4>
+                <h4 id="modalTitle">Метаданные видео</h4>
                 <pre id="modalMetadata"></pre>
             </div>
         </div>
