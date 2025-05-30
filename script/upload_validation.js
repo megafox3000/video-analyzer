@@ -2,28 +2,25 @@
 // ПЕРЕД document.addEventListener('DOMContentLoaded', ...)
 
 // Проверяем, есть ли уже загруженные видео и имя пользователя (т.е. пользователь уже прошел начальную загрузку)
-const existingUploadedVideos = localStorage.getItem('uploadedVideos');
-const existingUsername = localStorage.getItem('hifeUsername');
-const existingEmail = localStorage.getItem('hifeEmail'); // Также проверяем и Email
-// Проверяем, есть ли какие-либо ключи в localStorage
-// (Простой способ проверить, что localStorage не пуст, если мы не знаем, какие ключи там могут быть)
-const isLocalStorageEmpty = localStorage.length === 0;
-
-// Если localStorage пуст, перенаправляем на index.html
-if (isLocalStorageEmpty) {
-    window.location.replace('index.html');
-}
-
-// Если localStorage НЕ пуст, то проверяем наличие данных пользователя
-// Если есть данные пользователя И загруженные видео, перенаправляем на results.html
+// Получаем существующие данные пользователя для логики перенаправления
 const existingUploadedVideos = localStorage.getItem('uploadedVideos');
 const existingUsername = localStorage.getItem('hifeUsername');
 const existingEmail = localStorage.getItem('hifeEmail');
 
+// Проверяем, есть ли какие-либо ключи в localStorage
+// Если localStorage пуст (или если нет наших ключевых данных, что означает новый старт),
+// перенаправляем на index.html
+// Мы используем существующие переменные, а не localStorage.length,
+// чтобы быть уверенными, что перенаправляем только если НЕТ наших данных.
+if (!existingUploadedVideos && !existingUsername && !existingEmail) {
+    window.location.replace('index.html');
+}
+
+// Если есть данные пользователя И загруженные видео, перенаправляем на results.html
+// Эта проверка должна идти после проверки на полный сброс/отсутствие данных.
 if ((existingUsername || existingEmail) && existingUploadedVideos) {
     window.location.replace('results.html');
 }
-
 
 document.addEventListener('DOMContentLoaded', () => {
     const instagramInput = document.getElementById('instagramInput');
