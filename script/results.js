@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const username = localStorage.getItem('hifeUsername') || 'Guest'; 
     usernameDisplay.textContent = `For: @${username}`;
 
-    resultsHeader.textContent = 'Your Video Analysis Results';
+    resultsHeader.textContent = 'Your Video(s)';
     
     if (uploadedVideosData.length === 0) {
         bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">No tasks found. Please upload a video from the <a href="upload.html" style="color: #FFD700; text-decoration: underline;">upload page</a>.</p>';
