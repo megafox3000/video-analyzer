@@ -5,11 +5,22 @@
 const existingUploadedVideos = localStorage.getItem('uploadedVideos');
 const existingUsername = localStorage.getItem('hifeUsername');
 const existingEmail = localStorage.getItem('hifeEmail'); // Также проверяем и Email
+// Проверяем, есть ли какие-либо ключи в localStorage
+// (Простой способ проверить, что localStorage не пуст, если мы не знаем, какие ключи там могут быть)
+const isLocalStorageEmpty = localStorage.length === 0;
 
-// Если есть хотя бы один из идентификаторов пользователя ИЛИ загруженные видео
+// Если localStorage пуст, перенаправляем на index.html
+if (isLocalStorageEmpty) {
+    window.location.replace('index.html');
+}
+
+// Если localStorage НЕ пуст, то проверяем наличие данных пользователя
+// Если есть данные пользователя И загруженные видео, перенаправляем на results.html
+const existingUploadedVideos = localStorage.getItem('uploadedVideos');
+const existingUsername = localStorage.getItem('hifeUsername');
+const existingEmail = localStorage.getItem('hifeEmail');
+
 if ((existingUsername || existingEmail) && existingUploadedVideos) {
-    // Если данные есть, перенаправляем на страницу результатов
-    // Используем replace() для чистоты истории, чтобы предотвратить возврат назад на upload.html
     window.location.replace('results.html');
 }
 
