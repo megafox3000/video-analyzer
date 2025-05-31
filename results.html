@@ -1,38 +1,46 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Ваши Результаты Анализа - Hife Video Analyzer</title>
-    <link rel="stylesheet" href="css/style.css" />
-    <link rel="icon" type="image/png" href="assets/favicon.png" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Results - HiFE</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
 </head>
 <body class="fade-in">
     <div class="background">
-        <h2>Ваши видео для анализа</h2>
-        <div id="resultsContainer" class="results-grid">
+        <div class="header-section">
+            <h2 id="resultsHeader">Your Video(s)</h2>
+            <p id="usernameDisplay"></p>
+            <button id="uploadNewBtn" class="gold-button">Upload New Video(s)</button>
+            <input type="file" id="videoFileInput" accept="video/*" style="display: none;">
+        </div>
+
+        <div id="dynamicUploadStatusContainer" class="dynamic-upload-status-section" style="display: none;">
+            <p id="uploadStatusText" class="status-message"></p>
+            <div class="progress-bar-container" style="display: none;">
+                <div class="progress-bar"></div>
+                <span class="progress-text">0%</span>
             </div>
+        </div>
+
+        <div id="bubblesContainer" class="results-grid">
+            <p id="statusMessage" class="status-message info">Loading tasks...</p>
+        </div>
 
         <div class="button-center-group" style="margin-top: 2rem;">
-            <input type="file" id="videoFileInput" accept="video/*" multiple hidden />
-            <button type="button" id="uploadMoreVideosButton" class="gold-button">Загрузить ещё</button>
-            <button type="button" id="finishSessionButton" class="gold-button">Завершить сессию</button>
+            <button id="finishSessionBtn" class="gold-button" style="background: linear-gradient(45deg, #FF6B6B, #EE4D4D);">Finish Session</button>
         </div>
-
-        <video id="videoPreview" controls style="display: none; max-width: 100%; margin-top: 1rem; border-radius: 10px;"></video>
-
-        <div id="uploadStatusContainer" class="upload-status-container" style="display: none; margin-top: 2rem;">
-            <p id="generalStatusMessage" class="status-message info"></p>
-            <div class="progress-bar-container" style="display: none;">
-                <div class="progress-bar" id="progressBar"></div>
-                <div class="progress-text" id="progressText">0%</div>
-            </div>
-        </div>
-
-        <div id="fileValidationStatusList" class="video-info-list" style="margin-top: 1rem;"></div>
-
     </div>
 
-    <script src="script/results.js"></script>
+    <div id="metadataModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h4 id="modalTitle">Video Metadata</h4>
+            <pre id="modalMetadata"></pre>
+        </div>
+    </div>
+
+    <script src="results.js"></script>
 </body>
 </html>
