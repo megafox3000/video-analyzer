@@ -15,18 +15,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const instagramInput = document.getElementById('instagramInput');
     const emailInput = document.getElementById('emailInput');
     const linkedinInput = document.getElementById('linkedinInput');
-    const videoInput = document.getElementById('videoFileInput'); // Input type="file"
-    const selectFilesButton = document.getElementById('selectFilesButton'); // Ваша кнопка
+    const videoInput = document.getElementById('videoFileInput'); // Input type="file" снова активен
+    const selectFilesButton = document.getElementById('selectFilesButton');
     const finishUploadButton = document.getElementById('finishUploadButton');
     const generalStatusMessage = document.getElementById('generalStatusMessage');
     const uploadedVideosList = document.getElementById('uploadedVideosList');
 
-    // Удален videoPreview, так как он не должен отображаться
-    // const videoPreview = document.getElementById('videoPreview'); // Эту строку убираем
+    // Прогресс-бар и связанные элементы снова активны
     const progressBarContainer = document.querySelector('.progress-bar-container');
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
-
 
     const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com';
     const MAX_VIDEO_SIZE_MB = 100;
@@ -52,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Предыдущая загрузка отменена.');
     }
 
+    // Кнопка изначально неактивна
     selectFilesButton.disabled = true;
 
     instagramInput.addEventListener('input', () => {
@@ -78,29 +77,27 @@ document.addEventListener('DOMContentLoaded', () => {
         validateInputs();
     });
 
-    // Обработчик события 'change' для videoInput
-    // Срабатывает после того, как пользователь выбрал файл в системном диалоге
+    // Обработчик события 'change' для videoInput - восстановлен
     videoInput.addEventListener('change', () => {
         generalStatusMessage.textContent = '';
         const file = videoInput.files[0];
 
         if (file) {
-            // Валидация размера
             if (file.size > MAX_VIDEO_SIZE_BYTES) {
                 generalStatusMessage.textContent = `Видео слишком большое. Максимум ${MAX_VIDEO_SIZE_MB} MB.`;
                 generalStatusMessage.style.color = 'var(--status-error-color)';
-                videoInput.value = ''; // Сброс выбранного файла
-                validateInputs(); // Обновить состояние кнопки
+                videoInput.value = '';
+                validateInputs();
                 return;
             }
 
-            // Использование временного элемента <video> для получения метаданных
+            // Использование временного элемента <video> для получения метаданных (без отображения)
             const tempVideoElement = document.createElement('video');
-            tempVideoElement.preload = 'metadata'; // Загружаем только метаданные
+            tempVideoElement.preload = 'metadata';
 
             tempVideoElement.onloadedmetadata = () => {
                 const videoDuration = tempVideoElement.duration;
-                // Отзыв URL с небольшой задержкой, чтобы дать браузеру время
+                // Отзыв URL с небольшой задержкой для стабильности
                 setTimeout(() => {
                     URL.revokeObjectURL(tempVideoElement.src);
                 }, 100);
@@ -108,8 +105,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isNaN(videoDuration) || videoDuration > MAX_VIDEO_DURATION_SECONDS) {
                     generalStatusMessage.textContent = `Видео слишком длинное. Максимум ${MAX_VIDEO_DURATION_SECONDS / 60} минут.`;
                     generalStatusMessage.style.color = 'var(--status-error-color)';
-                    videoInput.value = ''; // Сброс выбранного файла
-                    validateInputs(); // Обновить состояние кнопки
+                    videoInput.value = '';
+                    validateInputs();
                     return;
                 } else {
                     validateInputs();
@@ -126,38 +123,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 videoInput.value = '';
                 validateInputs();
             };
-            tempVideoElement.src = URL.createObjectURL(file); // Загружаем метаданные файла
+            tempVideoElement.src = URL.createObjectURL(file);
 
-        } else { // Если пользователь отменил выбор файла или убрал его
-            validateInputs(); // Перепроверяем состояние кнопки
+        } else {
+            validateInputs();
         }
     });
 
-    // Обработчик нажатия на кнопку "Upload Video(s)"
+    // Обработчик нажатия на кнопку "Upload Video(s)" - восстановлен функционал загрузки
     selectFilesButton.addEventListener('click', async () => {
         const username = instagramInput.value.trim();
         const email = emailInput.value.trim();
         const linkedin = linkedinInput.value.trim();
-        let file = videoInput.files[0]; // Получаем файл, если он уже выбран
+        let file = videoInput.files[0];
 
-        // Проверка заполненности полей Instagram/Email/LinkedIn
         if (!username && !email && !linkedin) {
             generalStatusMessage.textContent = 'Пожалуйста, введите Instagram ID, Email или LinkedIn.';
             generalStatusMessage.style.color = 'var(--status-error-color)';
-            validateInputs(); // Перепроверить состояние кнопки
+            validateInputs();
             return;
         }
 
-        // Если файл еще не выбран, программно кликаем на скрытый инпут
         if (!file) {
             generalStatusMessage.textContent = 'Выберите видеофайл...';
             generalStatusMessage.style.color = 'var(--status-info-color)';
-            videoInput.click(); // <-- ЭТО САМОЕ ВАЖНОЕ: открываем системный диалог выбора файла
-            return; // Прекращаем выполнение, ждем выбора файла через 'change' событие
+            videoInput.click();
+            return;
         }
 
-        // Если файл уже выбран и поля заполнены, запускаем процесс загрузки.
-        // Дополнительная валидация лимитов (на случай, если пользователь изменил файл)
         if (file.size > MAX_VIDEO_SIZE_BYTES) {
             generalStatusMessage.textContent = `Видео слишком большое. Максимум ${MAX_VIDEO_SIZE_MB} MB.`;
             generalStatusMessage.style.color = 'var(--status-error-color)';
@@ -165,16 +158,14 @@ document.addEventListener('DOMContentLoaded', () => {
             validateInputs();
             return;
         }
-        // Удалены проверки с videoPreview.duration, так как tempVideoElement асинхронный
-        // и сброс fileInput.value уже произошел в обработчике 'change' при невалидной длительности.
 
         // Если все проверки пройдены, начинаем загрузку
         uploadVideo(file, username, email, linkedin);
     });
 
-    // Вынесена функция загрузки для чистоты кода
+    // Функция загрузки видео - восстановлена
     function uploadVideo(file, username, email, linkedin) {
-        selectFilesButton.disabled = true; // Отключаем кнопку на время загрузки
+        selectFilesButton.disabled = true;
         generalStatusMessage.textContent = 'Загрузка...';
         generalStatusMessage.style.color = 'var(--status-info-color)';
 
@@ -208,13 +199,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         currentUploadXhr.onload = function() {
-            selectFilesButton.disabled = false; // Активируем кнопку после завершения загрузки
-            videoInput.value = ''; // Очищаем поле выбора файла
-            // Удалены строки, связанные с videoPreview
-            // if (videoPreview) {
-            //     videoPreview.style.display = 'none';
-            //     videoPreview.src = '';
-            // }
+            selectFilesButton.disabled = false;
+            videoInput.value = '';
 
             if (currentUploadXhr.status >= 200 && currentUploadXhr.status < 300) {
                 const response = JSON.parse(currentUploadXhr.responseText);
@@ -247,11 +233,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 generalStatusMessage.style.color = 'var(--status-error-color)';
                 resetProgressBar();
             }
-            validateInputs(); // После загрузки/ошибки, проверить состояние кнопки на основе полей
+            validateInputs();
         };
 
         currentUploadXhr.onerror = function() {
-            selectFilesButton.disabled = false; // Активируем кнопку после ошибки
+            selectFilesButton.disabled = false;
             generalStatusMessage.textContent = 'Ошибка сети во время загрузки видео.';
             generalStatusMessage.style.color = 'var(--status-error-color)';
             resetProgressBar();
@@ -270,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Функция валидации, которая управляет состоянием кнопки
+    // Функция валидации - восстановлена логика проверки файла
     function validateInputs() {
         const anyFieldFilled = instagramInput.value.trim() !== '' ||
                                emailInput.value.trim() !== '' ||
@@ -284,8 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (file.size > MAX_VIDEO_SIZE_BYTES) {
                 fileIsValid = false;
             }
-            // Здесь больше нет прямой проверки videoPreview.duration
-            // Мы полагаемся на асинхронную проверку в 'change' событии.
+            // Проверка длительности полагается на асинхронную проверку в 'change' событии.
+            // Если там была проблема, videoInput.value уже сброшен.
         }
 
         selectFilesButton.disabled = !(anyFieldFilled && (!fileSelected || fileIsValid));
@@ -295,7 +281,6 @@ document.addEventListener('DOMContentLoaded', () => {
             generalStatusMessage.textContent = '';
         }
     }
-
 
     function updateUploadedVideosList() {
         uploadedVideosList.innerHTML = '';
