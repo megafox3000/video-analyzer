@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Сессия завершена - Hife Video Analyzer</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h2 {
+            color: var(--text-color-light);
+            margin-bottom: 1.5rem;
+        }
+        .gold-button {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body class="fade-in">
+    <div class="background">
+        <h2>Ваша сессия завершена!</h2>
+        <p>Спасибо, что воспользовались Hife Video Analyzer. Ваши видео обрабатываются.</p>
+        <p>Вы можете закрыть эту страницу.</p>
+        <button type="button" id="returnToUploadButton" class="gold-button">Начать новую сессию</button>
+    </div>
+
+    <script>
+        document.getElementById('returnToUploadButton').addEventListener('click', () => {
+            window.location.replace('upload.html'); // Возвращаемся к началу
+        });
+    </script>
+</body>
+</html>
