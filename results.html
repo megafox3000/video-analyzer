@@ -1,39 +1,36 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Результаты анализа видео - Hife Video Analyzer</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Ваши Результаты Анализа - Hife Video Analyzer</title>
     <link rel="stylesheet" href="css/style.css" />
     <link rel="icon" type="image/png" href="assets/favicon.png" />
 </head>
 <body class="fade-in">
     <div class="background">
-        <div class="header-section">
-            <h1 id="resultsHeader">Ваши Видео</h1>
-            <p id="usernameDisplay"></p>
-            <button id="uploadNewBtn" class="gold-button">Загрузить новое видео</button>
-        </div>
-
-        <div id="bubblesContainer" class="results-grid">
+        <h2>Ваши видео для анализа</h2>
+        <div id="resultsContainer" class="results-grid">
             </div>
 
-        <input type="file" id="videoFileInput" accept="video/*" style="display: none;" />
+        <div class="button-center-group" style="margin-top: 2rem;">
+            <input type="file" id="videoFileInput" accept="video/*" multiple hidden />
+            <button type="button" id="uploadMoreVideosButton" class="gold-button">Загрузить ещё</button>
+            <button type="button" id="finishSessionButton" class="gold-button">Завершить сессию</button>
+        </div>
 
-        <div id="dynamicUploadStatusContainer" class="upload-status-container hidden">
-            <p id="uploadStatusText" class="status-message info">Готов к загрузке нового видео.</p>
+        <video id="videoPreview" controls style="display: none; max-width: 100%; margin-top: 1rem; border-radius: 10px;"></video>
+
+        <div id="uploadStatusContainer" class="upload-status-container" style="display: none; margin-top: 2rem;">
+            <p id="generalStatusMessage" class="status-message info"></p>
             <div class="progress-bar-container" style="display: none;">
                 <div class="progress-bar" id="progressBar"></div>
                 <div class="progress-text" id="progressText">0%</div>
             </div>
         </div>
-        <div id="metadataModal" class="modal">
-            <div class="modal-content">
-                <span class="close-button">&times;</span>
-                <h4 id="modalTitle">Метаданные видео</h4>
-                <pre id="modalMetadata"></pre>
-            </div>
-        </div>
+
+        <div id="fileValidationStatusList" class="video-info-list" style="margin-top: 1rem;"></div>
+
     </div>
 
     <script src="script/results.js"></script>
