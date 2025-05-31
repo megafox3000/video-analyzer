@@ -22,11 +22,11 @@
 html, body {
     margin: 0;
     padding: 0;
-    font-family: 'Segoe UI', sans-serif; /* Хороший выбор шрифта */
+    font-family: 'Segoe UI', sans-serif;
     background: var(--background-color-dark);
     color: var(--text-color-light);
-    scroll-behavior: smooth; /* Плавная прокрутка */
-    overflow-x: hidden; /* Предотвращает горизонтальную прокрутку */
+    scroll-behavior: smooth;
+    overflow-x: hidden;
 }
 
 /* Анимация появления страницы */
@@ -42,11 +42,11 @@ body.fade-in {
 /* Стили для стартового экрана (index.html) */
 .start-screen {
     height: 100dvh;
-    background: url('../assets/image-bkgr.jpeg') center/cover no-repeat;
+    background: url('assets/image-bkgr.jpeg') center/cover no-repeat; /* Исправлен путь */
     background-size: cover;
     display: flex;
-    flex-direction: column; /* Важно: элементы располагаются в колонку */
-    align-items: center; /* Центрирует содержимое по горизонтали */
+    flex-direction: column;
+    align-items: center;
     padding: 0 1rem;
     position: relative;
     text-align: center;
@@ -55,19 +55,18 @@ body.fade-in {
 /* Медиа-запросы для стартового экрана */
 @media(max-width: 600px) {
     .start-screen {
-        justify-content: flex-end; /* Перемещаем контент вниз на мобильных */
-        padding-bottom: 4rem; /* Увеличиваем отступ от низа для мобильных */
+        justify-content: flex-end;
+        padding-bottom: 4rem;
     }
 }
 
 @media(min-width: 601px) {
     .start-screen {
-        justify-content: center; /* Центрируем контент по вертикали на десктопе */
+        justify-content: center;
     }
 }
 
-
-/* Стили для логотипа (если используется на index.html) */
+/* Стили для логотипа */
 .logo {
     width: 120px;
     height: 120px;
@@ -77,7 +76,7 @@ body.fade-in {
     box-shadow: 0 8px 20px var(--shadow-dark);
 }
 
-/* Стили для заголовка (если используется на index.html) */
+/* Стили для заголовка */
 h1 {
     font-size: 3.5rem;
     margin-bottom: 0.5rem;
@@ -89,21 +88,13 @@ h1 {
     color: transparent;
 }
 
-/* Стили для подзаголовка/слогана (если используется на index.html) */
-.tagline { /* Этот класс теперь не используется в index.html */
-    font-size: 1.5rem;
-    margin-bottom: 2rem;
-    color: #E0E0E0;
-    text-shadow: 1px 1px 4px var(--shadow-dark);
-}
-
-/* Стили для "золотой" кнопки (общие для index.html и upload.html) */
+/* Стили для "золотой" кнопки (общие) */
 .gold-button {
     background: var(--gold-gradient);
     color: var(--text-color-dark);
     border: none;
     padding: 0.9rem 2rem;
-    border-radius: 25px; /* Общий радиус для обычных кнопок */
+    border-radius: 25px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -134,11 +125,6 @@ h1 {
     h1 {
         font-size: 2.5rem;
     }
-
-    .tagline {
-        font-size: 1.2rem;
-    }
-
     .logo {
         width: 100px;
         height: 100px;
@@ -149,25 +135,21 @@ h1 {
     h1 {
         font-size: 1.8rem;
     }
-    .tagline {
-        font-size: 0.9rem;
-    }
 }
 
-/* НОВЫЕ СТИЛИ: Круглая кнопка "Start" */
+/* Круглая кнопка "Start" */
 .start-button-circle {
     width: 150px;
     height: 150px;
-    border-radius: 50% !important; /* !important для гарантии круглой формы */
+    border-radius: 50% !important;
     padding: 0;
-    min-width: 0; /* Убираем min-width, чтобы не мешал круглой форме */
+    min-width: 0;
     display: flex;
     justify-content: center;
     align-items: center;
     font-size: 1.8rem;
     text-decoration: none;
-    /* Убираем специфические margin, чтобы родитель .start-screen управлял позицией */
-    margin: 0; /* Перезаписываем margin от .gold-button */
+    margin: 0;
 }
 
 /* Адаптивность для круглой кнопки "Start" на мобильных */
@@ -179,12 +161,10 @@ h1 {
     }
 }
 
-
-/* --- Стили для upload.html --- */
-
+/* --- Стили для upload.html и results.html (общие background) --- */
 .background {
     min-height: 100dvh;
-    background: url('../assets/image-bkgr.jpeg') center/cover no-repeat;
+    background: url('assets/image-bkgr.jpeg') center/cover no-repeat; /* Исправлен путь */
     background-size: cover;
     position: relative;
     z-index: 0;
@@ -208,7 +188,6 @@ h1 {
     background-color: rgba(0, 0, 0, 0.5);
     z-index: -1;
 }
-
 
 .background h3 {
     font-size: 1.8rem;
@@ -244,34 +223,32 @@ h1 {
     border-color: #FFD700;
 }
 
-/* Стиль для поля ввода Instagram при ошибке */
-.social-form input[type="text"][style*="border-color: red"],
-.social-form input[type="email"][style*="border-color: red"] {
+/* Стиль для поля ввода при ошибке */
+.social-form input[style*="border-color: red"] {
     border-color: red !important;
     box-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
 }
 
-/* НОВЫЙ КОД: Центрирование группы кнопок */
+/* Центрирование группы кнопок */
 .button-center-group {
     display: flex;
-    flex-direction: column; /* Размещает кнопки друг под другом */
-    align-items: center;    /* Центрирует элементы по горизонтали */
-    width: 100%;            /* Занимает всю доступную ширину */
-    margin-top: 1rem;       /* Отступ сверху от формы */
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-top: 1rem;
 }
-/* КОНЕЦ НОВОГО КОДА */
 
 /* Стиль для отключенной кнопки загрузки */
 .gold-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    background: #555; /* Более темный фон для отключенной кнопки */
+    background: #555;
     box-shadow: none;
-    animation: none; /* Отключаем пульсацию для отключенной кнопки */
+    animation: none;
 }
 
 .gold-button:disabled:hover {
-    transform: none; /* Убираем эффект увеличения при наведении для отключенной кнопки */
+    transform: none;
     box-shadow: none;
 }
 
@@ -279,10 +256,10 @@ h1 {
     margin-top: 1rem;
     font-size: 1rem;
     color: #c0c0c0;
-    text-align: center; /* Центрируем сообщения о статусе */
+    text-align: center;
 }
 
-/* Новый стиль для списка видеоинформации */
+/* Стиль для списка видеоинформации (используется и в upload.html, и для динамических статусов в results.html) */
 .video-info-list {
     width: 100%;
     max-width: 600px;
@@ -301,113 +278,7 @@ h1 {
     box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
-
-.spoiler-btn {
-    background: #333;
-    color: #fff;
-    border: none;
-    padding: 0.8rem 1.5rem;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 1.1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
-    width: 100%;
-    justify-content: center;
-
-    position: relative;
-    overflow: hidden;
-    z-index: 0;
-}
-
-/* Стиль для иконки внутри кнопки спойлера */
-.spoiler-btn .spoiler-icon {
-    width: 24px;
-    height: 24px;
-    margin-right: 0.5rem;
-    object-fit: contain;
-    filter: invert(100%) brightness(150%);
-}
-
-
-/* Псевдоэлемент для прогрессивной золотой заливки */
-.spoiler-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: var(--upload-progress, 0%);
-    height: 100%;
-    background: var(--gold-gradient);
-    transition: width 0.1s linear;
-    z-index: -1;
-    border-radius: inherit;
-}
-
-/* Стили для текста/иконки внутри кнопки спойлера */
-.spoiler-btn span {
-    position: relative;
-    z-index: 1;
-    color: #fff;
-    transition: color 0.3s ease;
-}
-
-
-.spoiler-btn:hover {
-    transform: scale(1.01);
-}
-
-/* Стили для кнопки спойлера после успешной загрузки (финальное состояние) */
-.loaded-spoiler-btn {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-    animation: pulse 2s infinite;
-}
-
-/* Цвет текста для золотой кнопки спойлера */
-.loaded-spoiler-btn span {
-    color: var(--text-color-dark);
-}
-
-/* Эффект при наведении на золотую кнопку спойлера */
-.loaded-spoiler-btn:hover {
-    transform: scale(1.02);
-    box-shadow: 0 6px 18px var(--shadow-dark);
-    background: linear-gradient(45deg, #FFC700, #EEA500);
-}
-
-
-.spoiler-content {
-    background: #222;
-    border: 1px solid #444;
-    border-radius: 10px;
-    padding: 0;
-    margin-top: 1rem;
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.5s ease-out, padding 0.5s ease-out;
-}
-
-.spoiler-content.visible {
-    max-height: 500px;
-    padding: 1rem;
-}
-
-/* Класс для скрытия элементов визуально, но сохранения для скрин-ридеров */
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-}
-
-/* Стили для прогресс-бара */
+/* Прогресс-бар */
 .progress-bar-container {
     width: 100%;
     background-color: #444;
@@ -440,7 +311,20 @@ h1 {
     z-index: 1;
 }
 
-/* --- Стили для результатов (results.html) --- */
+/* Класс для скрытия элементов визуально, но сохранения для скрин-ридеров */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* --- Стили для results.html --- */
 
 .header-section {
     text-align: center;
@@ -471,263 +355,9 @@ h1 {
     animation: none; /* Убираем пульсацию для этой кнопки */
 }
 
-/* Контейнер для "пузырей" - теперь это сетка карточек */
-.results-grid { /* Переименовано с .bubbles-container на .results-grid */
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Адаптивная сетка */
-    gap: 2rem;
-    justify-content: center;
-    align-items: flex-start; /* Выравнивание элементов по верху */
-    padding: 2rem;
+/* Контейнер для динамического статуса дозагрузки на results.html */
+.dynamic-upload-status-section {
     width: 100%;
-    max-width: 1200px;
-    margin: 0 auto; /* Центрирование контейнера */
-}
-
-/* Стили для отдельной карточки видео ("пузырь") */
-.video-bubble {
-    /* Удаляем старые правила padding, background-color, display, flex-direction, align-items, justify-content, gap */
-    width: 280px; /* Фиксированная ширина для круга */
-    height: 280px; /* Фиксированная высота для круга */
-    border-radius: 50%; /* Снова круглые! */
-    overflow: hidden; /* Обрезает содержимое по форме круга */
-    position: relative; /* Важно для позиционирования текста поверх */
-    background-color: #3b3b3b; /* Чуть светлее фон для карточки */
-    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-    text-align: center;
-    color: var(--text-color-light);
-    max-width: 300px; /* Сохраняем, но width и height имеют приоритет */
-    box-sizing: border-box;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    flex-shrink: 0;
-    animation: float 3s ease-in-out infinite; /* Сохраняем анимацию плавания */
-    border: 1px solid #4a4a4a; /* Небольшая рамка */
-    cursor: pointer; /* Делаем весь баббл кликабельным */
-}
-
-/* Анимация плавания для карточек */
-@keyframes float {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-    100% { transform: translateY(0px); }
-}
-
-.video-bubble:hover {
-    transform: translateY(-5px) scale(1.02); /* Слегка поднять и увеличить при наведении */
-    box-shadow: 0 12px 25px rgba(0,0,0,0.6);
-    animation-play-state: paused; /* Приостанавливаем плавание при наведении */
-}
-
-/* Стили для изображения превью в баббле */
-.bubble-preview-img {
-    width: 100%; /* Растягиваем изображение на всю ширину пузыря */
-    height: 100%; /* Растягиваем изображение на всю высоту пузыря */
-    object-fit: cover; /* Обрезает изображение, чтобы оно заполнило контейнер без искажений */
-    border-radius: 50%; /* Делаем изображение круглым, чтобы оно вписалось в пузырь */
-    position: absolute; /* Позиционируем абсолютно, чтобы текст был поверх */
-    top: 0;
-    left: 0;
-    z-index: 1; /* Убедимся, что изображение находится под текстом */
-}
-
-/* Контейнер для текста, который будет поверх превью */
-.bubble-text-overlay {
-    position: absolute; /* Позиционируем поверх превью */
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 2; /* Убедимся, что текст находится поверх изображения */
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* Центрируем текст по вертикали */
-    align-items: center; /* Центрируем текст по горизонтали */
-    padding: 10px;
-    box-sizing: border-box; /* Учитываем padding в размере */
-    background-color: rgba(0, 0, 0, 0.6); /* Полупрозрачный фон для читаемости */
-    color: #fff; /* Цвет текста */
-    text-align: center;
-    font-family: 'Segoe UI', sans-serif; /* Для лучшей читаемости, используем основной шрифт */
-    border-radius: 50%; /* Также делаем круглым, чтобы совпадало с пузырем */
-}
-
-/* Стили для заголовка файла (название задачи/видео) */
-.bubble-text-overlay h3.bubble-title-overlay { /* Добавлен класс для специфичности */
-    margin: 0 0 5px 0; /* Отступ снизу */
-    font-size: 1.1em; /* Размер шрифта */
-    color: #FFD700; /* Золотой цвет для заголовка */
-    word-wrap: break-word; /* Перенос длинных слов */
-    white-space: normal; /* Разрешить перенос текста */
-    max-height: 50%; /* Ограничить высоту для длинных названий */
-    overflow: hidden; /* Скрыть текст, если он выходит за пределы */
-    text-overflow: ellipsis; /* Добавить многоточие */
-    line-height: 1.2;
-}
-
-/* Стили для сообщения о статусе */
-.bubble-text-overlay .status-message-bubble {
-    margin: 0;
-    font-size: 0.9em;
-    font-weight: bold;
-}
-
-
-/* Классы для цветов статусов */
-.status-pending, .status-processing {
-    color: var(--status-pending-color);
-}
-.status-completed {
-    color: var(--status-completed-color);
-}
-.status-error, .status-failed {
-    color: var(--status-error-color);
-}
-.status-message.info { /* Для общего сообщения о статусе на странице */
-    color: var(--status-info-color);
-}
-
-
-/* Индикатор загрузки для карточек (поверх содержимого) */
-.video-bubble.loading::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    border-top: 4px solid #ffd700;
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    animation: spin 1s linear infinite;
-    z-index: 10;
-}
-
-.video-bubble.loading .bubble-text-overlay {
-    background-color: rgba(0, 0, 0, 0.8); /* Более темное затемнение во время загрузки */
-}
-
-
-/* Адаптивность для карточек */
-@media (max-width: 768px) {
-    .video-bubble {
-        width: 200px; /* Меньший круг на мобильных */
-        height: 200px; /* Соответствующая высота */
-    }
-    .results-grid {
-        grid-template-columns: 1fr; /* Одна колонка на мобильных */
-        gap: 1.5rem;
-    }
-    .header-section h2 {
-        font-size: 2rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .video-bubble {
-        width: 180px; /* Еще уменьшить круг на очень маленьких экранах */
-        height: 180px; /* Соответствующая высота */
-    }
-    .header-section h2 {
-        font-size: 1.8rem;
-    }
-    .header-section p {
-        font-size: 1rem;
-    }
-}
-
-/* --- Стили для модального окна --- */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.8);
-    justify-content: center;
-    align-items: center;
-    padding: 2rem;
-    animation: fadeInModal 0.3s ease-out; /* Анимация появления модального окна */
-}
-
-.modal.visible { /* Этого класса нет в JS, JS использует display: block */
-    display: flex;
-}
-
-@keyframes fadeInModal {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.modal-content {
-    background-color: #222;
-    margin: auto;
-    padding: 2rem;
-    border: 1px solid #444;
-    border-radius: 10px;
-    width: 90%;
-    max-width: 700px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.7);
-    position: relative;
-    color: #f0f0f0;
-    max-height: 90vh;
-    overflow-y: auto;
-    animation: slideInModal 0.4s ease-out; /* Анимация появления содержимого модального окна */
-}
-
-@keyframes slideInModal {
-    from { transform: translateY(-50px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-
-.modal-content h4 {
-    color: var(--gold-gradient); /* Использовать градиент для заголовка */
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-size: 1.8rem;
-    margin-bottom: 1rem;
-    text-shadow: 1px 1px 4px var(--shadow-dark);
-}
-
-.modal-content pre {
-    background-color: #1a1a1a;
-    padding: 1rem;
-    border-radius: 5px;
-    white-space: pre-wrap; /* Сохраняет пробелы и переносы строк */
-    word-wrap: break-word; /* Перенос длинных слов */
-    font-family: 'Consolas', 'Monaco', monospace; /* Моноширинный шрифт для кода */
-    font-size: 0.9rem;
-    line-height: 1.4;
-    color: #b0b0b0;
-    border: 1px solid #333;
-}
-
-.close-button {
-    color: #aaa;
-    float: right;
-    font-size: 2.5rem;
-    font-weight: bold;
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    cursor: pointer;
-    transition: color 0.3s ease;
-}
-
-.close-button:hover,
-.close-button:focus {
-    color: #FFD700;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-/* Анимация вращения для спиннера (если используется) */
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+    max-width: 600px;
+    margin: 1rem auto 2rem auto; /* Центрируем и добавляем отступы */
+    padding:
