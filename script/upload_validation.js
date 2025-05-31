@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Элементы DOM ---
     const instagramUsernameInput = document.getElementById('instagramUsername');
+    const linkedinProfileInput = document.getElementById('linkedinProfile'); // Добавлено поле LinkedIn
     const userEmailInput = document.getElementById('userEmail');
     const selectFilesButton = document.getElementById('selectFilesButton');
     const uploadButton = document.getElementById('uploadButton');
@@ -26,10 +27,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Загружаем данные из localStorage при загрузке страницы
     instagramUsernameInput.value = localStorage.getItem('hifeUsername') || '';
+    linkedinProfileInput.value = localStorage.getItem('hifeLinkedin') || ''; // Загружаем LinkedIn
     userEmailInput.value = localStorage.getItem('hifeEmail') || '';
 
     // Если есть данные пользователя, активируем кнопку "View Results"
-    if (instagramUsernameInput.value || userEmailInput.value) {
+    if (instagramUsernameInput.value || linkedinProfileInput.value || userEmailInput.value) { // Обновлено условие
         resultsButton.style.display = 'inline-block';
     }
 
@@ -76,22 +78,18 @@ document.addEventListener('DOMContentLoaded', () => {
         video.onloadedmetadata = function() {
             window.URL.revokeObjectURL(video.src); // Освобождаем URL
             if (video.duration === Infinity || isNaN(video.duration)) {
-                // Если длительность бесконечна или NaN, это может быть проблемой с кодеком или поврежденным файлом.
-                // В этом случае предупреждаем пользователя.
                 warnings.push('Could not determine video duration. The file might be corrupted or in an unsupported format. Attempting upload anyway.');
             } else if (video.duration > MAX_VIDEO_DURATION_SECONDS) {
                 errors.push(`Video duration exceeds the limit of ${MAX_VIDEO_DURATION_SECONDS / 60} minutes.`);
             }
 
-            // После всех проверок
             processValidationResults(file, errors, warnings);
         };
         video.onerror = function() {
-            // Ошибка при загрузке метаданных
             errors.push('Failed to load video metadata. The file might be corrupted or in an unsupported format.');
             processValidationResults(file, errors, warnings);
         };
-        video.src = URL.createObjectURL(file); // Создаем временный URL для видео
+        video.src = URL.createObjectURL(file);
 
         // Отображаем начальную информацию о видео
         displayVideoInfo('Filename', file.name);
@@ -104,17 +102,17 @@ document.addEventListener('DOMContentLoaded', () => {
             errors.forEach(err => displayStatus(err, 'error'));
             uploadButton.disabled = true;
             hideProgressBar();
-            selectedFile = null; // Сбрасываем файл, если есть ошибки
+            selectedFile = null;
         } else {
             warnings.forEach(warn => displayStatus(warn, 'info'));
             displayStatus(`File selected: ${file.name}. Ready to upload.`, 'info');
-            uploadButton.disabled = false; // Активируем кнопку "Upload"
-            showProgressBar(); // Показываем прогресс-бар в готовности
+            uploadButton.disabled = false;
+            showProgressBar();
         }
     }
 
     function displayVideoInfo(label, value) {
-        videoInfoContainer.style.display = 'flex'; // Показываем контейнер информации
+        videoInfoContainer.style.display = 'flex';
         const infoItem = document.createElement('div');
         infoItem.className = 'video-info-item';
         infoItem.innerHTML = `<strong>${label}:</strong> <span>${value}</span>`;
@@ -127,13 +125,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function clearValidationErrors() {
-        instagramUsernameInput.style.borderColor = ''; // Сброс красной рамки
+        instagramUsernameInput.style.borderColor = '';
+        linkedinProfileInput.style.borderColor = ''; // Сброс красной рамки для LinkedIn
         userEmailInput.style.borderColor = '';
     }
 
     // --- Обработчик отправки формы (загрузка видео) ---
     uploadButton.addEventListener('click', async (event) => {
-        event.preventDefault(); // Предотвращаем стандартную отправку формы
+        event.preventDefault();
 
         if (!selectedFile) {
             displayStatus('Please select a video file first.', 'error');
@@ -141,23 +140,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const instagramUsername = instagramUsernameInput.value.trim();
+        const linkedinProfile = linkedinProfileInput.value.trim(); // Получаем значение LinkedIn
         const userEmail = userEmailInput.value.trim();
 
-        if (!instagramUsername && !userEmail) {
-            displayStatus('Please enter either an Instagram username or an email.', 'error');
+        if (!instagramUsername && !linkedinProfile && !userEmail) { // Обновлено условие
+            displayStatus('Please enter at least one of: Instagram username, LinkedIn profile, or Email.', 'error');
             instagramUsernameInput.style.borderColor = 'red';
+            linkedinProfileInput.style.borderColor = 'red'; // Выделяем LinkedIn
             userEmailInput.style.borderColor = 'red';
             return;
         }
 
-        // Сохраняем username и email в localStorage
+        // Сохраняем username, LinkedIn и email в localStorage
         localStorage.setItem('hifeUsername', instagramUsername);
+        localStorage.setItem('hifeLinkedin', linkedinProfile); // Сохраняем LinkedIn
         localStorage.setItem('hifeEmail', userEmail);
 
         const formData = new FormData();
         formData.append('video', selectedFile);
         if (instagramUsername) {
             formData.append('instagram_username', instagramUsername);
+        }
+        if (linkedinProfile) {
+            formData.append('linkedin_profile', linkedinProfile); // Отправляем LinkedIn на бэкенд
         }
         if (userEmail) {
             formData.append('email', userEmail);
@@ -168,11 +173,12 @@ document.addEventListener('DOMContentLoaded', () => {
         showProgressBar();
         progressBar.style.width = '0%';
         progressText.textContent = '0%';
-        uploadButton.disabled = true; // Деактивируем кнопку во время загрузки
-        selectFilesButton.disabled = true; // Деактивируем кнопку выбора файла
+        uploadButton.disabled = true;
+        selectFilesButton.disabled = true;
         instagramUsernameInput.disabled = true;
+        linkedinProfileInput.disabled = true; // Деактивируем LinkedIn
         userEmailInput.disabled = true;
-        resultsButton.style.display = 'none'; // Скрываем кнопку результатов пока идет загрузка
+        resultsButton.style.display = 'none';
 
         try {
             const xhr = new XMLHttpRequest();
@@ -188,13 +194,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             xhr.onload = function() {
-                resetUploadUI(); // Сбрасываем состояние UI
+                resetUploadUI();
                 if (xhr.status >= 200 && xhr.status < 300) {
                     const response = JSON.parse(xhr.responseText);
                     const taskId = response.taskId;
                     displayStatus(`Upload successful! Task ID: ${taskId}. Redirecting to results...`, 'completed');
                     
-                    // Сохраняем данные о загруженном видео в localStorage
                     let uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]');
                     uploadedVideos.push({
                         id: taskId,
@@ -204,10 +209,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
 
-                    // Перенаправление на страницу результатов
                     setTimeout(() => {
                         window.location.href = 'results.html';
-                    }, 2000); // Задержка для отображения сообщения об успехе
+                    }, 2000);
                 } else {
                     const error = JSON.parse(xhr.responseText);
                     displayStatus(`Upload failed: ${error.error || 'Unknown error'}`, 'error');
@@ -231,7 +235,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Вспомогательные функции UI ---
     function displayStatus(message, type = 'info') {
         uploadStatusText.textContent = message;
-        // Используем CSS переменные для цветов
         switch (type) {
             case 'info':
                 uploadStatusText.style.color = 'var(--status-info-color)';
@@ -261,14 +264,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function resetUploadUI() {
-        uploadButton.disabled = true; // Снова отключаем кнопку Upload
-        selectFilesButton.disabled = false; // Активируем кнопку Select
+        uploadButton.disabled = true;
+        selectFilesButton.disabled = false;
         instagramUsernameInput.disabled = false;
+        linkedinProfileInput.disabled = false; // Активируем LinkedIn
         userEmailInput.disabled = false;
         hideProgressBar();
-        selectedFile = null; // Сбрасываем выбранный файл
-        // Если есть пользовательские данные, активируем кнопку "View Results"
-        if (localStorage.getItem('hifeUsername') || localStorage.getItem('hifeEmail')) {
+        selectedFile = null;
+        if (localStorage.getItem('hifeUsername') || localStorage.getItem('hifeLinkedin') || localStorage.getItem('hifeEmail')) { // Обновлено условие
             resultsButton.style.display = 'inline-block';
         }
     }
