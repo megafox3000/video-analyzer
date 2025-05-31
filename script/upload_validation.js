@@ -21,14 +21,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const generalStatusMessage = document.getElementById('generalStatusMessage');
     const uploadedVideosList = document.getElementById('uploadedVideosList');
 
-    // Эти элементы отсутствуют в вашем HTML, но используются в JS.
-    // Если их нет, код будет генерировать ошибки.
-    // Если они нужны для прогресса/превью, убедитесь, что они есть в HTML.
-    // Пока я их закомментирую или поставлю заглушки, чтобы избежать ошибок.
-    const videoPreview = document.getElementById('videoPreview'); // Этот элемент есть в старом HTML
-    const progressBarContainer = document.querySelector('.progress-bar-container'); // Этого нет в старом HTML
-    const progressBar = document.getElementById('progressBar'); // Этого нет в старом HTML
-    const progressText = document.getElementById('progressText'); // Этого нет в старом HTML
+    // Удален videoPreview, так как он не должен отображаться
+    // const videoPreview = document.getElementById('videoPreview'); // Эту строку убираем
+    const progressBarContainer = document.querySelector('.progress-bar-container');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
 
 
     const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com';
@@ -55,7 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Предыдущая загрузка отменена.');
     }
 
-    // Кнопка изначально неактивна
     selectFilesButton.disabled = true;
 
     instagramInput.addEventListener('input', () => {
@@ -94,41 +90,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 generalStatusMessage.textContent = `Видео слишком большое. Максимум ${MAX_VIDEO_SIZE_MB} MB.`;
                 generalStatusMessage.style.color = 'var(--status-error-color)';
                 videoInput.value = ''; // Сброс выбранного файла
-                if (videoPreview) videoPreview.style.display = 'none';
                 validateInputs(); // Обновить состояние кнопки
                 return;
             }
 
-            if (videoPreview) {
-                const url = URL.createObjectURL(file);
-                videoPreview.src = url;
-                videoPreview.style.display = 'block';
-                videoPreview.onloadedmetadata = () => {
-                    URL.revokeObjectURL(url);
-                    // Валидация длительности
-                    if (videoPreview.duration > MAX_VIDEO_DURATION_SECONDS) {
-                        generalStatusMessage.textContent = `Видео слишком длинное. Максимум ${MAX_VIDEO_DURATION_SECONDS / 60} минут.`;
-                        generalStatusMessage.style.color = 'var(--status-error-color)';
-                        videoInput.value = ''; // Сброс выбранного файла
-                        videoPreview.style.display = 'none';
-                        validateInputs(); // Обновить состояние кнопки
-                        return;
-                    } else {
-                        // Если длительность ОК, и поля заполнены, кнопка активна для начала загрузки
-                        validateInputs();
-                        // Здесь можно сразу начать загрузку, если это желаемое поведение после выбора файла.
-                        // uploadVideo(file, instagramInput.value.trim(), emailInput.value.trim(), linkedinInput.value.trim());
-                    }
-                };
-            } else {
-                // Если videoPreview не существует, но файл выбран и размер ОК, просто активируем кнопку
+            // Использование временного элемента <video> для получения метаданных
+            const tempVideoElement = document.createElement('video');
+            tempVideoElement.preload = 'metadata'; // Загружаем только метаданные
+
+            tempVideoElement.onloadedmetadata = () => {
+                const videoDuration = tempVideoElement.duration;
+                // Отзыв URL с небольшой задержкой, чтобы дать браузеру время
+                setTimeout(() => {
+                    URL.revokeObjectURL(tempVideoElement.src);
+                }, 100);
+
+                if (isNaN(videoDuration) || videoDuration > MAX_VIDEO_DURATION_SECONDS) {
+                    generalStatusMessage.textContent = `Видео слишком длинное. Максимум ${MAX_VIDEO_DURATION_SECONDS / 60} минут.`;
+                    generalStatusMessage.style.color = 'var(--status-error-color)';
+                    videoInput.value = ''; // Сброс выбранного файла
+                    validateInputs(); // Обновить состояние кнопки
+                    return;
+                } else {
+                    validateInputs();
+                }
+            };
+            tempVideoElement.onerror = () => {
+                // В случае ошибки загрузки метаданных, также отзываем URL
+                setTimeout(() => {
+                    URL.revokeObjectURL(tempVideoElement.src);
+                }, 100);
+
+                generalStatusMessage.textContent = 'Не удалось загрузить метаданные видео. Возможно, файл поврежден или не является видео.';
+                generalStatusMessage.style.color = 'var(--status-error-color)';
+                videoInput.value = '';
                 validateInputs();
-            }
+            };
+            tempVideoElement.src = URL.createObjectURL(file); // Загружаем метаданные файла
+
         } else { // Если пользователь отменил выбор файла или убрал его
-            if (videoPreview) {
-                videoPreview.style.display = 'none';
-                videoPreview.src = '';
-            }
             validateInputs(); // Перепроверяем состояние кнопки
         }
     });
@@ -162,18 +162,11 @@ document.addEventListener('DOMContentLoaded', () => {
             generalStatusMessage.textContent = `Видео слишком большое. Максимум ${MAX_VIDEO_SIZE_MB} MB.`;
             generalStatusMessage.style.color = 'var(--status-error-color)';
             videoInput.value = '';
-            if (videoPreview) videoPreview.style.display = 'none';
             validateInputs();
             return;
         }
-        if (videoPreview && videoPreview.duration && videoPreview.duration > MAX_VIDEO_DURATION_SECONDS) {
-            generalStatusMessage.textContent = `Видео слишком длинное. Максимум ${MAX_VIDEO_DURATION_SECONDS / 60} минут.`;
-            generalStatusMessage.style.color = 'var(--status-error-color)';
-            videoInput.value = '';
-            videoPreview.style.display = 'none';
-            validateInputs();
-            return;
-        }
+        // Удалены проверки с videoPreview.duration, так как tempVideoElement асинхронный
+        // и сброс fileInput.value уже произошел в обработчике 'change' при невалидной длительности.
 
         // Если все проверки пройдены, начинаем загрузку
         uploadVideo(file, username, email, linkedin);
@@ -216,11 +209,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentUploadXhr.onload = function() {
             selectFilesButton.disabled = false; // Активируем кнопку после завершения загрузки
-            videoInput.value = '';
-            if (videoPreview) {
-                videoPreview.style.display = 'none';
-                videoPreview.src = '';
-            }
+            videoInput.value = ''; // Очищаем поле выбора файла
+            // Удалены строки, связанные с videoPreview
+            // if (videoPreview) {
+            //     videoPreview.style.display = 'none';
+            //     videoPreview.src = '';
+            // }
 
             if (currentUploadXhr.status >= 200 && currentUploadXhr.status < 300) {
                 const response = JSON.parse(currentUploadXhr.responseText);
@@ -278,35 +272,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Функция валидации, которая управляет состоянием кнопки
     function validateInputs() {
-        // Проверяем, заполнено ли хотя бы одно из трех полей
         const anyFieldFilled = instagramInput.value.trim() !== '' ||
                                emailInput.value.trim() !== '' ||
                                linkedinInput.value.trim() !== '';
 
         const fileSelected = videoInput.files.length > 0;
-        let fileIsValid = true; // Предполагаем, что файл валиден, пока не доказано обратное
+        let fileIsValid = true;
 
         if (fileSelected) {
             const file = videoInput.files[0];
-            // Проверяем размер файла
             if (file.size > MAX_VIDEO_SIZE_BYTES) {
                 fileIsValid = false;
             }
-            // Проверяем длительность, если videoPreview существует и метаданные загружены
-            if (videoPreview && videoPreview.duration && videoPreview.duration > MAX_VIDEO_DURATION_SECONDS) {
-                fileIsValid = false;
-            }
+            // Здесь больше нет прямой проверки videoPreview.duration
+            // Мы полагаемся на асинхронную проверку в 'change' событии.
         }
 
-        // Кнопка активна, если:
-        // 1. Заполнено хотя бы одно из полей (Instagram, Email, LinkedIn)
-        // И
-        // 2. Либо файл еще не выбран (тогда клик по кнопке откроет диалог выбора),
-        //    либо выбранный файл валиден (тогда клик по кнопке начнет загрузку).
         selectFilesButton.disabled = !(anyFieldFilled && (!fileSelected || fileIsValid));
 
-        // Если кнопка активирована, и при этом на экране есть сообщение об ошибке, не связанное с файлом,
-        // то очищаем его. Сообщения о "слишком большом/длинном" файле остаются.
         if (!selectFilesButton.disabled && generalStatusMessage.style.color === 'var(--status-error-color)' &&
             !generalStatusMessage.textContent.includes('слишком')) {
             generalStatusMessage.textContent = '';
@@ -336,11 +319,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function resetProgressBar() {
-        if (progressBarContainer) progressBarContainer.style.display = 'none'; // Скрываем контейнер
+        if (progressBarContainer) progressBarContainer.style.display = 'none';
         if (progressBar) progressBar.style.width = '0%';
         if (progressText) progressText.textContent = '0%';
     }
 
-    // Инициализируем состояние кнопки при загрузке страницы
     validateInputs();
 });
