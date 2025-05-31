@@ -1,17 +1,12 @@
-// In the very beginning of your script/upload_validation.js file,
-// BEFORE document.addEventListener('DOMContentLoaded', ...)
+// В самом начале вашего script/upload_validation.js файла,
+// ДО document.addEventListener('DOMContentLoaded', ...)
 
-// Check if there are already uploaded videos and a username (i.e., the user has already completed the initial upload)
-// Get existing user data for redirection logic
-// (These variables are ONLY used for the following check for results.html)
+// Проверка на существующие видео и пользователя для перенаправления
 const existingUploadedVideos = localStorage.getItem('uploadedVideos');
 const existingUsername = localStorage.getItem('hifeUsername');
 const existingEmail = localStorage.getItem('hifeEmail');
 
-// A new user will land on upload.html and can enter their data.
-
-// If user data AND uploaded videos exist, redirect to results.html
-// This check should come after checking for a full reset/missing data.
+// Если данные пользователя И загруженные видео существуют, перенаправляем на results.html
 if ((existingUsername || existingEmail) && existingUploadedVideos && JSON.parse(existingUploadedVideos).length > 0) {
     window.location.replace('results.html');
 }
@@ -20,98 +15,157 @@ document.addEventListener('DOMContentLoaded', () => {
     const instagramInput = document.getElementById('instagramInput');
     const emailInput = document.getElementById('emailInput');
     const videoInput = document.getElementById('videoFileInput');
-    const startUploadButton = document.getElementById('selectFilesButton');
+    const selectFilesButton = document.getElementById('selectFilesButton'); // Это ваша кнопка "Upload Video(s)"
     const finishUploadButton = document.getElementById('finishUploadButton');
     const generalStatusMessage = document.getElementById('generalStatusMessage');
     const uploadedVideosList = document.getElementById('uploadedVideosList');
-    
-    // Get the progress bar container and its children
+
+    const videoPreview = document.getElementById('videoPreview');
     const progressBarContainer = document.querySelector('.progress-bar-container');
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
-    
-    const videoPreview = document.getElementById('videoPreview');
 
     const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com';
+    // --- НОВЫЕ КОНСТАНТЫ ДЛЯ ЛИМИТОВ ВИДЕО ---
+    const MAX_VIDEO_SIZE_MB = 100; // Максимальный размер видео в мегабайтах
+    const MAX_VIDEO_DURATION_SECONDS = 60; // Максимальная длительность видео в секундах (10 минут = 600 сек)
+    const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024; // Конвертация в байты
+    // --- КОНЕЦ НОВЫХ КОНСТАНТ ---
 
-    let currentUploadXhr = null; // For cancelling the current upload
 
-    // Load saved data from localStorage on start
+    let currentUploadXhr = null; // Для отмены текущей загрузки
+
+    // Загружаем сохраненные данные из localStorage при запуске
     let uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]');
     let hifeUsername = localStorage.getItem('hifeUsername') || '';
     let hifeEmail = localStorage.getItem('hifeEmail') || '';
 
-    // Set input field values if they exist in localStorage
+    // Устанавливаем значения полей ввода, если они есть в localStorage
     instagramInput.value = hifeUsername;
     emailInput.value = hifeEmail;
 
-    // Update the list of uploaded videos on start
+    // Обновляем список загруженных видео при запуске
     updateUploadedVideosList();
     checkFinishButtonStatus();
 
-    // Cancel previous upload if it was active
+    // Отменяем предыдущую загрузку, если она была активна
     if (currentUploadXhr) {
         currentUploadXhr.abort();
-        console.log('Previous upload cancelled.');
+        console.log('Предыдущая загрузка отменена.');
     }
 
+    // --- Ключевое изменение: Изначально кнопка Select Files Button неактивна
+    selectFilesButton.disabled = true; // НЕАКТИВНА по умолчанию
+    // --- Конец ключевого изменения
+
+    // Обработчики ввода для Instagram и Email
     instagramInput.addEventListener('input', () => {
         const value = instagramInput.value.trim();
         localStorage.setItem('hifeUsername', value);
         hifeUsername = value;
-        validateInputs();
+        generalStatusMessage.textContent = ''; // Очищаем сообщение
+        validateInputs(); // Вызываем валидацию для активации кнопки
     });
 
     emailInput.addEventListener('input', () => {
         const value = emailInput.value.trim();
         localStorage.setItem('hifeEmail', value);
         hifeEmail = value;
-        validateInputs();
+        generalStatusMessage.textContent = ''; // Очищаем сообщение
+        validateInputs(); // Вызываем валидацию для активации кнопки
     });
 
+    // Обработчик выбора файла
     videoInput.addEventListener('change', () => {
-        validateInputs();
-        if (videoInput.files.length > 0) {
-            const file = videoInput.files[0];
+        generalStatusMessage.textContent = ''; // Очищаем сообщение при выборе файла
+        const file = videoInput.files[0];
+        if (file) {
             if (videoPreview) {
                 const url = URL.createObjectURL(file);
                 videoPreview.src = url;
                 videoPreview.style.display = 'block';
                 videoPreview.onloadedmetadata = () => {
-                    URL.revokeObjectURL(url); // Clean up the URL object after metadata is loaded
+                    URL.revokeObjectURL(url); // Очищаем URL-объект
+                    // --- Валидация длительности после загрузки метаданных ---
+                    if (videoPreview.duration > MAX_VIDEO_DURATION_SECONDS) {
+                        generalStatusMessage.textContent = `Видео слишком длинное. Максимум ${MAX_VIDEO_DURATION_SECONDS / 60} минут.`;
+                        generalStatusMessage.style.color = 'var(--status-error-color)';
+                        selectFilesButton.disabled = true; // Отключаем кнопку, если видео слишком длинное
+                        videoInput.value = ''; // Сброс выбранного файла
+                        videoPreview.style.display = 'none'; // Скрыть превью
+                        return;
+                    } else {
+                        // Если длительность ОК, убедимся, что кнопка активна (если данные пользователя введены)
+                        validateInputs();
+                    }
                 };
+            }
+            // --- Валидация размера файла сразу после выбора (до onloadedmetadata) ---
+            if (file.size > MAX_VIDEO_SIZE_BYTES) {
+                generalStatusMessage.textContent = `Видео слишком большое. Максимум ${MAX_VIDEO_SIZE_MB} MB.`;
+                generalStatusMessage.style.color = 'var(--status-error-color)';
+                selectFilesButton.disabled = true; // Отключаем кнопку, если видео слишком большое
+                videoInput.value = ''; // Сброс выбранного файла
+                if (videoPreview) videoPreview.style.display = 'none'; // Скрыть превью
+                return;
             }
         } else {
             if (videoPreview) {
                 videoPreview.style.display = 'none';
                 videoPreview.src = '';
             }
+            validateInputs(); // Валидируем состояние кнопки, если файл был убран
         }
     });
 
-    startUploadButton.addEventListener('click', async () => {
+    // Обработчик нажатия на кнопку "Upload Video(s)"
+    selectFilesButton.addEventListener('click', async () => {
         const file = videoInput.files[0];
         const username = instagramInput.value.trim();
         const email = emailInput.value.trim();
 
-        if (!file) {
-            generalStatusMessage.textContent = 'Please select a video file.';
-            generalStatusMessage.style.color = 'var(--status-error-color)'; // Using CSS variable for consistency
-            return;
-        }
-
+        // Повторная, более строгая валидация перед началом загрузки на сервер
+        // (на случай, если пользователь изменил данные после выбора файла)
         if (!username && !email) {
-            generalStatusMessage.textContent = 'Please enter an Instagram ID or Email.';
-            generalStatusMessage.style.color = 'var(--status-error-color)'; // Using CSS variable for consistency
+            generalStatusMessage.textContent = 'Пожалуйста, введите Instagram ID или Email.';
+            generalStatusMessage.style.color = 'var(--status-error-color)';
             return;
         }
 
-        // Deactivate upload button
-        startUploadButton.disabled = true;
-        generalStatusMessage.textContent = 'Uploading...';
+        if (!file) {
+            generalStatusMessage.textContent = 'Пожалуйста, выберите видеофайл для загрузки.';
+            generalStatusMessage.style.color = 'var(--status-error-color)';
+            return;
+        }
+
+        // --- Дополнительная проверка лимитов непосредственно перед загрузкой ---
+        // (Это важно, т.к. onloadedmetadata может быть асинхронным)
+        if (file.size > MAX_VIDEO_SIZE_BYTES) {
+            generalStatusMessage.textContent = `Видео слишком большое. Максимум ${MAX_VIDEO_SIZE_MB} MB.`;
+            generalStatusMessage.style.color = 'var(--status-error-color)';
+            videoInput.value = ''; // Сброс выбранного файла
+            if (videoPreview) videoPreview.style.display = 'none'; // Скрыть превью
+            validateInputs(); // Перепроверяем состояние кнопки
+            return;
+        }
+        // Для длительности, надежнее всего положиться на onloadedmetadata,
+        // но можно добавить запасную проверку если videoPreview.duration уже доступен
+        if (videoPreview.duration && videoPreview.duration > MAX_VIDEO_DURATION_SECONDS) {
+            generalStatusMessage.textContent = `Видео слишком длинное. Максимум ${MAX_VIDEO_DURATION_SECONDS / 60} минут.`;
+            generalStatusMessage.style.color = 'var(--status-error-color)';
+            videoInput.value = ''; // Сброс выбранного файла
+            videoPreview.style.display = 'none'; // Скрыть превью
+            validateInputs(); // Перепроверяем состояние кнопки
+            return;
+        }
+        // --- Конец дополнительной проверки лимитов ---
+
+
+        // Если все условия пройдены, тогда отключаем кнопку и начинаем загрузку
+        selectFilesButton.disabled = true; // Отключаем кнопку на время загрузки
+        generalStatusMessage.textContent = 'Загрузка...';
         generalStatusMessage.style.color = 'var(--status-info-color)';
-        
-        // Show progress bar if elements exist
+
         if (progressBarContainer) progressBarContainer.style.display = 'flex';
         if (progressBar) progressBar.style.width = '0%';
         if (progressText) progressText.textContent = '0%';
@@ -134,14 +188,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const percent = (event.loaded / event.total) * 100;
                 if (progressBar) progressBar.style.width = `${percent.toFixed(0)}%`;
                 if (progressText) progressText.textContent = `${percent.toFixed(0)}%`;
-                generalStatusMessage.textContent = `Uploading: ${file.name} (${percent.toFixed(0)}%)`;
+                generalStatusMessage.textContent = `Загрузка: ${file.name} (${percent.toFixed(0)}%)`;
                 generalStatusMessage.style.color = 'var(--status-info-color)';
             }
         });
 
         currentUploadXhr.onload = function() {
-            startUploadButton.disabled = false; // Activate button after completion
-            videoInput.value = ''; // Clear file input
+            selectFilesButton.disabled = false; // Активируем кнопку после завершения загрузки
+            videoInput.value = ''; // Очищаем поле выбора файла
             if (videoPreview) {
                 videoPreview.style.display = 'none';
                 videoPreview.src = '';
@@ -151,25 +205,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = JSON.parse(currentUploadXhr.responseText);
                 const taskId = response.taskId;
 
-                generalStatusMessage.textContent = `Video "${file.name}" uploaded. Task ID: ${taskId}.`;
+                generalStatusMessage.textContent = `Видео "${file.name}" загружено. ID задачи: ${taskId}.`;
                 generalStatusMessage.style.color = 'var(--status-completed-color)';
 
-                // Save information about the uploaded video
+                // Сохраняем информацию о загруженном видео
                 const newVideoEntry = {
                     id: taskId,
-                    original_filename: file.name, // Save file name
-                    status: 'pending', // Initial status
+                    original_filename: file.name,
+                    status: 'pending',
                     timestamp: new Date().toISOString()
-                    // metadata and cloudinary_url will be added later upon status update
                 };
                 uploadedVideos.push(newVideoEntry);
                 localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
 
                 updateUploadedVideosList();
                 checkFinishButtonStatus();
-                resetProgressBar(); // Reset progress bar
+                resetProgressBar();
 
-                // Optionally: hide status container after a few seconds
                 setTimeout(() => {
                     if (progressBarContainer) progressBarContainer.style.display = 'none';
                     generalStatusMessage.textContent = '';
@@ -177,18 +229,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } else {
                 const error = JSON.parse(currentUploadXhr.responseText);
-                generalStatusMessage.textContent = `Upload error "${file.name}": ${error.error || 'Unknown error'}`;
+                generalStatusMessage.textContent = `Ошибка загрузки "${file.name}": ${error.error || 'Неизвестная ошибка'}`;
                 generalStatusMessage.style.color = 'var(--status-error-color)';
-                resetProgressBar(); // Reset progress bar
-                // Keep error message visible
+                resetProgressBar();
+                validateInputs(); // Проверяем состояние кнопки после ошибки
             }
         };
 
         currentUploadXhr.onerror = function() {
-            startUploadButton.disabled = false; // Activate button after error
-            generalStatusMessage.textContent = 'Network error during video upload.';
+            selectFilesButton.disabled = false; // Активируем кнопку после ошибки
+            generalStatusMessage.textContent = 'Ошибка сети во время загрузки видео.';
             generalStatusMessage.style.color = 'var(--status-error-color)';
-            resetProgressBar(); // Reset progress bar
+            resetProgressBar();
+            validateInputs(); // Проверяем состояние кнопки после ошибки
         };
 
         currentUploadXhr.send(formData);
@@ -196,54 +249,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // "Finish" button handler
     finishUploadButton.addEventListener('click', () => {
-        if (localStorage.getItem('uploadedVideos') && JSON.parse(localStorage.getItem('uploadedVideos')).length > 0) { // Check if something is in localStorage
-            // Redirect to results page (results.html)
-            // Use replace() instead of href to prevent going back to upload.html
+        if (localStorage.getItem('uploadedVideos') && JSON.parse(localStorage.getItem('uploadedVideos')).length > 0) {
             window.location.replace('results.html');
         } else {
-            generalStatusMessage.textContent = "No videos uploaded to display results.";
-            generalStatusMessage.style.color = 'var(--status-pending-color)'; // Orange for warning
+            generalStatusMessage.textContent = "Видео не загружено для отображения результатов.";
+            generalStatusMessage.style.color = 'var(--status-pending-color)';
         }
     });
 
+    // --- ОБНОВЛЕННАЯ ФУНКЦИЯ ВАЛИДАЦИИ КНОПКИ ---
     function validateInputs() {
-        const usernameValid = instagramInput.value.trim() !== '';
-        const emailValid = emailInput.value.trim() !== '';
-        const fileSelected = videoInput.files.length > 0;
-
-        // "Start Upload" button is active if a video is selected AND (username OR email exists)
-        startUploadButton.disabled = !fileSelected || (!usernameValid && !emailValid);
+        const usernameOrEmailFilled = instagramInput.value.trim() !== '' || emailInput.value.trim() !== '';
+        // Кнопка активна, если заполнено Instagram ИЛИ Email, ИЛИ если уже выбран файл (для случая, если файл был выбран до заполнения полей)
+        // Но по вашей логике, она должна активироваться только по заполнению полей.
+        // Поэтому:
+        selectFilesButton.disabled = !usernameOrEmailFilled;
     }
+    // --- КОНЕЦ ОБНОВЛЕННОЙ ФУНКЦИИ ВАЛИДАЦИИ КНОПКИ ---
 
     function updateUploadedVideosList() {
-        uploadedVideosList.innerHTML = ''; // Clear current list
+        uploadedVideosList.innerHTML = '';
         if (uploadedVideos.length === 0) {
-            uploadedVideosList.innerHTML = '<p>No videos uploaded yet.</p>';
+            uploadedVideosList.innerHTML = '<p>Пока нет загруженных видео.</p>';
         } else {
             uploadedVideos.forEach(video => {
                 const li = document.createElement('li');
-                li.textContent = `${video.original_filename} (ID: ${video.id}) - Status: ${video.status}`;
+                li.textContent = `${video.original_filename} (ID: ${video.id}) - Статус: ${video.status}`;
                 uploadedVideosList.appendChild(li);
             });
         }
     }
 
     function checkFinishButtonStatus() {
-        // "Finish" button is active if there is at least one uploaded video
-        // If no videos are uploaded, hide it, otherwise show it
         if (uploadedVideos.length === 0) {
             finishUploadButton.style.display = 'none';
         } else {
-            finishUploadButton.style.display = 'block'; // Or 'inline-block' depending on styles
+            finishUploadButton.style.display = 'block';
         }
     }
 
     function resetProgressBar() {
         if (progressBar) progressBar.style.width = '0%';
         if (progressText) progressText.textContent = '0%';
-        if (progressBarContainer) progressBarContainer.style.display = 'none'; // Hide progress container
     }
 
-    // Initialize on page load
+    // Инициализируем состояние кнопки при загрузке страницы
     validateInputs();
 });
