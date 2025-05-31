@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Константы ---
     const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // Ваш реальный URL бэкенда Render
     const MAX_VIDEO_SIZE_MB = 100; // Максимальный размер видео в мегабайтах
-    const MAX_VIDEO_DURATION_SECONDS = 600; // Максимальная длительность видео в секундах (10 минут)
+    const MAX_VIDEO_DURATION_SECONDS = 60; // Максимальная длительность видео в секундах (10 минут)
     const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024; // Конвертация в байты
 
     // --- Элементы DOM ---
