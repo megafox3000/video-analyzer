@@ -1,278 +1,249 @@
+// In the very beginning of your script/upload_validation.js file,
+// BEFORE document.addEventListener('DOMContentLoaded', ...)
+
+// Check if there are already uploaded videos and a username (i.e., the user has already completed the initial upload)
+// Get existing user data for redirection logic
+// (These variables are ONLY used for the following check for results.html)
+const existingUploadedVideos = localStorage.getItem('uploadedVideos');
+const existingUsername = localStorage.getItem('hifeUsername');
+const existingEmail = localStorage.getItem('hifeEmail');
+
+// A new user will land on upload.html and can enter their data.
+
+// If user data AND uploaded videos exist, redirect to results.html
+// This check should come after checking for a full reset/missing data.
+if ((existingUsername || existingEmail) && existingUploadedVideos && JSON.parse(existingUploadedVideos).length > 0) {
+    window.location.replace('results.html');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Константы ---
-    const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // Ваш реальный URL бэкенда Render
-    const MAX_VIDEO_SIZE_MB = 100; // Максимальный размер видео в мегабайтах
-    const MAX_VIDEO_DURATION_SECONDS = 60; // Максимальная длительность видео в секундах (10 минут)
-    const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024; // Конвертация в байты
-
-    // --- Элементы DOM ---
-    const instagramUsernameInput = document.getElementById('instagramUsername');
-    const linkedinProfileInput = document.getElementById('linkedinProfile'); // Добавлено поле LinkedIn
-    const userEmailInput = document.getElementById('userEmail');
-    const selectFilesButton = document.getElementById('selectFilesButton');
-    const uploadButton = document.getElementById('uploadButton');
-    const resultsButton = document.getElementById('resultsButton');
-    const uploadStatusText = document.getElementById('uploadStatusText');
+    const instagramInput = document.getElementById('instagramInput');
+    const emailInput = document.getElementById('emailInput');
+    const videoInput = document.getElementById('videoFileInput');
+    const startUploadButton = document.getElementById('selectFilesButton');
+    const finishUploadButton = document.getElementById('finishUploadButton');
+    const generalStatusMessage = document.getElementById('generalStatusMessage');
+    const uploadedVideosList = document.getElementById('uploadedVideosList');
+    
+    // Get the progress bar container and its children
     const progressBarContainer = document.querySelector('.progress-bar-container');
-    const progressBar = document.querySelector('.progress-bar');
-    const progressText = document.querySelector('.progress-text');
-    const videoInfoContainer = document.getElementById('videoInfoContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    
+    const videoPreview = document.getElementById('videoPreview');
 
-    let selectedFile = null; // Переменная для хранения выбранного файла
+    const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com';
 
-    // --- Инициализация состояния UI ---
-    uploadButton.disabled = true; // Кнопка "Upload" изначально неактивна
-    resultsButton.style.display = 'none'; // Кнопка "View Results" изначально скрыта
-    progressBarContainer.style.display = 'none'; // Прогресс-бар скрыт
+    let currentUploadXhr = null; // For cancelling the current upload
 
-    // Загружаем данные из localStorage при загрузке страницы
-    instagramUsernameInput.value = localStorage.getItem('hifeUsername') || '';
-    linkedinProfileInput.value = localStorage.getItem('hifeLinkedin') || ''; // Загружаем LinkedIn
-    userEmailInput.value = localStorage.getItem('hifeEmail') || '';
+    // Load saved data from localStorage on start
+    let uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]');
+    let hifeUsername = localStorage.getItem('hifeUsername') || '';
+    let hifeEmail = localStorage.getItem('hifeEmail') || '';
 
-    // Если есть данные пользователя, активируем кнопку "View Results"
-    if (instagramUsernameInput.value || linkedinProfileInput.value || userEmailInput.value) { // Обновлено условие
-        resultsButton.style.display = 'inline-block';
+    // Set input field values if they exist in localStorage
+    instagramInput.value = hifeUsername;
+    emailInput.value = hifeEmail;
+
+    // Update the list of uploaded videos on start
+    updateUploadedVideosList();
+    checkFinishButtonStatus();
+
+    // Cancel previous upload if it was active
+    if (currentUploadXhr) {
+        currentUploadXhr.abort();
+        console.log('Previous upload cancelled.');
     }
 
-    // --- Обработчик выбора файла ---
-    selectFilesButton.addEventListener('click', () => {
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = 'video/*'; // Принимаем только видеофайлы
-        fileInput.onchange = (event) => {
-            selectedFile = event.target.files[0];
-            if (selectedFile) {
-                validateFile(selectedFile);
-            } else {
-                displayStatus('Please select a video file.', 'info');
-                uploadButton.disabled = true;
-                hideProgressBar();
-                clearVideoInfo();
-            }
-        };
-        fileInput.click();
+    instagramInput.addEventListener('input', () => {
+        const value = instagramInput.value.trim();
+        localStorage.setItem('hifeUsername', value);
+        hifeUsername = value;
+        validateInputs();
     });
 
-    // --- Валидация файла ---
-    async function validateFile(file) {
-        clearValidationErrors();
-        clearVideoInfo(); // Очищаем старую информацию о видео
-        
-        const errors = [];
-        const warnings = [];
+    emailInput.addEventListener('input', () => {
+        const value = emailInput.value.trim();
+        localStorage.setItem('hifeEmail', value);
+        hifeEmail = value;
+        validateInputs();
+    });
 
-        // 1. Проверка типа файла
-        if (!file.type.startsWith('video/')) {
-            errors.push('Invalid file type. Please select a video file.');
-        }
-
-        // 2. Проверка размера файла
-        if (file.size > MAX_VIDEO_SIZE_BYTES) {
-            errors.push(`File size exceeds the limit of ${MAX_VIDEO_SIZE_MB}MB.`);
-        }
-
-        // 3. Проверка длительности видео (асинхронно)
-        const video = document.createElement('video');
-        video.preload = 'metadata';
-        video.onloadedmetadata = function() {
-            window.URL.revokeObjectURL(video.src); // Освобождаем URL
-            if (video.duration === Infinity || isNaN(video.duration)) {
-                warnings.push('Could not determine video duration. The file might be corrupted or in an unsupported format. Attempting upload anyway.');
-            } else if (video.duration > MAX_VIDEO_DURATION_SECONDS) {
-                errors.push(`Video duration exceeds the limit of ${MAX_VIDEO_DURATION_SECONDS / 60} minutes.`);
+    videoInput.addEventListener('change', () => {
+        validateInputs();
+        if (videoInput.files.length > 0) {
+            const file = videoInput.files[0];
+            if (videoPreview) {
+                const url = URL.createObjectURL(file);
+                videoPreview.src = url;
+                videoPreview.style.display = 'block';
+                videoPreview.onloadedmetadata = () => {
+                    URL.revokeObjectURL(url); // Clean up the URL object after metadata is loaded
+                };
             }
-
-            processValidationResults(file, errors, warnings);
-        };
-        video.onerror = function() {
-            errors.push('Failed to load video metadata. The file might be corrupted or in an unsupported format.');
-            processValidationResults(file, errors, warnings);
-        };
-        video.src = URL.createObjectURL(file);
-
-        // Отображаем начальную информацию о видео
-        displayVideoInfo('Filename', file.name);
-        displayVideoInfo('Size', `${(file.size / (1024 * 1024)).toFixed(2)} MB`);
-        displayVideoInfo('Type', file.type);
-    }
-
-    function processValidationResults(file, errors, warnings) {
-        if (errors.length > 0) {
-            errors.forEach(err => displayStatus(err, 'error'));
-            uploadButton.disabled = true;
-            hideProgressBar();
-            selectedFile = null;
         } else {
-            warnings.forEach(warn => displayStatus(warn, 'info'));
-            displayStatus(`File selected: ${file.name}. Ready to upload.`, 'info');
-            uploadButton.disabled = false;
-            showProgressBar();
+            if (videoPreview) {
+                videoPreview.style.display = 'none';
+                videoPreview.src = '';
+            }
         }
-    }
+    });
 
-    function displayVideoInfo(label, value) {
-        videoInfoContainer.style.display = 'flex';
-        const infoItem = document.createElement('div');
-        infoItem.className = 'video-info-item';
-        infoItem.innerHTML = `<strong>${label}:</strong> <span>${value}</span>`;
-        videoInfoContainer.appendChild(infoItem);
-    }
+    startUploadButton.addEventListener('click', async () => {
+        const file = videoInput.files[0];
+        const username = instagramInput.value.trim();
+        const email = emailInput.value.trim();
 
-    function clearVideoInfo() {
-        videoInfoContainer.innerHTML = '';
-        videoInfoContainer.style.display = 'none';
-    }
-
-    function clearValidationErrors() {
-        instagramUsernameInput.style.borderColor = '';
-        linkedinProfileInput.style.borderColor = ''; // Сброс красной рамки для LinkedIn
-        userEmailInput.style.borderColor = '';
-    }
-
-    // --- Обработчик отправки формы (загрузка видео) ---
-    uploadButton.addEventListener('click', async (event) => {
-        event.preventDefault();
-
-        if (!selectedFile) {
-            displayStatus('Please select a video file first.', 'error');
+        if (!file) {
+            generalStatusMessage.textContent = 'Please select a video file.';
+            generalStatusMessage.style.color = 'var(--status-error-color)'; // Using CSS variable for consistency
             return;
         }
 
-        const instagramUsername = instagramUsernameInput.value.trim();
-        const linkedinProfile = linkedinProfileInput.value.trim(); // Получаем значение LinkedIn
-        const userEmail = userEmailInput.value.trim();
-
-        if (!instagramUsername && !linkedinProfile && !userEmail) { // Обновлено условие
-            displayStatus('Please enter at least one of: Instagram username, LinkedIn profile, or Email.', 'error');
-            instagramUsernameInput.style.borderColor = 'red';
-            linkedinProfileInput.style.borderColor = 'red'; // Выделяем LinkedIn
-            userEmailInput.style.borderColor = 'red';
+        if (!username && !email) {
+            generalStatusMessage.textContent = 'Please enter an Instagram ID or Email.';
+            generalStatusMessage.style.color = 'var(--status-error-color)'; // Using CSS variable for consistency
             return;
         }
 
-        // Сохраняем username, LinkedIn и email в localStorage
-        localStorage.setItem('hifeUsername', instagramUsername);
-        localStorage.setItem('hifeLinkedin', linkedinProfile); // Сохраняем LinkedIn
-        localStorage.setItem('hifeEmail', userEmail);
+        // Deactivate upload button
+        startUploadButton.disabled = true;
+        generalStatusMessage.textContent = 'Uploading...';
+        generalStatusMessage.style.color = 'var(--status-info-color)';
+        
+        // Show progress bar if elements exist
+        if (progressBarContainer) progressBarContainer.style.display = 'flex';
+        if (progressBar) progressBar.style.width = '0%';
+        if (progressText) progressText.textContent = '0%';
+
 
         const formData = new FormData();
-        formData.append('video', selectedFile);
-        if (instagramUsername) {
-            formData.append('instagram_username', instagramUsername);
+        formData.append('video', file);
+        if (username) {
+            formData.append('instagram_username', username);
         }
-        if (linkedinProfile) {
-            formData.append('linkedin_profile', linkedinProfile); // Отправляем LinkedIn на бэкенд
-        }
-        if (userEmail) {
-            formData.append('email', userEmail);
+        if (email) {
+            formData.append('email', email);
         }
 
-        // Обновляем UI для начала загрузки
-        displayStatus('Starting upload...', 'info');
-        showProgressBar();
-        progressBar.style.width = '0%';
-        progressText.textContent = '0%';
-        uploadButton.disabled = true;
-        selectFilesButton.disabled = true;
-        instagramUsernameInput.disabled = true;
-        linkedinProfileInput.disabled = true; // Деактивируем LinkedIn
-        userEmailInput.disabled = true;
-        resultsButton.style.display = 'none';
+        currentUploadXhr = new XMLHttpRequest();
+        currentUploadXhr.open('POST', `${RENDER_BACKEND_URL}/upload_video`, true);
 
-        try {
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', `${RENDER_BACKEND_URL}/upload_video`, true);
+        currentUploadXhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+                const percent = (event.loaded / event.total) * 100;
+                if (progressBar) progressBar.style.width = `${percent.toFixed(0)}%`;
+                if (progressText) progressText.textContent = `${percent.toFixed(0)}%`;
+                generalStatusMessage.textContent = `Uploading: ${file.name} (${percent.toFixed(0)}%)`;
+                generalStatusMessage.style.color = 'var(--status-info-color)';
+            }
+        });
 
-            xhr.upload.addEventListener('progress', (event) => {
-                if (event.lengthComputable) {
-                    const percent = (event.loaded / event.total) * 100;
-                    progressBar.style.width = `${percent.toFixed(0)}%`;
-                    progressText.textContent = `${percent.toFixed(0)}%`;
-                    displayStatus(`Uploading: ${percent.toFixed(0)}%`, 'info');
-                }
-            });
+        currentUploadXhr.onload = function() {
+            startUploadButton.disabled = false; // Activate button after completion
+            videoInput.value = ''; // Clear file input
+            if (videoPreview) {
+                videoPreview.style.display = 'none';
+                videoPreview.src = '';
+            }
 
-            xhr.onload = function() {
-                resetUploadUI();
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    const response = JSON.parse(xhr.responseText);
-                    const taskId = response.taskId;
-                    displayStatus(`Upload successful! Task ID: ${taskId}. Redirecting to results...`, 'completed');
-                    
-                    let uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]');
-                    uploadedVideos.push({
-                        id: taskId,
-                        original_filename: selectedFile.name,
-                        status: 'pending',
-                        timestamp: new Date().toISOString()
-                    });
-                    localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
+            if (currentUploadXhr.status >= 200 && currentUploadXhr.status < 300) {
+                const response = JSON.parse(currentUploadXhr.responseText);
+                const taskId = response.taskId;
 
-                    setTimeout(() => {
-                        window.location.href = 'results.html';
-                    }, 2000);
-                } else {
-                    const error = JSON.parse(xhr.responseText);
-                    displayStatus(`Upload failed: ${error.error || 'Unknown error'}`, 'error');
-                }
-            };
+                generalStatusMessage.textContent = `Video "${file.name}" uploaded. Task ID: ${taskId}.`;
+                generalStatusMessage.style.color = 'var(--status-completed-color)';
 
-            xhr.onerror = function() {
-                resetUploadUI();
-                displayStatus('Network error during upload.', 'error');
-            };
+                // Save information about the uploaded video
+                const newVideoEntry = {
+                    id: taskId,
+                    original_filename: file.name, // Save file name
+                    status: 'pending', // Initial status
+                    timestamp: new Date().toISOString()
+                    // metadata and cloudinary_url will be added later upon status update
+                };
+                uploadedVideos.push(newVideoEntry);
+                localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
 
-            xhr.send(formData);
+                updateUploadedVideosList();
+                checkFinishButtonStatus();
+                resetProgressBar(); // Reset progress bar
 
-        } catch (error) {
-            resetUploadUI();
-            console.error('Error sending upload request:', error);
-            displayStatus(`An error occurred: ${error.message}`, 'error');
+                // Optionally: hide status container after a few seconds
+                setTimeout(() => {
+                    if (progressBarContainer) progressBarContainer.style.display = 'none';
+                    generalStatusMessage.textContent = '';
+                }, 5000);
+
+            } else {
+                const error = JSON.parse(currentUploadXhr.responseText);
+                generalStatusMessage.textContent = `Upload error "${file.name}": ${error.error || 'Unknown error'}`;
+                generalStatusMessage.style.color = 'var(--status-error-color)';
+                resetProgressBar(); // Reset progress bar
+                // Keep error message visible
+            }
+        };
+
+        currentUploadXhr.onerror = function() {
+            startUploadButton.disabled = false; // Activate button after error
+            generalStatusMessage.textContent = 'Network error during video upload.';
+            generalStatusMessage.style.color = 'var(--status-error-color)';
+            resetProgressBar(); // Reset progress bar
+        };
+
+        currentUploadXhr.send(formData);
+    });
+
+    // "Finish" button handler
+    finishUploadButton.addEventListener('click', () => {
+        if (localStorage.getItem('uploadedVideos') && JSON.parse(localStorage.getItem('uploadedVideos')).length > 0) { // Check if something is in localStorage
+            // Redirect to results page (results.html)
+            // Use replace() instead of href to prevent going back to upload.html
+            window.location.replace('results.html');
+        } else {
+            generalStatusMessage.textContent = "No videos uploaded to display results.";
+            generalStatusMessage.style.color = 'var(--status-pending-color)'; // Orange for warning
         }
     });
 
-    // --- Вспомогательные функции UI ---
-    function displayStatus(message, type = 'info') {
-        uploadStatusText.textContent = message;
-        switch (type) {
-            case 'info':
-                uploadStatusText.style.color = 'var(--status-info-color)';
-                break;
-            case 'pending':
-                uploadStatusText.style.color = 'var(--status-pending-color)';
-                break;
-            case 'completed':
-                uploadStatusText.style.color = 'var(--status-completed-color)';
-                break;
-            case 'error':
-                uploadStatusText.style.color = 'var(--status-error-color)';
-                break;
-            default:
-                uploadStatusText.style.color = 'var(--text-color-light)';
+    function validateInputs() {
+        const usernameValid = instagramInput.value.trim() !== '';
+        const emailValid = emailInput.value.trim() !== '';
+        const fileSelected = videoInput.files.length > 0;
+
+        // "Start Upload" button is active if a video is selected AND (username OR email exists)
+        startUploadButton.disabled = !fileSelected || (!usernameValid && !emailValid);
+    }
+
+    function updateUploadedVideosList() {
+        uploadedVideosList.innerHTML = ''; // Clear current list
+        if (uploadedVideos.length === 0) {
+            uploadedVideosList.innerHTML = '<p>No videos uploaded yet.</p>';
+        } else {
+            uploadedVideos.forEach(video => {
+                const li = document.createElement('li');
+                li.textContent = `${video.original_filename} (ID: ${video.id}) - Status: ${video.status}`;
+                uploadedVideosList.appendChild(li);
+            });
         }
     }
 
-    function showProgressBar() {
-        progressBarContainer.style.display = 'flex';
-    }
-
-    function hideProgressBar() {
-        progressBarContainer.style.display = 'none';
-        progressBar.style.width = '0%';
-        progressText.textContent = '0%';
-    }
-
-    function resetUploadUI() {
-        uploadButton.disabled = true;
-        selectFilesButton.disabled = false;
-        instagramUsernameInput.disabled = false;
-        linkedinProfileInput.disabled = false; // Активируем LinkedIn
-        userEmailInput.disabled = false;
-        hideProgressBar();
-        selectedFile = null;
-        if (localStorage.getItem('hifeUsername') || localStorage.getItem('hifeLinkedin') || localStorage.getItem('hifeEmail')) { // Обновлено условие
-            resultsButton.style.display = 'inline-block';
+    function checkFinishButtonStatus() {
+        // "Finish" button is active if there is at least one uploaded video
+        // If no videos are uploaded, hide it, otherwise show it
+        if (uploadedVideos.length === 0) {
+            finishUploadButton.style.display = 'none';
+        } else {
+            finishUploadButton.style.display = 'block'; // Or 'inline-block' depending on styles
         }
     }
+
+    function resetProgressBar() {
+        if (progressBar) progressBar.style.width = '0%';
+        if (progressText) progressText.textContent = '0%';
+        if (progressBarContainer) progressBarContainer.style.display = 'none'; // Hide progress container
+    }
+
+    // Initialize on page load
+    validateInputs();
 });
