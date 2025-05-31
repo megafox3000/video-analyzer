@@ -4,7 +4,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Upload Video - Hife Video Analyzer</title>
-    <link rel="stylesheet" href="css/style.css" /> 
+    <link rel="stylesheet" href="css/style.css" />
     <link rel="icon" type="image/png" href="assets/favicon.png" />
 </head>
 <body class="fade-in">
@@ -30,8 +30,15 @@
 
         <video id="videoPreview" controls style="display: none; max-width: 100%; height: auto; margin-top: 20px;"></video>
 
+        <div class="progress-bar-container" style="display: none;">
+            <div class="progress-bar" id="progressBar"></div>
+            <div class="progress-text" id="progressText">0%</div>
+        </div>
+
         <div id="fileValidationStatusList" class="video-info-list"></div>
-        <div id="videoUploadProgressList" class="video-info-list"></div>
+
+        <div id="videoUploadProgressList" class="video-info-list">
+        </div>
 
         <div class="upload-section">
             <h2>Ваши загруженные видео</h2>
