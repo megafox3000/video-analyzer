@@ -1,64 +1,243 @@
-/* General styles */
+/* Переменные для цветов и градиентов */
 :root {
-    --primary-color: #f7f7f7; /* Light gray */
-    --secondary-color: #e0e0e0; /* Slightly darker gray */
-    --accent-color: #daa520; /* Gold */
-    --text-color: #333;
-    --background-color: #1a1a1a; /* Dark background */
-    --shadow-color: rgba(0, 0, 0, 0.5);
-    --border-radius: 8px;
+    --gold-gradient: linear-gradient(45deg, #FFD700, #FFA500);
+    --text-color-dark: #000; /* Используется для текста на золотых кнопках */
+    --text-color-light: #fff; /* Основной светлый текст */
+    --background-color-dark: #000; /* Для основного фона body */
 
-    --status-info-color: #2196F3; /* Blue */
-    --status-error-color: #f44336; /* Red */
-    --status-completed-color: #4CAF50; /* Green */
-    --status-pending-color: #FFC107; /* Amber */
+    --primary-color: #f7f7f7; /* Светло-серый, основной текст на темном фоне */
+    --secondary-color: #e0e0e0; /* Чуть темнее серого, для фона баблов */
+    --accent-color: #daa520; /* Золотой, для акцентов и границ */
+    --background-color: #1a1a1a; /* Темный фон для секций/модалов */
+    --shadow-color: rgba(0, 0, 0, 0.5); /* Общий цвет тени */
+    --border-radius: 8px; /* Общий радиус скругления */
+
+    /* Переменные для статусов (согласованы с JS) */
+    --status-info-color: #2196F3; /* Синий */
+    --status-error-color: #f44336; /* Красный */
+    --status-completed-color: #4CAF50; /* Зеленый */
+    --status-pending-color: #FFC107; /* Янтарный */
+    --status-bad-color: #dc3545; /* Красный для BAD статуса */
+    --status-ok-color: #28a745; /* Зеленый для OK статуса */
 }
 
-body {
-    font-family: 'Arial', sans-serif;
+/* Общие сбросы и базовые стили */
+* {
+    box-sizing: border-box;
+}
+
+html, body {
     margin: 0;
     padding: 0;
-    background-color: var(--background-color);
-    color: var(--primary-color);
+    font-family: 'Arial', sans-serif; /* Изменен шрифт на Arial */
+    background: var(--background-color-dark); /* Основной фон страницы */
+    color: var(--primary-color); /* Основной цвет текста на страницах */
     line-height: 1.6;
-    overflow-x: hidden; /* Prevent horizontal scroll on smaller screens */
-    display: flex;
-    justify-content: center;
-    align-items: flex-start; /* Align content to the top */
+    scroll-behavior: smooth;
+    overflow-x: hidden; /* Предотвращает горизонтальную прокрутку */
     min-height: 100vh;
 }
 
-/* Fade-in animation for body */
+/* Анимация появления страницы */
 body.fade-in {
-    animation: fadeIn 1s ease-out forwards;
+    animation: fadeIn 1s ease-out forwards; /* Уменьшена длительность анимации */
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    0% { opacity: 0; }
+    100% { opacity: 1; }
 }
 
+/* Стили для стартового экрана (index.html) */
+.start-screen {
+    height: 100dvh;
+    background: url('../assets/image-bkgr.jpeg') center/cover no-repeat; /* ФОНОВОЕ ИЗОБРАЖЕНИЕ */
+    background-size: cover;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 1rem;
+    position: relative;
+    text-align: center;
+    justify-content: center; /* Центрирование по вертикали по умолчанию */
+}
+
+/* Медиа-запросы для стартового экрана */
+@media(max-width: 600px) {
+    .start-screen {
+        justify-content: flex-end; /* Внизу на маленьких экранах */
+        padding-bottom: 4rem;
+    }
+}
+
+/* Стили для логотипа */
+.logo {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 8px 20px var(--shadow-color); /* Используем новую переменную тени */
+}
+
+/* Стили для заголовка */
+h1 {
+    font-size: 3.5rem;
+    margin-bottom: 0.5rem;
+    text-shadow: 2px 2px 8px var(--shadow-color);
+    background: var(--gold-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent; /* Fallback */
+}
+
+/* Стили для "золотой" кнопки (общие) */
+.gold-button {
+    background: var(--gold-gradient); /* Используем градиент */
+    color: var(--text-color-dark); /* Темный текст на золотом фоне */
+    border: none;
+    padding: 0.9rem 2rem;
+    border-radius: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    margin: 1rem;
+    animation: pulse 2s infinite; /* Анимация пульсации по умолчанию */
+    font-size: 1.2rem;
+    text-decoration: none;
+    display: inline-block;
+    min-width: 200px;
+}
+
+/* Эффект при наведении на кнопку */
+.gold-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 18px var(--shadow-color);
+}
+
+/* Эффект при нажатии на кнопку */
+.gold-button:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+/* Анимация пульсации для кнопки */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Медиа-запросы для адаптивности на маленьких экранах (общие) */
+@media(max-width: 768px) {
+    h1 {
+        font-size: 2.5rem;
+    }
+    .logo {
+        width: 100px;
+        height: 100px;
+    }
+    .gold-button {
+        padding: 0.8rem 1.5rem;
+        font-size: 1.1rem;
+    }
+}
+
+@media(max-width: 480px) {
+    h1 {
+        font-size: 1.8rem;
+    }
+    .gold-button {
+        width: 100%; /* Полная ширина на очень маленьких экранах */
+        margin: 0.5rem 0;
+    }
+}
+
+/* Круглая кнопка "Start" */
+.start-button-circle {
+    width: 150px;
+    height: 150px;
+    border-radius: 50% !important; /* Важно для переопределения */
+    padding: 0;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.8rem;
+    text-decoration: none;
+    margin: 0;
+}
+
+/* Адаптивность для круглой кнопки "Start" на мобильных */
+@media(max-width: 600px) {
+    .start-button-circle {
+        width: 120px;
+        height: 120px;
+        font-size: 1.5rem;
+    }
+}
+
+/* --- Стили для upload.html, results.html, finish.html (общий background) --- */
 .background {
-    width: 90%; /* Responsive width */
-    max-width: 1200px; /* Max width for larger screens */
-    padding: 20px;
-    box-sizing: border-box; /* Include padding in width */
+    min-height: 100dvh;
+    background: url('../assets/image-bkgr.jpeg') center/cover no-repeat; /* ФОНОВОЕ ИЗОБРАЖЕНИЕ */
+    background-size: cover;
+    position: relative;
+    z-index: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+    color: var(--primary-color); /* Основной цвет текста */
+    width: 100%; /* Убедимся, что фон занимает всю ширину */
+    max-width: none; /* Убираем ограничение ширины для фона */
 }
 
-/* Header Section */
+/* Псевдоэлемент для затемнения фонового изображения */
+.background::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Затемнение */
+    z-index: -1;
+}
+
+/* Контейнер для контента внутри .background, чтобы он не был слишком широким */
+.content-container {
+    width: 90%;
+    max-width: 1200px; /* Ограничиваем ширину контента */
+    box-sizing: border-box;
+    padding: 20px; /* Отступы для контента */
+}
+
+/* Header Section (общий для upload, results, finish) */
 .header-section {
     text-align: center;
     margin-bottom: 40px;
     padding: 20px;
-    background-color: rgba(0, 0, 0, 0.4); /* Semi-transparent dark background */
+    background-color: rgba(0, 0, 0, 0.4); /* Полупрозрачный темный фон */
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-color) 0px 5px 15px;
+    width: 100%; /* Занимает всю доступную ширину контейнера */
+    max-width: 800px; /* Ограничиваем ширину шапки */
 }
 
-.header-section h1 {
+.header-section h1 { /* Обновлен для соответствия новому h1 */
     color: var(--accent-color);
     margin-bottom: 10px;
-    font-size: 2.5em; /* Responsive font size */
+    font-size: 2.5em; /* Адаптивный размер шрифта */
+    background: none; /* Убираем градиент, так как цвет уже задан */
+    -webkit-background-clip: unset;
+    -webkit-text-fill-color: unset;
+    background-clip: unset;
+    color: var(--accent-color); /* Явный цвет */
+    text-shadow: 2px 2px 8px var(--shadow-color);
 }
 
 .header-section p {
@@ -66,37 +245,19 @@ body.fade-in {
     margin-bottom: 20px;
 }
 
-/* Gold button styles */
-.gold-button {
-    background-color: var(--accent-color);
-    color: var(--background-color);
-    border: none;
-    padding: 12px 25px;
-    border-radius: 5px;
-    font-size: 1em;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    margin: 5px; /* Spacing between buttons */
-    box-shadow: rgba(0, 0, 0, 0.2) 0px 3px 8px;
-}
-
-.gold-button:hover {
-    background-color: #c98c00; /* Darker gold on hover */
-    transform: translateY(-2px); /* Slight lift */
-}
-
-.gold-button:active {
-    transform: translateY(0);
-    box-shadow: none;
-}
-
+/* Стиль для отключенной кнопки загрузки */
 .gold-button:disabled {
     background-color: #666;
     cursor: not-allowed;
     box-shadow: none;
+    animation: none; /* Отключаем анимацию для disabled кнопки */
 }
 
-/* Status Messages */
+.gold-button:disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
 .status-message {
     padding: 10px 15px;
     border-radius: 5px;
@@ -136,201 +297,18 @@ body.fade-in {
     overflow: hidden;
 }
 
-/* Media Bubbles/Results Grid */
-.results-grid,
-.selected-files-preview-container { /* Apply to both */
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Responsive grid columns */
-    gap: 20px;
-    padding: 20px 0;
-    justify-content: center; /* Center items in grid */
-}
-
-.media-bubble {
-    background-color: var(--secondary-color);
-    border-radius: var(--border-radius);
-    overflow: hidden;
-    position: relative;
-    box-shadow: var(--shadow-color) 0px 5px 15px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease, border 0.3s ease; /* Added background-color and border */
-    aspect-ratio: 16/9; /* Maintain aspect ratio for video/image containers */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer; /* Indicate it's clickable */
-    border: 3px solid transparent; /* Default border */
-}
-
-/* NEW: Styles for selected media bubble */
-.media-bubble.selected {
-    background-color: rgba(218, 165, 32, 0.3); /* Semi-transparent gold background */
-    border: 3px solid var(--accent-color); /* Gold border */
-    box-shadow: var(--accent-color) 0px 0px 15px; /* Gold glow */
-}
-
-
-.media-bubble video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover; /* Cover the bubble area */
-    display: block;
-}
-
-.file-name-overlay {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: rgba(0, 0, 0, 0.6);
-    color: var(--primary-color);
-    padding: 8px;
-    font-size: 0.85em;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.media-bubble:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-color) 0px 8px 20px;
-}
-
-/* Animation for media-bubble */
-.media-bubble.fade-in-bubble {
-    animation: fadeInBubble 0.5s ease-out forwards;
-}
-
-@keyframes fadeInBubble {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Status overlay for results.html */
-.status-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7); /* Darker overlay */
-    color: var(--primary-color);
-    display: flex;
-    flex-direction: column; /* Stack status text and spinner */
-    justify-content: center;
-    align-items: center;
-    font-size: 0.9em;
-    text-align: center;
-    transition: opacity 0.3s ease;
-}
-
-.status-overlay .spinner {
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    border-top: 4px solid var(--accent-color);
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    animation: spin 1s linear infinite;
-    margin-top: 10px;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.status-overlay.hidden {
-    display: none;
-}
-
-/* Modal styles */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 100;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.8);
-    justify-content: center;
-    align-items: center;
-}
-
-.modal-content {
-    background-color: var(--background-color);
-    margin: 15% auto;
-    padding: 30px;
-    border: 1px solid #888;
-    width: 80%;
-    max-width: 600px;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-color) 0px 10px 30px;
-    position: relative;
-    max-height: 80vh; /* Max height for modal content */
-    overflow-y: auto; /* Scrollable if content is too long */
-}
-
-.modal-content h4 {
-    color: var(--accent-color);
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 1.5em;
-}
-
-.modal-content pre {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: var(--primary-color);
-    padding: 15px;
-    border-radius: 5px;
-    white-space: pre-wrap; /* Wrap long lines */
-    word-wrap: break-word; /* Break long words */
-    font-size: 0.9em;
-}
-
-.close-button {
-    color: var(--primary-color);
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: color 0.3s ease;
-}
-
-.close-button:hover,
-.close-button:focus {
-    color: var(--accent-color);
-    text-decoration: none;
-    cursor: pointer;
-}
-
-/* Upload Status Container on results.html */
-.upload-status-container {
-    padding: 20px;
-    background-color: rgba(0, 0, 0, 0.4);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-color) 0px 5px 15px;
-    margin-top: 20px;
-    text-align: center;
-}
-
+/* Progress bar for re-upload status */
 .progress-bar-container {
     width: 100%;
     background-color: #333;
     border-radius: 5px;
-    overflow: hidden;
-    margin-top: 10px;
+    margin-top: 1rem;
     height: 20px;
+    overflow: hidden;
     position: relative;
+    display: flex; /* Для центрирования текста */
+    align-items: center;
+    justify-content: center;
 }
 
 .progress-bar {
@@ -338,17 +316,218 @@ body.fade-in {
     width: 0%;
     background-color: var(--accent-color);
     transition: width 0.1s ease;
+    position: absolute;
+    left: 0;
+    top: 0;
 }
 
 .progress-text {
+    position: relative;
+    color: var(--background-color); /* Темный текст на золотом баре */
+    font-weight: bold;
+    font-size: 0.85em;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Для читаемости */
+    z-index: 1; /* Над баром */
+}
+
+/* Класс для скрытия элементов визуально, но сохранения для скрин-ридеров */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* --- ОБЩИЕ СТИЛИ ДЛЯ ПРЕВЬЮ-ПУЗЫРЬКОВ (UPLOAD И RESULTS) --- */
+/* Контейнер для сетки предпросмотров */
+.previews-grid, .results-grid { 
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* Адаптивные колонки */
+    gap: 20px; /* Пространство между пузырьками */
+    padding: 20px 0;
+    justify-content: center; /* Выравнивание превью по центру */
+    margin-top: 20px;
+    width: 100%;
+    max-width: 800px; /* Ограничиваем ширину для лучшего вида */
+    list-style: none; /* Убираем маркеры списка для UL */
+    padding: 0; /* Убираем отступы для UL */
+}
+
+/* Базовый стиль для каждого медиа-пузырька */
+.media-bubble {
+    width: 100%; /* Занимает всю доступную ширину в сетке */
+    max-width: 200px; /* Максимальная ширина для предотвращения слишком больших баблов */
+    height: 120px; /* Фиксированная высота */
+    border-radius: var(--border-radius); /* Скругленные углы */
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 2px 5px var(--shadow-color);
+    background-color: var(--secondary-color); /* Цвет фона из переменных */
+    border: 1px solid #ddd;
+    flex-shrink: 0;
+    display: flex; /* Для центрирования контента */
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.3s ease;
+    cursor: pointer;
+    aspect-ratio: 16/9; /* Сохраняем соотношение сторон для видео */
+}
+
+.media-bubble:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.media-bubble-img, .media-bubble video { /* Стили для изображения/видео внутри пузырька */
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Заполняет всю область */
+    border-radius: var(--border-radius); /* Соответствует родительскому border-radius */
+    display: block;
+}
+
+/* Спиннер для загрузки/обработки */
+.media-bubble.loading::after {
+    content: '';
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: var(--background-color); /* Dark text on gold bar */
-    font-weight: bold;
+    width: 30px;
+    height: 30px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid var(--accent-color); /* Золотой цвет спиннера */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 2; /* Над изображением/видео */
+}
+
+/* Стили для overlay на upload.html (для названия файла) */
+.preview-bubble .file-name-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: var(--primary-color);
+    font-size: 0.75em;
+    padding: 3px 5px;
+    text-align: center;
+    max-height: 40%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-bottom-left-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
+}
+
+/* --- СТИЛИ ДЛЯ ПРЕВЬЮ НА RESULTS.HTML (используем media-bubble) --- */
+
+.result-bubble-overlay { /* Overlay для информации о видео на странице результатов */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Более темный overlay */
+    color: var(--primary-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 5px;
+    text-align: center;
+    border-radius: var(--border-radius); /* Соответствует форме пузырька */
+    box-sizing: border-box;
+    z-index: 1; /* Под спиннером, но над изображением */
+}
+
+.result-bubble-overlay .bubble-title {
     font-size: 0.85em;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* For readability */
+    font-weight: bold;
+    background: var(--gold-gradient); /* Золотой градиент для заголовка */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent; /* Fallback for browsers not supporting text-fill-color */
+    margin-bottom: 3px;
+    word-wrap: break-word;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 50%; /* Ограничиваем высоту для длинных имен */
+    line-height: 1.2;
+}
+
+.result-bubble-overlay .bubble-status {
+    font-size: 0.75em;
+    font-weight: bold;
+    padding: 2px 5px;
+    border-radius: 3px;
+    margin-top: 5px;
+    color: var(--text-color-dark); /* Темный текст для читаемости на цветных фонах */
+}
+
+/* Цвета статусов для overlay на results.html */
+.result-bubble-overlay .status-pending { background-color: var(--status-pending-color); }
+.result-bubble-overlay .status-processing { background-color: var(--status-processing-color); color: var(--text-color-light); }
+.result-bubble-overlay .status-completed { background-color: var(--status-ok-color); color: var(--text-color-light); }
+.result-bubble-overlay .status-error,
+.result-bubble-overlay .status-failed { background-color: var(--status-bad-color); color: var(--text-color-light); }
+.result-bubble-overlay .status-info { background-color: var(--status-info-color); }
+
+
+/* --- Стили для results.html (основные секции) --- */
+
+.header-section {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-top: 2rem;
+    width: 100%;
+    max-width: 800px;
+}
+
+.header-section h1 { 
+    font-size: 2.5rem;
+    background: var(--gold-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 2px 2px 8px var(--shadow-color);
+    margin-bottom: 0.5rem;
+}
+
+.header-section p {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    margin-top: 0.5rem;
+}
+
+/* Контейнер для динамического статуса дозагрузки на results.html */
+.upload-status-container { 
+    width: 100%;
+    max-width: 600px;
+    margin: 1rem auto 2rem auto; 
+    padding: 1rem;
+    background: rgba(34, 34, 34, 0.8);
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    text-align: center;
+}
+
+.upload-status-container.hidden { 
+    display: none;
+}
+
+.upload-status-container .status-message { 
+    margin-bottom: 0.5rem;
+    color: var(--status-info-color); 
 }
 
 /* NEW: Connect Videos Checkbox Container */
@@ -364,16 +543,16 @@ body.fade-in {
 
 /* Custom toggle switch styles */
 .toggle-checkbox {
-    display: none; /* Hide the default checkbox */
+    display: none; 
 }
 
 .toggle-label {
     position: relative;
     display: inline-block;
-    width: 50px; /* Width of the switch */
-    height: 28px; /* Height of the switch */
+    width: 50px; 
+    height: 28px; 
     background-color: #ccc;
-    border-radius: 28px; /* Rounded corners */
+    border-radius: 28px; 
     cursor: pointer;
     transition: background-color 0.3s;
 }
@@ -381,7 +560,7 @@ body.fade-in {
 .toggle-label:after {
     content: '';
     position: absolute;
-    width: 24px; /* Size of the circle */
+    width: 24px; 
     height: 24px;
     border-radius: 50%;
     background-color: #fff;
@@ -392,11 +571,18 @@ body.fade-in {
 }
 
 .toggle-checkbox:checked + .toggle-label {
-    background-color: var(--accent-color); /* Gold when checked */
+    background-color: var(--accent-color); 
 }
 
 .toggle-checkbox:checked + .toggle-label:after {
-    transform: translateX(22px); /* Move circle to the right */
+    transform: translateX(22px); 
+}
+
+/* NEW: Styles for selected media bubble */
+.media-bubble.selected {
+    background-color: rgba(218, 165, 32, 0.3); /* Полупрозрачный золотой фон */
+    border: 3px solid var(--accent-color); /* Золотая рамка */
+    box-shadow: var(--accent-color) 0px 0px 15px; /* Золотое свечение */
 }
 
 /* NEW: Styles for reloaded previews (no video playback) */
@@ -407,7 +593,7 @@ body.fade-in {
     align-items: center;
     height: 100%;
     width: 100%;
-    background-color: rgba(0, 0, 0, 0.8); /* Darker background */
+    background-color: rgba(0, 0, 0, 0.8); /* Темный фон */
     color: var(--primary-color);
     padding: 10px;
     box-sizing: border-box;
@@ -423,7 +609,7 @@ body.fade-in {
     margin: 0;
     font-size: 1em;
     text-align: center;
-    word-break: break-word; /* Allow long names to break */
+    word-break: break-word; 
 }
 
 .reloaded-preview-content small {
@@ -433,6 +619,106 @@ body.fade-in {
     margin-top: 5px;
 }
 
+/* --- Стили для модального окна --- */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.8);
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    animation: fadeInModal 0.3s ease-out;
+}
+
+.modal.visible {
+    display: flex;
+}
+
+@keyframes fadeInModal {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background-color: var(--background-color);
+    margin: auto;
+    padding: 2rem;
+    border: 1px solid #444;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 700px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+    position: relative;
+    color: var(--primary-color);
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideInModal 0.4s ease-out;
+}
+
+@keyframes slideInModal {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-content h4 {
+    color: var(--accent-color);
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    text-shadow: 1px 1px 4px var(--shadow-color);
+}
+
+.modal-content pre {
+    background-color: #1a1a1a;
+    padding: 1rem;
+    border-radius: 5px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: #b0b0b0;
+    border: 1px solid #333;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 2.5rem;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: var(--accent-color);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Анимация вращения для спиннера */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Стиль для кнопки Finish Session (специфичный красный градиент) */
+#finishSessionBtn {
+    background: linear-gradient(45deg, #FF6B6B, #EE4D4D); /* Красный градиент */
+}
+
+#finishSessionBtn:hover {
+    background: linear-gradient(45deg, #FF4D4D, #CC3B3B); /* Более темный красный при наведении */
+}
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
@@ -447,12 +733,12 @@ body.fade-in {
 
     .results-grid,
     .selected-files-preview-container {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Smaller min-width for mobile */
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); /* Чуть меньше для мобильных */
         gap: 15px;
     }
 
     .media-bubble {
-        aspect-ratio: 4/3; /* Adjust aspect ratio for mobile if needed */
+        height: 100px; /* Уменьшаем высоту на мобильных */
     }
 
     .modal-content {
@@ -467,13 +753,13 @@ body.fade-in {
     }
 
     .gold-button {
-        width: 100%; /* Full width buttons */
+        width: 100%; 
         margin: 5px 0;
     }
 
     .results-grid,
     .selected-files-preview-container {
-        grid-template-columns: 1fr; /* Single column on very small screens */
+        grid-template-columns: 1fr; /* Одна колонка на очень маленьких экранах */
         gap: 10px;
     }
 
@@ -483,6 +769,6 @@ body.fade-in {
     }
 
     .connect-videos-container {
-        flex-direction: column; /* Stack checkbox and label */
+        flex-direction: column; /* Чекбокс и текст в столбик */
     }
 }
