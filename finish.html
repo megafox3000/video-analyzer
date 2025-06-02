@@ -6,20 +6,26 @@
     <title>Объединенное Видео - Hife Video Analyzer</title>
     <link rel="stylesheet" href="css/style.css" />
     <link rel="icon" type="image/png" href="assets/favicon.png" />
+    <!-- Font Awesome для иконок (добавлено) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body class="fade-in">
     <div class="background">
-        <div class="header-section">
-            <h1 id="finishHeader">Ваше Объединенное Видео</h1>
-            <p>Ниже представлено ваше видео, созданное путем объединения выбранных клипов.</p>
-            <button id="backToResultsBtn" class="gold-button">Вернуться к Результатам</button>
-        </div>
+        <!-- ОТКРЫВАЕМ НОВЫЙ DIV С КЛАССОМ content-container -->
+        <div class="content-container">
+            <div class="header-section">
+                <h1 id="finishHeader">Ваше Объединенное Видео</h1>
+                <p>Ниже представлено ваше видео, созданное путем объединения выбранных клипов.</p>
+                <button id="backToResultsBtn" class="gold-button">Вернуться к Результатам</button>
+            </div>
 
-        <div class="video-display-container">
-            <video id="concatenatedVideoPlayer" controls autoplay loop muted playsinline></video>
-        </div>
+            <div class="video-display-container">
+                <video id="concatenatedVideoPlayer" controls autoplay loop muted playsinline></video>
+            </div>
 
-        <div class="status-message info" id="finishStatusMessage"></div>
+            <div class="status-message info" id="finishStatusMessage"></div>
+        </div>
+        <!-- ЗАКРЫВАЕМ DIV content-container -->
     </div>
 
     <script>
