@@ -1,60 +1,44 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Upload Video - Hife Video Analyzer</title>
-    <link rel="stylesheet" href="css/style.css" />
-    <link rel="icon" type="image/png" href="assets/favicon.png" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Загрузка видео</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body class="fade-in">
     <div class="background">
-        <h3>Connect Your Socials and upload your video(s)</h3>
-        <form class="social-form">
-            <label for="instagramInput" class="sr-only">Instagram Username</label>
-            <input type="text" id="instagramInput" placeholder="Instagram (обязательно)" name="instagram"/>
-
-            <label for="linkedinInput" class="sr-only">LinkedIn Profile URL</label>
-            <input type="text" id="linkedinInput" placeholder="LinkedIn" name="linkedin"/>
-
-            <label for="emailInput" class="sr-only">Email Address</label>
-            <input type="email" id="emailInput" placeholder="Email" name="email"/>
-        </form>
-
-        <div class="button-center-group">
-            <input type="file" id="videoFileInput" accept="video/*" multiple hidden />
-            <!-- Текст кнопки будет управляться JavaScript -->
-            <button type="button" id="selectFilesButton" class="gold-button">Choose your Video(s)</button> 
-            <button type="button" id="finishUploadButton" class="gold-button" style="display: none;">Перейти к результатам</button> 
-        </div>
-        
-        <p id="generalStatusMessage" class="status-message"></p>
-
-        <div class="progress-bar-container" style="display: none;">
-            <div class="progress-bar" id="progressBar"></div>
-            <div class="progress-text" id="progressText">0%</div>
-        </div>
-
-        <!-- ЕДИНСТВЕННОЕ НЕОБХОДИМОЕ ДОБАВЛЕНИЕ ДЛЯ ПУЗЫРЬКОВ НА UPLOAD.HTML -->
-        <div class="selected-files-preview-section" style="display: none;">
-            <h3>Выбранные для загрузки видео:</h3>
-            <div id="selectedFilesPreviewContainer" class="previews-grid">
-                <!-- Здесь будут динамически добавляться предпросмотры -->
+        <!-- ОТКРЫВАЕМ НОВЫЙ DIV С КЛАССОМ content-container -->
+        <div class="content-container">
+            <div class="header-section">
+                <h1>Загрузите ваши видео</h1>
+                <p>Выберите видеофайлы для анализа. Вы можете загрузить несколько файлов одновременно.</p>
+                <input type="file" id="videoUpload" accept="video/*" multiple class="sr-only">
+                <button id="selectFilesBtn" class="gold-button">Выбрать файлы</button>
+                <div class="status-message info hidden" id="uploadStatusMessage"></div>
             </div>
-        </div>
-        
-        <!-- Эти элементы (fileValidationStatusList и videoUploadProgressList) не используются текущей логикой JS для отображения прогресса/статуса,
-             но я оставляю их, если ваш старый CSS на них завязан. Если они не используются, их можно удалить, чтобы упростить HTML. -->
-        <div id="fileValidationStatusList" class="video-info-list"></div>
-        <div id="videoUploadProgressList" class="video-info-list"></div>
 
-        <div class="upload-section">
-            <h2>Ваши загруженные видео</h2>
-            <ul id="uploadedVideosList" class="uploaded-videos-list">
-            </ul>
+            <div id="selectedFilesPreview" class="previews-grid">
+                <!-- Здесь будут отображаться выбранные видео -->
+            </div>
+
+            <button id="uploadBtn" class="gold-button" disabled>Начать анализ</button>
+            <button id="cancelUploadBtn" class="gold-button hidden">Отменить загрузку</button>
+        </div>
+        <!-- ЗАКРЫВАЕМ DIV content-container -->
+    </div>
+
+    <!-- Модальное окно для сообщений -->
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeMessageModal">&times;</span>
+            <h4 id="messageModalTitle"></h4>
+            <p id="messageModalContent"></p>
         </div>
     </div>
 
-    <script src="script/upload_validation.js"></script>
+    <script src="script/upload.js"></script>
 </body>
 </html>
