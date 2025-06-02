@@ -324,6 +324,85 @@ h1 {
     border-width: 0;
 }
 
+---
+
+### **Новые стили для предпросмотра на `upload.html`**
+
+```css
+/* --- Стили для раздела предпросмотра выбранных файлов на upload.html --- */
+.selected-files-preview-section {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f0f0f0; /* Светло-серый фон */
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    width: 100%;
+    max-width: 600px; /* Ограничиваем ширину для центрирования */
+}
+
+.selected-files-preview-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 1.1em;
+    text-align: center; /* Центрируем заголовок */
+}
+
+.previews-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px; /* Пространство между пузырьками */
+    justify-content: center; /* Выравнивание превью по центру */
+}
+
+/* --- СТИЛИ ДЛЯ ПУЗЫРЬКОВ НА UPLOAD.HTML (preview-bubble) --- */
+.preview-bubble {
+    width: 120px; /* Унифицированный размер */
+    height: 120px; /* Унифицированный размер */
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Тень для эффекта "пузырька" */
+    background-color: #fff; /* Белый фон */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ddd;
+    flex-shrink: 0; /* Не сжимать */
+}
+
+.preview-bubble video,
+.preview-bubble img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.preview-bubble .file-name-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    font-size: 0.75em;
+    padding: 3px 5px;
+    text-align: center;
+    max-height: 40%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+```
+
+---
+
+### **Обновленные стили для `results.html`**
+
+```css
 /* --- Стили для results.html --- */
 
 .header-section {
@@ -371,8 +450,11 @@ h1 {
     margin-bottom: 0.5rem;
 }
 
-/* Контейнер для "пузырей" - теперь это сетка карточек */
-.results-grid {
+/* Контейнер для списка видео на results.html */
+/* ПРИМЕЧАНИЕ: Вместо .results-grid и .video-bubble,
+   мы будем использовать более общие .video-item и .video-preview-thumbnail
+   для унификации стилей превью. */
+.uploaded-videos-list {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 2rem;
@@ -382,137 +464,105 @@ h1 {
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
+    list-style: none; /* Убираем маркеры списка */
+    padding: 0;
 }
 
-/* Стили для отдельной карточки видео ("пузырь") */
-.video-bubble {
-    width: 280px;
-    height: 280px;
-    border-radius: 50%;
-    overflow: hidden;
-    position: relative;
-    background-color: #3b3b3b;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-    text-align: center;
-    color: var(--text-color-light);
-    max-width: 300px;
-    box-sizing: border-box;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    flex-shrink: 0;
-    animation: float 3s ease-in-out infinite;
-    border: 1px solid #4a4a4a;
-    cursor: pointer;
-}
-
-/* Анимация плавания для карточек */
-@keyframes float {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-    100% { transform: translateY(0px); }
-}
-
-.video-bubble:hover {
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 12px 25px rgba(0,0,0,0.6);
-    animation-play-state: paused;
-}
-
-/* Стили для изображения превью в баббле */
-.bubble-preview-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 1;
-}
-
-/* Контейнер для текста, который будет поверх превью */
-.bubble-text-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 2;
+/* Стили для отдельного элемента видео (видео + информация) */
+.video-item {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 0; /* Убираем нижний отступ, так как gap уже есть */
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 10px;
-    box-sizing: border-box;
-    background-color: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    text-align: center;
-    font-family: 'Segoe UI', sans-serif;
-    border-radius: 50%;
+    flex-direction: column; /* Изменяем на колонку для лучшего расположения */
+    align-items: center; /* Центрируем содержимое */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer; /* Для кликабельных элементов */
+    color: #333; /* Текст внутри карточки */
 }
 
-/* Стили для заголовка файла (название задачи/видео) */
-.bubble-text-overlay h3.bubble-title-overlay {
-    margin: 0 0 5px 0;
-    font-size: 1.1em;
-    color: #FFD700;
-    word-wrap: break-word;
-    white-space: normal;
-    max-height: 50%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.2;
+.video-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Стили для сообщения о статусе */
-.bubble-text-overlay .status-message-bubble {
-    margin: 0;
-    font-size: 0.9em;
+.video-info {
+    display: flex;
+    flex-direction: column; /* Текст под изображением */
+    align-items: center; /* Центрируем текст */
+    gap: 10px; /* Меньший зазор между превью и текстом */
+    width: 100%;
+    margin-top: 15px; /* Отступ от превью */
+}
+
+/* ОБНОВЛЕННЫЕ СТИЛИ ДЛЯ ПРЕВЬЮ ВИДЕО НА RESULTS.HTML (video-preview-thumbnail) */
+/* Этот класс теперь выглядит так же, как .preview-bubble на upload.html */
+.video-preview-thumbnail {
+    width: 120px;  /* Унифицировано до 120px */
+    height: 120px; /* Унифицировано до 120px */
+    object-fit: cover;
+    border-radius: 8px; /* Унифицировано до 8px */
+    border: 1px solid #ddd; /* Унифицировано */
+    flex-shrink: 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Добавлена тень для эффекта "пузырька" */
+    background-color: #fff; /* Добавлен белый фон */
+}
+
+.video-text-content {
+    flex-grow: 1;
+    text-align: center; /* Центрируем текст */
+}
+
+.video-text-content p {
+    margin: 5px 0;
+    font-size: 0.95em;
+    color: #555;
+}
+
+.video-text-content p strong {
+    color: #333;
+}
+
+/* Стили для статуса */
+.video-status {
     font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    font-size: 0.85em;
+    margin-top: 5px; /* Отступ от предыдущего текста */
 }
 
-/* Классы для цветов статусов */
-.status-pending, .status-processing {
-    color: var(--status-pending-color);
-}
-.status-completed {
-    color: var(--status-completed-color);
-}
-.status-error, .status-failed {
-    color: var(--status-error-color);
-}
-.status-message.info {
-    color: var(--status-info-color);
+.video-status.pending {
+    background-color: #ffe0b2;
+    color: #e65100;
 }
 
-/* Индикатор загрузки для карточек (поверх содержимого) */
-.video-bubble.loading::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    border: 4px solid rgba(255, 255, 255, 0.3);
-    border-top: 4px solid #ffd700;
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    animation: spin 1s linear infinite;
-    z-index: 10;
+.video-status.completed {
+    background-color: #c8e6c9;
+    color: #2e7d32;
 }
 
-.video-bubble.loading .bubble-text-overlay {
-    background-color: rgba(0, 0, 0, 0.8);
+.video-status.failed {
+    background-color: #ffcdd2;
+    color: #c62828;
 }
 
-/* Адаптивность для карточек */
+/* Адаптивность для карточек results.html */
 @media (max-width: 768px) {
-    .video-bubble {
-        width: 200px;
-        height: 200px;
+    .uploaded-videos-list {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Уменьшаем размер для мобильных */
+        gap: 1rem;
     }
-    .results-grid {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
+    .video-item {
+        padding: 10px;
+    }
+    .video-preview-thumbnail {
+        width: 100px;
+        height: 100px;
     }
     .header-section h2 {
         font-size: 2rem;
@@ -520,9 +570,12 @@ h1 {
 }
 
 @media (max-width: 480px) {
-    .video-bubble {
-        width: 180px;
-        height: 180px;
+    .uploaded-videos-list {
+        grid-template-columns: 1fr; /* Одна колонка на очень маленьких экранах */
+        padding: 1rem;
+    }
+    .video-item {
+        width: 100%; /* Занимает всю доступную ширину */
     }
     .header-section h2 {
         font-size: 1.8rem;
