@@ -25,14 +25,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
 
+    // NEW: Get the container for file previews
+    const selectedFilesPreviewSection = document.querySelector('.selected-files-preview-section');
+    const selectedFilesPreviewContainer = document.getElementById('selectedFilesPreviewContainer');
+
     const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com';
     const MAX_VIDEO_SIZE_MB = 100;
-    const MAX_VIDEO_DURATION_SECONDS = 60;
+    const MAX_VIDEO_DURATION_SECONDS = 600; // Changed from 60 to 600 as per previous discussion
     const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
 
     let currentUploadXhr = null;
-    let filesToUpload = []; // Массив для хранения файлов, ожидающих загрузки
-    let currentFileIndex = 0; // Индекс текущего загружаемого файла
+    let filesToUpload = []; // Array to store files waiting for upload
+    let currentFileIndex = 0; // Index of the current file being uploaded
+    let objectURLs = []; // NEW: Array to store object URLs for later revocation
 
     let uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]');
     let hifeUsername = localStorage.getItem('hifeUsername') || '';
@@ -45,11 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateUploadedVideosList();
     checkFinishButtonStatus();
-    resetProgressBar(); // Убедимся, что прогресс-бар скрыт при загрузке страницы
+    resetProgressBar(); // Ensure progress bar is hidden on page load
 
-    // --- НОВОЕ: Устанавливаем начальный текст кнопки ---
+    // NEW: Set initial button text
     selectFilesButton.textContent = 'Choose your Video(s)';
-    selectFilesButton.disabled = true; // Начальное состояние: кнопка неактивна, пока не заполнены поля
+    selectFilesButton.disabled = true; // Initial state: button is disabled until fields are filled
 
     instagramInput.addEventListener('input', () => {
         const value = instagramInput.value.trim();
@@ -77,24 +82,61 @@ document.addEventListener('DOMContentLoaded', () => {
 
     videoInput.addEventListener('change', () => {
         generalStatusMessage.textContent = '';
+        
+        // NEW: Clear previous previews and object URLs
+        clearPreviews();
+
         filesToUpload = Array.from(videoInput.files);
-        currentFileIndex = 0; // Сбрасываем индекс для новой очереди загрузки
+        currentFileIndex = 0; // Reset index for a new upload queue
 
         if (filesToUpload.length === 0) {
             validateInputs();
-            // --- НОВОЕ: Если файлы отменены, возвращаем кнопку к начальному виду ---
+            // NEW: If files are cancelled, revert button text to initial state
             selectFilesButton.textContent = 'Choose your Video(s)';
+            // NEW: Hide preview section if no files are selected
+            selectedFilesPreviewSection.style.display = 'none';
             return;
         }
 
         let allFilesValid = true;
         let filesToValidateMetadata = [];
 
+        // --- NEW: CREATING PREVIEWS START ---
+        selectedFilesPreviewContainer.innerHTML = ''; // Clear container
+        selectedFilesPreviewSection.style.display = 'block'; // Show preview section
+
+        filesToUpload.forEach(file => {
+            const previewBubble = document.createElement('div');
+            previewBubble.className = 'preview-bubble';
+
+            // Use <video> for preview, as it's a video file
+            const videoElement = document.createElement('video');
+            const objectURL = URL.createObjectURL(file);
+            objectURLs.push(objectURL); // Store URL for later revocation
+
+            videoElement.src = objectURL;
+            videoElement.autoplay = true; // Autoplay
+            videoElement.loop = true;     // Loop
+            videoElement.muted = true;    // Mute sound
+            videoElement.playsinline = true; // For iOS, to play inline
+            videoElement.preload = 'metadata'; // Load only metadata first
+
+            // Add overlay with file name
+            const fileNameOverlay = document.createElement('div');
+            fileNameOverlay.className = 'file-name-overlay';
+            fileNameOverlay.textContent = file.name;
+
+            previewBubble.appendChild(videoElement);
+            previewBubble.appendChild(fileNameOverlay);
+            selectedFilesPreviewContainer.appendChild(previewBubble);
+        });
+        // --- NEW: CREATING PREVIEWS END ---
+
         for (const file of filesToUpload) {
             if (file.size > MAX_VIDEO_SIZE_BYTES) {
                 generalStatusMessage.textContent = `Видео "${file.name}" слишком большое. Максимум ${MAX_VIDEO_SIZE_MB} MB.`;
                 generalStatusMessage.style.color = 'var(--status-error-color)';
-                videoInput.value = '';
+                videoInput.value = ''; // Reset all selected files if at least one is invalid
                 allFilesValid = false;
                 break;
             }
@@ -103,9 +145,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!allFilesValid) {
             validateInputs();
-            // --- НОВОЕ: Если есть невалидные файлы, возвращаем кнопку к начальному виду ---
+            // NEW: If there are invalid files, revert button text to initial state
             selectFilesButton.textContent = 'Choose your Video(s)';
-            filesToUpload = []; // Очищаем очередь, так как есть невалидные
+            filesToUpload = []; // Clear queue as there are invalid files
+            // NEW: Clear previews and hide section if files failed validation
+            clearPreviews();
+            selectedFilesPreviewSection.style.display = 'none';
             return;
         }
 
@@ -114,8 +159,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (totalFilesForValidation === 0) {
              validateInputs();
-             // --- НОВОЕ: Если нет файлов для валидации, возвращаем кнопку к начальному виду ---
+             // NEW: If no files for validation, revert button text to initial state
              selectFilesButton.textContent = 'Choose your Video(s)';
+             clearPreviews();
+             selectedFilesPreviewSection.style.display = 'none';
              return;
         }
 
@@ -126,14 +173,13 @@ document.addEventListener('DOMContentLoaded', () => {
         filesToValidateMetadata.forEach((file) => {
             const tempVideoElement = document.createElement('video');
             tempVideoElement.preload = 'metadata';
-            tempVideoElement.src = URL.createObjectURL(file);
+            tempVideoElement.src = URL.createObjectURL(file); // Use URL for metadata
 
             tempVideoElement.onloadedmetadata = () => {
                 const videoDuration = tempVideoElement.duration;
-                setTimeout(() => {
-                    URL.revokeObjectURL(tempVideoElement.src);
-                }, 100);
-
+                // No need to revoke URL here, as it might be needed for preview.
+                // Revocation will happen in clearPreviews().
+                
                 if (isNaN(videoDuration) || videoDuration > MAX_VIDEO_DURATION_SECONDS) {
                     generalStatusMessage.textContent = `Видео "${file.name}" слишком длинное. Максимум ${MAX_VIDEO_DURATION_SECONDS / 60} минут.`;
                     generalStatusMessage.style.color = 'var(--status-error-color)';
@@ -146,25 +192,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (allFilesValid) {
                         generalStatusMessage.textContent = `Все ${filesToUpload.length} видео готовы к загрузке. Нажмите "Transfer your Video(s)".`;
                         generalStatusMessage.style.color = 'var(--status-completed-color)';
-                        // --- НОВОЕ: Меняем текст кнопки после успешной валидации ---
+                        // NEW: Change button text after successful validation
                         selectFilesButton.textContent = 'Transfer your Video(s)';
                         validateInputs();
                     } else {
                         generalStatusMessage.textContent = `Некоторые видео не прошли валидацию. Пожалуйста, выберите другие файлы.`;
                         generalStatusMessage.style.color = 'var(--status-error-color)';
                         filesToUpload = [];
-                        videoInput.value = ''; // Сброс, если были невалидные
-                        // --- НОВОЕ: Если валидация не прошла, возвращаем кнопку к начальному виду ---
+                        videoInput.value = ''; // Reset if invalid
+                        // NEW: If validation failed, revert button text to initial state
                         selectFilesButton.textContent = 'Choose your Video(s)';
+                        // NEW: Clear previews if validation failed
+                        clearPreviews();
+                        selectedFilesPreviewSection.style.display = 'none';
                         validateInputs();
                     }
                 }
             };
             tempVideoElement.onerror = () => {
-                setTimeout(() => {
-                    URL.revokeObjectURL(tempVideoElement.src);
-                }, 100);
-
+                // No need to revoke URL here
+                
                 generalStatusMessage.textContent = `Не удалось загрузить метаданные видео "${file.name}". Возможно, файл поврежден или не является видео.`;
                 generalStatusMessage.style.color = 'var(--status-error-color)';
                 videoInput.value = '';
@@ -172,14 +219,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 validationsCompleted++;
                 if (validationsCompleted === totalFilesForValidation) {
                     filesToUpload = [];
-                    // --- НОВОЕ: Если ошибка метаданных, возвращаем кнопку к начальному виду ---
+                    // NEW: If metadata error, revert button text to initial state
                     selectFilesButton.textContent = 'Choose your Video(s)';
+                    // NEW: Clear previews if metadata error
+                    clearPreviews();
+                    selectedFilesPreviewSection.style.display = 'none';
                     validateInputs();
                 }
             };
         });
     });
 
+    // Function to upload the next file in the queue
     function uploadNextFile() {
         if (currentFileIndex < filesToUpload.length) {
             const file = filesToUpload[currentFileIndex];
@@ -189,13 +240,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             uploadVideo(file, username, email, linkedin);
         } else {
+            // All files uploaded. Now redirect to results.html
             generalStatusMessage.textContent = 'Все видео успешно загружены!';
             generalStatusMessage.style.color = 'var(--status-completed-color)';
             selectFilesButton.disabled = false;
-            // --- НОВОЕ: Возвращаем кнопку к начальному тексту после всех загрузок ---
+            // NEW: Revert button text to initial state after all uploads
             selectFilesButton.textContent = 'Choose your Video(s)';
             videoInput.value = '';
             resetProgressBar();
+            // NEW: Clear previews before redirecting
+            clearPreviews();
+            selectedFilesPreviewSection.style.display = 'none';
             window.location.replace('results.html');
         }
     }
@@ -212,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Если файлов нет в очереди (или если input пустой), открываем диалог выбора файлов
+        // If no files in queue (or if input is empty), open file selection dialog
         if (filesToUpload.length === 0 || videoInput.files.length === 0) {
             generalStatusMessage.textContent = 'Выберите видеофайл(ы)...';
             generalStatusMessage.style.color = 'var(--status-info-color)';
@@ -220,9 +275,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Если файлы уже выбраны и прошли предварительную валидацию (и кнопка уже говорит "Transfer your Video(s)"),
-        // то запускаем загрузку
-        selectFilesButton.disabled = true; // Отключаем кнопку, пока идет загрузка
+        // If files are already selected and validated (and button already says "Transfer your Video(s)"),
+        // then start the upload
+        selectFilesButton.disabled = true; // Disable button while upload is in progress
         uploadNextFile();
     });
 
@@ -269,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     original_filename: file.name,
                     status: 'pending',
                     timestamp: new Date().toISOString(),
-                    cloudinary_url: response.cloudinary_url // Сохраняем URL из Cloudinary
+                    cloudinary_url: response.cloudinary_url // Save Cloudinary URL
                 };
                 uploadedVideos.push(newVideoEntry);
                 localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
@@ -283,25 +338,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 generalStatusMessage.style.color = 'var(--status-error-color)';
                 resetProgressBar();
                 selectFilesButton.disabled = false;
-                // --- НОВОЕ: Возвращаем кнопку к начальному виду при ошибке загрузки ---
+                // NEW: Revert button text to initial state on upload error
                 selectFilesButton.textContent = 'Choose your Video(s)';
-                filesToUpload = []; // Очищаем очередь при ошибке, чтобы пользователь начал заново
+                filesToUpload = []; // Clear queue on error to allow user to restart
                 currentFileIndex = 0;
                 videoInput.value = '';
+                // NEW: Clear previews on upload error
+                clearPreviews();
+                selectedFilesPreviewSection.style.display = 'none';
                 validateInputs();
             }
         };
 
         currentUploadXhr.onerror = function() {
             selectFilesButton.disabled = false;
-            // --- НОВОЕ: Возвращаем кнопку к начальному виду при ошибке сети ---
+            // NEW: Revert button text to initial state on network error
             selectFilesButton.textContent = 'Choose your Video(s)';
             generalStatusMessage.textContent = `Ошибка сети во время загрузки видео ${currentFileIndex + 1} из ${filesToUpload.length} ("${file.name}").`;
             generalStatusMessage.style.color = 'var(--status-error-color)';
             resetProgressBar();
-            filesToUpload = []; // Очищаем очередь при ошибке
+            filesToUpload = []; // Clear queue on error
             currentFileIndex = 0;
             videoInput.value = '';
+            // NEW: Clear previews on network error
+            clearPreviews();
+            selectedFilesPreviewSection.style.display = 'none';
             validateInputs();
         };
 
@@ -334,21 +395,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Кнопка активна, если:
-        // 1. Заполнено хотя бы одно из полей
-        // И (2. Либо файлы еще не выбраны (тогда клик по кнопке откроет диалог выбора)
-        //    ЛИБО выбраны файлы, и все они прошли синхронную валидацию по размеру,
-        //    и процесс загрузки еще не начался/завершился.)
         selectFilesButton.disabled = !(anyFieldFilled && (!filesSelected || allSelectedFilesAreValid));
 
-        // Если есть выбранные и валидные файлы, и нет активной загрузки,
-        // то текст кнопки должен быть "Transfer your Video(s)"
-        // Если же файлов нет или они невалидны, то "Choose your Video(s)"
         if (anyFieldFilled && filesSelected && allSelectedFilesAreValid && currentFileIndex === 0) {
             selectFilesButton.textContent = 'Transfer your Video(s)';
-        } else if (!filesSelected && anyFieldFilled) { // Если поля заполнены, но файлы не выбраны
+        } else if (!filesSelected && anyFieldFilled) {
             selectFilesButton.textContent = 'Choose your Video(s)';
-        } else if (!anyFieldFilled) { // Если поля не заполнены, кнопка неактивна и текст по умолчанию
+        } else if (!anyFieldFilled) {
              selectFilesButton.textContent = 'Choose your Video(s)';
         }
 
@@ -358,7 +411,6 @@ document.addEventListener('DOMContentLoaded', () => {
             generalStatusMessage.textContent = '';
         }
     }
-
 
     function updateUploadedVideosList() {
         uploadedVideosList.innerHTML = '';
@@ -387,5 +439,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (progressText) progressText.textContent = '0%';
     }
 
-    validateInputs(); // Вызываем при загрузке страницы для установки начального состояния
+    // NEW: Function to clear previews and revoke Object URLs
+    function clearPreviews() {
+        selectedFilesPreviewContainer.innerHTML = '';
+        objectURLs.forEach(url => URL.revokeObjectURL(url)); // Revoke URLs to free memory
+        objectURLs = []; // Reset the array
+    }
+
+    validateInputs(); // Call on page load to set initial state
 });
