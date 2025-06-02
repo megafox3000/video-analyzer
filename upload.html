@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -7,35 +7,41 @@
     <link rel="stylesheet" href="css/style.css" />
     <link rel="icon" type="image/png" href="assets/favicon.png" />
 </head>
-<body>
-    <div class="container">
-        <h1>Загрузка видео для анализа</h1>
+<body class="fade-in">
+    <div class="background">
+        <h3>Connect Your Socials and upload your video(s)</h3>
+        <form class="social-form">
+            <label for="instagramInput" class="sr-only">Instagram Username</label>
+            <input type="text" id="instagramInput" placeholder="Instagram (обязательно)" name="instagram"/>
 
-        <div class="input-group">
-            <label for="instagramInput">Instagram ID (или Email, или LinkedIn):</label>
-            <input type="text" id="instagramInput" placeholder="Ваш Instagram ID">
-            <input type="text" id="emailInput" placeholder="Ваш Email">
-            <input type="text" id="linkedinInput" placeholder="Ваш LinkedIn профиль">
+            <label for="linkedinInput" class="sr-only">LinkedIn Profile URL</label>
+            <input type="text" id="linkedinInput" placeholder="LinkedIn" name="linkedin"/>
+
+            <label for="emailInput" class="sr-only">Email Address</label>
+            <input type="email" id="emailInput" placeholder="Email" name="email"/>
+        </form>
+
+        <div class="button-center-group">
+            <input type="file" id="videoFileInput" accept="video/*" multiple hidden />
+            <button type="button" id="selectFilesButton" class="gold-button">Choose your Video(s)</button> 
+            <button type="button" id="finishUploadButton" class="gold-button" style="display: none;">Перейти к результатам</button> 
+        </div>
+        
+        <p id="generalStatusMessage" class="status-message"></p>
+
+        <div class="progress-bar-container" style="display: none;">
+            <div class="progress-bar" id="progressBar"></div>
+            <div class="progress-text" id="progressText">0%</div>
         </div>
 
-        <input type="file" id="videoFileInput" accept="video/*" multiple style="display: none;">
+        <div id="fileValidationStatusList" class="video-info-list"></div>
+        <div id="videoUploadProgressList" class="video-info-list"></div>
 
-        <div class="button-group">
-            <button id="selectFilesButton" class="button primary-button">Choose your Video(s)</button>
-            <button id="finishUploadButton" class="button secondary-button" style="display: none;">Перейти к результатам</button>
-        </div>
-
-        <div class="status-messages">
-            <p id="generalStatusMessage" class="status-message"></p>
-            <div class="progress-bar-container" style="display: none;">
-                <div class="progress-bar" id="progressBar"></div>
-                <span class="progress-text" id="progressText">0%</span>
-            </div>
-        </div>
-
-        <h2>Загруженные видео</h2>
-        <ul id="uploadedVideosList">
+        <div class="upload-section">
+            <h2>Ваши загруженные видео</h2>
+            <ul id="uploadedVideosList" class="uploaded-videos-list">
             </ul>
+        </div>
     </div>
 
     <script src="script/upload_validation.js"></script>
