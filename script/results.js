@@ -3,7 +3,6 @@ const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com';
 const resultsHeader = document.getElementById('resultsHeader');
 const usernameDisplay = document.getElementById('usernameDisplay');
 const uploadNewBtn = document.getElementById('uploadNewBtn');
-// CORRECTED: Now targets the div with id="bubblesContainer"
 const bubblesContainer = document.getElementById('bubblesContainer'); 
 const metadataModal = document.getElementById('metadataModal');
 const modalTitle = document.getElementById('modalTitle');
@@ -12,7 +11,6 @@ const closeButton = document.querySelector('.close-button');
 
 // Elements for re-uploading
 const videoFileInput = document.getElementById('videoFileInput');
-// CORRECTED: Targets dynamicUploadStatusContainer with its ID
 const dynamicUploadStatusContainer = document.getElementById('dynamicUploadStatusContainer');
 const uploadStatusText = document.getElementById('uploadStatusText');
 
@@ -386,7 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function createOrUpdateBubble(taskId, data) {
         let bubble = taskBubbles[taskId];
         if (!bubble) {
-            // Changed to div to match your HTML structure for bubblesContainer
             bubble = document.createElement('div'); 
             bubble.classList.add('media-bubble'); 
             bubble.id = `bubble-${taskId}`;
@@ -416,14 +413,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 bubble.classList.add('loading'); 
                 break;
             case 'completed':
-                statusText = 'Готово'; 
+                statusText = 'ОК'; // Changed from 'Готово' to 'ОК'
                 statusClass = 'status-completed';
                 bubble.classList.remove('loading'); 
                 break;
             case 'error':
             case 'failed':
-                statusText = 'Ошибка'; 
-                statusClass = 'status-error';
+                statusText = 'BAD'; // Changed from 'Ошибка' to 'BAD'
+                statusClass = 'status-error'; // Will use status-error which links to bad color
                 bubble.classList.remove('loading'); 
                 break;
             default:
@@ -476,6 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const finishSessionBtn = document.getElementById('finishSessionBtn');
     if (finishSessionBtn) {
+        // Only show finish session button if there are uploaded videos
         if (JSON.parse(localStorage.getItem('uploadedVideos') || '[]').length > 0) {
             finishSessionBtn.style.display = 'inline-block';
         } else {
