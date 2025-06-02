@@ -1,57 +1,49 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Upload Video - Hife Video Analyzer</title>
-    <link rel="stylesheet" href="css/style.css" />
-    <link rel="icon" type="image/png" href="assets/hife_favicon.png" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Загрузка видео - Hife</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="assets/hife_favicon.ico" type="image/x-icon">
 </head>
 <body class="fade-in">
     <div class="background">
-        <h3>Connect Your Socials and upload your video(s)</h3>
-        <form class="social-form">
-            <label for="instagramInput" class="sr-only">Instagram Username</label>
-            <input type="text" id="instagramInput" placeholder="Instagram (обязательно)" name="instagram"/>
+        <header class="header-section">
+            <h1>Загрузите свои видео</h1>
+            <p>Пожалуйста, выберите видеофайлы для загрузки. Мы обработаем их и извлечем метаданные.</p>
+        </header>
 
-            <label for="linkedinInput" class="sr-only">LinkedIn Profile URL</label>
-            <input type="text" id="linkedinInput" placeholder="LinkedIn" name="linkedin"/>
-
-            <label for="emailInput" class="sr-only">Email Address</label>
-            <input type="email" id="emailInput" placeholder="Email" name="email"/>
+        <form id="uploadForm" class="social-form">
+            <h3>Ваши данные (необязательно)</h3>
+            <input type="text" id="instagramUsername" placeholder="Ваш ник в Instagram (например, @username)">
+            <input type="email" id="email" placeholder="Ваш адрес электронной почты">
+            <input type="text" id="linkedinProfile" placeholder="Ссылка на ваш профиль LinkedIn">
+            
+            <div class="button-center-group">
+                <input type="file" id="videoFileInput" accept="video/*" multiple class="sr-only">
+                <button type="button" id="selectFilesButton" class="gold-button">Выбрать видео</button>
+                <button type="submit" id="uploadButton" class="gold-button" disabled>Загрузить видео</button>
+            </div>
+            <p id="statusMessage" class="status-message">Пожалуйста, выберите видеофайлы для загрузки.</p>
+            
+            <div class="progress-bar-container hidden">
+                <div class="progress-bar"></div>
+                <span class="progress-text">0%</span>
+            </div>
         </form>
 
-        <div class="button-center-group">
-            <input type="file" id="videoFileInput" accept="video/*" multiple hidden />
-            <button type="button" id="selectFilesButton" class="gold-button">Choose your Video(s)</button> 
-            <button type="button" id="finishUploadButton" class="gold-button" style="display: none;">Перейти к результатам</button> 
-        </div>
-        
-        <p id="generalStatusMessage" class="status-message"></p>
-
-        <div class="progress-bar-container" style="display: none;">
-            <div class="progress-bar" id="progressBar"></div>
-            <div class="progress-text" id="progressText">0%</div>
+        <div class="selected-files-preview-section">
+            <h3>Выбранные файлы:</h3>
+            <!-- Здесь будут отображаться предпросмотры файлов -->
+            <div id="filePreviews" class="previews-grid">
+                <!-- Пузырьки предпросмотра будут добавлены сюда с помощью JavaScript -->
+            </div>
         </div>
 
-        <div class="selected-files-preview-section" style="display: none;">
-            <h3>Выбранные для загрузки видео:</h3>
-            <div id="selectedFilesPreviewContainer" class="previews-grid">
-                </div>
-        </div>
-        
-        <!-- Эти элементы (fileValidationStatusList и videoUploadProgressList) не используются текущей логикой JS для отображения прогресса/статуса,
-             но я оставляю их, если ваш старый CSS на них завязан. Если они не используются, их можно удалить, чтобы упростить HTML. -->
-        <div id="fileValidationStatusList" class="video-info-list"></div>
-        <div id="videoUploadProgressList" class="video-info-list"></div>
-
-        <div class="upload-section">
-            <h2>Ваши загруженные видео</h2>
-            <ul id="uploadedVideosList" class="uploaded-videos-list">
-            </ul>
-        </div>
+        <button id="goToResultsButton" class="gold-button hidden">Перейти к результатам</button>
     </div>
 
-    <script src="script/upload_validation.js"></script>
+    <script src="script/upload.js"></script>
 </body>
 </html>
