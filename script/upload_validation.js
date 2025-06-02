@@ -46,10 +46,11 @@ document.addEventListener('DOMContentLoaded', () => {
     updateUploadedVideosList();
     checkFinishButtonStatus();
 
-    if (currentUploadXhr) {
-        currentUploadXhr.abort();
-        console.log('Предыдущая загрузка отменена.');
-    }
+    // НЕ НУЖНО отменять загрузку при DOMContentLoaded, так как она еще не началась
+    // if (currentUploadXhr) {
+    //     currentUploadXhr.abort();
+    //     console.log('Предыдущая загрузка отменена.');
+    // }
 
     selectFilesButton.disabled = true;
 
@@ -81,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
     videoInput.addEventListener('change', () => {
         generalStatusMessage.textContent = '';
         filesToUpload = Array.from(videoInput.files); // Преобразуем FileList в массив
-        currentFileIndex = 0; // Сбрасываем индекс
+        currentFileIndex = 0; // Сбрасываем индекс для новой очереди загрузки
 
         if (filesToUpload.length === 0) {
             validateInputs();
@@ -96,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (file.size > MAX_VIDEO_SIZE_BYTES) {
                 generalStatusMessage.textContent = `Видео "${file.name}" слишком большое. Максимум ${MAX_VIDEO_SIZE_MB} MB.`;
                 generalStatusMessage.style.color = 'var(--status-error-color)';
-                videoInput.value = ''; // Сброс всех выбранных файлов
+                videoInput.value = ''; // Сброс всех выбранных файлов, если хоть один невалиден
                 allFilesValid = false;
                 break;
             }
@@ -117,7 +118,11 @@ document.addEventListener('DOMContentLoaded', () => {
              return;
         }
 
-        filesToValidateMetadata.forEach((file, index) => {
+        generalStatusMessage.textContent = 'Проверка выбранных видео...';
+        generalStatusMessage.style.color = 'var(--status-info-color)';
+
+
+        filesToValidateMetadata.forEach((file) => { // Убрал index, он здесь не нужен
             const tempVideoElement = document.createElement('video');
             tempVideoElement.preload = 'metadata';
             tempVideoElement.src = URL.createObjectURL(file);
@@ -139,21 +144,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (validationsCompleted === totalFilesForValidation) {
                     // Все асинхронные валидации завершены
                     if (allFilesValid) {
-                        // Если все файлы валидны, запускаем загрузку первого
-                        const username = instagramInput.value.trim();
-                        const email = emailInput.value.trim();
-                        const linkedin = linkedinInput.value.trim();
-
-                        if (username || email || linkedin) {
-                            // Начинаем загрузку первого файла из filesToUpload
-                            if (filesToUpload.length > 0) {
-                                uploadNextFile();
-                            }
-                        } else {
-                            generalStatusMessage.textContent = 'Пожалуйста, заполните Instagram ID, Email или LinkedIn, чтобы начать загрузку.';
-                            generalStatusMessage.style.color = 'var(--status-error-color)';
-                            selectFilesButton.disabled = true;
-                        }
+                        generalStatusMessage.textContent = `Все ${filesToUpload.length} видео готовы к загрузке. Нажмите "Upload Video(s)".`;
+                        generalStatusMessage.style.color = 'var(--status-completed-color)';
+                        validateInputs(); // Обновляем состояние кнопки
                     } else {
                         // Если хотя бы один файл невалиден, сбрасываем все
                         filesToUpload = []; // Очищаем список для загрузки
@@ -189,14 +182,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             uploadVideo(file, username, email, linkedin);
         } else {
-            // Все файлы загружены
-            generalStatusMessage.textContent = 'Все видео загружены!';
+            // --- ИСПРАВЛЕНИЕ: Все файлы загружены. Теперь можно перейти на results.html ---
+            generalStatusMessage.textContent = 'Все видео успешно загружены!';
             generalStatusMessage.style.color = 'var(--status-completed-color)';
             selectFilesButton.disabled = false; // Снова активируем кнопку
             videoInput.value = ''; // Очищаем поле выбора файлов
             resetProgressBar();
-            // После загрузки всех файлов, можно перейти на results.html
-            // window.location.replace('results.html'); // Если нужен автоматический переход после ВСЕХ загрузок
+            // Переходим на results.html ТОЛЬКО после загрузки ВСЕХ файлов
+            window.location.replace('results.html');
         }
     }
 
@@ -210,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!username && !email && !linkedin) {
             generalStatusMessage.textContent = 'Пожалуйста, введите Instagram ID, Email или LinkedIn.';
             generalStatusMessage.style.color = 'var(--status-error-color)';
-            validateInputs();
+            validateInputs(); // Обновляем состояние кнопки, если нужно
             return;
         }
 
@@ -218,19 +211,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (filesToUpload.length === 0 || videoInput.files.length === 0) {
             generalStatusMessage.textContent = 'Выберите видеофайл(ы)...';
             generalStatusMessage.style.color = 'var(--status-info-color)';
-            videoInput.click();
+            videoInput.click(); // Имитируем клик по скрытому input
             return;
         }
 
-        // Если файлы уже выбраны и валидны (логика из change-события),
+        // Если файлы уже выбраны и прошли предварительную валидацию,
         // и пользователь нажал кнопку, запускаем загрузку (если она еще не началась)
-        if (currentFileIndex < filesToUpload.length) {
-            uploadNextFile(); // Запускаем или продолжаем загрузку
-        }
+        selectFilesButton.disabled = true; // Отключаем кнопку, пока идет загрузка
+        uploadNextFile(); // Запускаем или продолжаем загрузку
     });
 
     function uploadVideo(file, username, email, linkedin) {
-        selectFilesButton.disabled = true;
+        // selectFilesButton.disabled = true; // Уже отключено в uploadNextFile
         generalStatusMessage.textContent = `Загрузка видео ${currentFileIndex + 1} из ${filesToUpload.length}: ${file.name}...`;
         generalStatusMessage.style.color = 'var(--status-info-color)';
 
@@ -264,9 +256,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         currentUploadXhr.onload = function() {
-            // selectFilesButton.disabled = false; // Не включаем кнопку, пока все файлы не загружены
-            // videoInput.value = ''; // Не очищаем сразу, чтобы можно было отслеживать прогресс
-
             if (currentUploadXhr.status >= 200 && currentUploadXhr.status < 300) {
                 const response = JSON.parse(currentUploadXhr.responseText);
                 const taskId = response.taskId;
@@ -280,9 +269,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 uploadedVideos.push(newVideoEntry);
                 localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
 
-                // --- НОВОЕ: Переходим на results.html сразу после загрузки каждого файла ---
-                window.location.replace('results.html');
-                // --- КОНЕЦ НОВОГО БЛОКА ---
+                currentFileIndex++; // Переходим к следующему файлу в очереди
+                // --- ИСПРАВЛЕНИЕ: Вызываем uploadNextFile() для продолжения очереди ---
+                uploadNextFile();
 
             } else {
                 const error = JSON.parse(currentUploadXhr.responseText);
@@ -292,8 +281,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectFilesButton.disabled = false; // Включаем кнопку после ошибки
                 validateInputs();
             }
-            // currentFileIndex++; // Перемещаем сюда, чтобы инкрементировать после обработки текущего файла
-            // uploadNextFile(); // Запускаем загрузку следующего файла
         };
 
         currentUploadXhr.onerror = function() {
@@ -322,10 +309,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                linkedinInput.value.trim() !== '';
 
         const filesSelected = videoInput.files.length > 0;
-        let allSelectedFilesAreValid = true; // Предполагаем, что все выбранные файлы валидны
+        let allSelectedFilesAreValid = true;
 
         if (filesSelected) {
-            // Проверяем все выбранные файлы на размер (длительность проверяется асинхронно)
             for (const file of Array.from(videoInput.files)) {
                 if (file.size > MAX_VIDEO_SIZE_BYTES) {
                     allSelectedFilesAreValid = false;
@@ -338,15 +324,21 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Заполнено хотя бы одно из полей
         // И
         // 2. Либо файлы еще не выбраны (тогда клик по кнопке откроет диалог выбора),
-        //    ЛИБО выбраны файлы, и все они прошли синхронную валидацию по размеру.
-        //    (Асинхронная валидация длительности запускает загрузку или показывает ошибку)
-        selectFilesButton.disabled = !(anyFieldFilled && (!filesSelected || allSelectedFilesAreValid));
+        //    ЛИБО выбраны файлы, и все они прошли синхронную валидацию по размеру,
+        //    и процесс загрузки еще не начался/завершился.
+        selectFilesButton.disabled = !(anyFieldFilled && (!filesSelected || allSelectedFilesAreValid) && currentFileIndex >= filesToUpload.length);
 
         if (!selectFilesButton.disabled && generalStatusMessage.style.color === 'var(--status-error-color)' &&
             !generalStatusMessage.textContent.includes('слишком')) {
             generalStatusMessage.textContent = '';
         }
+
+         // Если файлы выбраны и валидны, и не идет загрузка, кнопка должна быть активна
+        if (anyFieldFilled && filesSelected && allSelectedFilesAreValid && currentFileIndex < filesToUpload.length) {
+            selectFilesButton.disabled = false;
+        }
     }
+
 
     function updateUploadedVideosList() {
         uploadedVideosList.innerHTML = '';
