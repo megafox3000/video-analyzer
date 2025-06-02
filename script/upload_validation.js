@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         filesToUpload.forEach(file => {
             const previewBubble = document.createElement('div');
-            previewBubble.className = 'preview-bubble';
+            previewBubble.className = 'preview-bubble media-bubble'; // <--- ДОБАВЛЕН КЛАСС media-bubble
 
             // Use <video> for preview, as it's a video file
             const videoElement = document.createElement('video');
