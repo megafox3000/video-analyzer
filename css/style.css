@@ -13,6 +13,8 @@
     --status-completed-color: #28a745; /* Green */
     --status-error-color: #dc3545; /* Red */
     --status-info-color: #c0c0c0; /* Light gray for general info messages */
+    --status-bad-color: #dc3545; /* Red for BAD status */
+    --status-ok-color: #28a745; /* Green for OK status */
 }
 
 /* Общие сбросы и базовые стили */
@@ -101,7 +103,8 @@ h1 {
     transition: all 0.3s ease;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     margin: 1rem;
-    animation: pulse 2s infinite;
+    /* Анимация пульсации теперь по умолчанию для всех gold-button */
+    animation: pulse 2s infinite; 
     font-size: 1.2rem;
     text-decoration: none;
     display: inline-block;
@@ -245,7 +248,7 @@ h1 {
     cursor: not-allowed;
     background: #555;
     box-shadow: none;
-    animation: none;
+    animation: none; /* Отключаем анимацию для disabled кнопки */
 }
 
 .gold-button:disabled:hover {
@@ -366,7 +369,7 @@ h1 {
     z-index: 2; /* Над изображением */
 }
 
-/* Стили для overlay на upload.html (если еще используется) */
+/* Стили для overlay на upload.html (для названия файла) */
 .preview-bubble .file-name-overlay {
     position: absolute;
     bottom: 0;
@@ -441,12 +444,12 @@ h1 {
     color: var(--text-color-light); /* White text on blue-green */
 }
 .result-bubble-overlay .status-completed {
-    background-color: var(--status-completed-color);
+    background-color: var(--status-ok-color); /* Используем OK цвет */
     color: var(--text-color-light); /* White text on green */
 }
 .result-bubble-overlay .status-error,
 .result-bubble-overlay .status-failed {
-    background-color: var(--status-error-color);
+    background-color: var(--status-bad-color); /* Используем BAD цвет */
     color: var(--text-color-light); /* White text on red */
 }
 .result-bubble-overlay .status-info {
@@ -483,7 +486,7 @@ h1 {
 
 #uploadNewBtn {
     margin-top: 1.5rem;
-    animation: none; /* Убираем пульсацию для этой кнопки */
+    /* Теперь анимация пульсации применена по умолчанию через .gold-button */
 }
 
 /* Контейнер для динамического статуса дозагрузки на results.html */
@@ -511,7 +514,7 @@ h1 {
 /* Адаптивность для карточек results.html */
 @media (max-width: 768px) {
     .results-grid { /* Apply to results grid */
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Уменьшаем размер для мобильных */
+        /* grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); */ /* Использование flexbox делает это ненужным */
         gap: 1rem;
     }
     .media-bubble { /* Apply to media bubble */
@@ -525,7 +528,7 @@ h1 {
 
 @media (max-width: 480px) {
     .results-grid { /* Apply to results grid */
-        grid-template-columns: 1fr; /* Одна колонка на очень маленьких экранах */
+        /* grid-template-columns: 1fr; */ /* Использование flexbox делает это ненужным */
         padding: 1rem;
     }
     .media-bubble { /* Apply to media bubble */
