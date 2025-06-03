@@ -13,12 +13,15 @@
             <h3>Connect Your Socials and upload your video(s)</h3>
             <form class="social-form">
                 <label for="instagramInput" class="sr-only">Instagram Username</label>
-                <input type="text" id="instagramInput" placeholder="Instagram (обязательно)" name="instagram"/>
+                <!-- ИЗМЕНЕНО: name="instagram_username" -->
+                <input type="text" id="instagramInput" placeholder="Instagram (обязательно)" name="instagram_username"/>
 
                 <label for="linkedinInput" class="sr-only">LinkedIn Profile URL</label>
-                <input type="text" id="linkedinInput" placeholder="LinkedIn" name="linkedin"/>
+                <!-- ИЗМЕНЕНО: name="linkedin_profile" -->
+                <input type="text" id="linkedinInput" placeholder="LinkedIn" name="linkedin_profile"/>
 
                 <label for="emailInput" class="sr-only">Email Address</label>
+                <!-- Это поле уже было правильным: name="email" -->
                 <input type="email" id="emailInput" placeholder="Email" name="email"/>
             </form>
 
