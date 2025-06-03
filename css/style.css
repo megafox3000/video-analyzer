@@ -30,12 +30,12 @@ html, body {
     color: var(--text-color-light);
     scroll-behavior: smooth;
     overflow-x: hidden;
-    **min-height: 100vh; /* ДОБАВЛЕНО: Гарантирует, что body занимает всю высоту окна */**
-    **width: 100%; /* ДОБАВЛЕНО: Гарантирует, что body занимает всю ширину */**
-    **display: flex; /* ДОБАВЛЕНО: Делает body флекс-контейнером */**
-    **flex-direction: column; /* ДОБАВЛЕНО: Элементы внутри body располагаются по вертикали */**
-    **align-items: center; /* ДОБАВЛЕНО: Центрирует содержимое body по горизонтали */**
-    **justify-content: center; /* ДОБАВЛЕНО: Центрирует содержимое body по вертикали */**
+    min-height: 100vh; /* Гарантирует, что body занимает всю высоту окна */
+    width: 100%; /* Гарантирует, что body занимает всю ширину */
+    display: flex; /* Делает body флекс-контейнером */
+    flex-direction: column; /* Элементы внутри body располагаются по вертикали */
+    align-items: center; /* Центрирует содержимое body по горизонтали */
+    justify-content: center; /* Центрирует содержимое body по вертикали */
 }
 
 /* Анимация появления страницы */
@@ -50,7 +50,7 @@ body.fade-in {
 
 /* Стили для стартового экрана (index.html) */
 .start-screen {
-    height: 100dvh;
+    **height: 100vh; /* ИЗМЕНЕНО: Заменено 100dvh на 100vh для стабильности */**
     background: url('../assets/image-bkgr.jpeg') center/cover no-repeat;
     background-size: cover;
     display: flex;
@@ -59,9 +59,8 @@ body.fade-in {
     padding: 0 1rem;
     position: relative;
     text-align: center;
-    **width: 100%; /* ДОБАВЛЕНО: Гарантирует, что start-screen занимает всю ширину */**
-    **/* УБРАНО: justify-content: center; из основного блока */**
-    **/* Это свойство будет задаваться только в медиа-запросах */**
+    width: 100%; /* Гарантирует, что start-screen занимает всю ширину */
+    /* justify-content будет задаваться в медиа-запросах */
 }
 
 /* Медиа-запросы для стартового экрана */
@@ -175,7 +174,7 @@ h1 {
 
 /* --- Стили для upload.html и results.html (общие background) --- */
 .background {
-    min-height: 100dvh;
+    **min-height: 100vh; /* ИЗМЕНЕНО: Заменено 100dvh на 100vh для стабильности */**
     background: url('../assets/image-bkgr.jpeg') center/cover no-repeat;
     background-size: cover;
     position: relative;
@@ -603,6 +602,8 @@ h1 {
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
     font-size: 1.8rem;
     margin-bottom: 1rem;
     text-shadow: 1px 1px 4px var(--shadow-dark);
