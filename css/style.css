@@ -50,8 +50,8 @@ body.fade-in {
 
 /* Стили для стартового экрана (index.html) */
 .start-screen {
-    **height: 100vh; /* ИЗМЕНЕНО: Заменено 100dvh на 100vh для стабильности */**
-    background: url('assets/image-bkgr.jpeg') center/cover no-repeat;
+    height: 100vh; /* Заменено 100dvh на 100vh для стабильности */
+    background: url('../assets/image-bkgr.jpeg') center/cover no-repeat; /* ВОЗВРАЩЕНО: ../ к пути */
     background-size: cover;
     display: flex;
     flex-direction: column;
@@ -174,8 +174,8 @@ h1 {
 
 /* --- Стили для upload.html и results.html (общие background) --- */
 .background {
-    **min-height: 100vh; /* ИЗМЕНЕНО: Заменено 100dvh на 100vh для стабильности */**
-    background: url('assets/image-bkgr.jpeg') center/cover no-repeat;
+    min-height: 100vh; /* Заменено 100dvh на 100vh для стабильности */
+    background: url('../assets/image-bkgr.jpeg') center/cover no-repeat; /* ВОЗВРАЩЕНО: ../ к пути */
     background-size: cover;
     position: relative;
     z-index: 0;
