@@ -1,27 +1,20 @@
 /* Переменные для цветов и градиентов */
 :root {
     --gold-gradient: linear-gradient(45deg, #FFD700, #FFA500);
-    --text-color-dark: #000; /* Используется для текста на золотых кнопках */
-    --text-color-light: #fff; /* Основной светлый текст */
-    --background-color-dark: #000; /* Для основного фона body */
+    --text-color-dark: #000;
+    --text-color-light: #fff;
+    --background-color-dark: #000;
+    --shadow-light: rgba(0,0,0,0.3);
+    --shadow-dark: rgba(0,0,0,0.4);
 
-    --primary-color: #f7f7f7; /* Светло-серый, основной текст на темном фоне */
-    --secondary-color: #e0e0e0; /* Чуть темнее серого, для фона баблов */
-    --accent-color: #daa520; /* Золотой, для акцентов и границ */
-    --background-color: #1a1a1a; /* Темный фон для секций/модалов */
-    --shadow-color: rgba(0, 0, 0, 0.5); /* Общий цвет тени */
-    --border-radius: 8px; /* Общий радиус скругления */
-
-    /* Переменные для статусов (согласованы с JS) */
-    --status-info-color: #61dafb; /* Светло-голубой для информации */
-    --status-pending-color: #f0ad4e; /* Оранжевый для ожидания */
-    --status-error-color: #d9534f; /* Красный для ошибок */
-    --status-completed-color: #5cb85c; /* Зеленый для завершено */
-    --status-bad-color: #dc3545; /* Красный для BAD статуса */
-    --status-ok-color: #28a745; /* Зеленый для OK статуса */
-
-    --input-bg-color: #2a2a2a; /* Фон для полей ввода */
-    --border-color: #555; /* Цвет границы для полей ввода и некоторых элементов */
+    /* Новые переменные для статусов (согласованы с JS) */
+    --status-pending-color: #ffa500; /* Orange */
+    --status-processing-color: #17a2b8; /* Blue-green (used for processing status) */
+    --status-completed-color: #28a745; /* Green */
+    --status-error-color: #dc3545; /* Red */
+    --status-info-color: #c0c0c0; /* Light gray for general info messages */
+    --status-bad-color: #dc3545; /* Red for BAD status */
+    --status-ok-color: #28a745; /* Green for OK status */
 }
 
 /* Общие сбросы и базовые стили */
@@ -32,21 +25,22 @@
 html, body {
     margin: 0;
     padding: 0;
-    font-family: 'Segoe UI', sans-serif; /* Восстановлен Segoe UI */
+    font-family: 'Segoe UI', sans-serif;
     background: var(--background-color-dark);
     color: var(--text-color-light);
     scroll-behavior: smooth;
     overflow-x: hidden;
-    min-height: 100vh; /* Обеспечивает, что body занимает всю высоту */
-    display: flex; /* Для центрирования контента в body */
-    flex-direction: column; /* Для центрирования контента в body */
-    align-items: center; /* Для центрирования контента в body */
-    justify-content: flex-start; /* Выравнивание контента к верху, если его мало */
+    **min-height: 100vh; /* ДОБАВЛЕНО: Гарантирует, что body занимает всю высоту окна */**
+    **width: 100%; /* ДОБАВЛЕНО: Гарантирует, что body занимает всю ширину */**
+    **display: flex; /* ДОБАВЛЕНО: Делает body флекс-контейнером */**
+    **flex-direction: column; /* ДОБАВЛЕНО: Элементы внутри body располагаются по вертикали */**
+    **align-items: center; /* ДОБАВЛЕНО: Центрирует содержимое body по горизонтали */**
+    **justify-content: center; /* ДОБАВЛЕНО: Центрирует содержимое body по вертикали */**
 }
 
 /* Анимация появления страницы */
 body.fade-in {
-    animation: fadeIn 2s ease-in forwards; /* Восстановлена длительность 2s */
+    animation: fadeIn 2s ease-in forwards;
 }
 
 @keyframes fadeIn {
@@ -65,8 +59,9 @@ body.fade-in {
     padding: 0 1rem;
     position: relative;
     text-align: center;
-    justify-content: center; /* Центрирование по вертикали по умолчанию */
-    width: 100%; /* Занимает всю ширину */
+    **width: 100%; /* ДОБАВЛЕНО: Гарантирует, что start-screen занимает всю ширину */**
+    **/* УБРАНО: justify-content: center; из основного блока */**
+    **/* Это свойство будет задаваться только в медиа-запросах */**
 }
 
 /* Медиа-запросы для стартового экрана */
@@ -74,6 +69,12 @@ body.fade-in {
     .start-screen {
         justify-content: flex-end;
         padding-bottom: 4rem;
+    }
+}
+
+@media(min-width: 601px) {
+    .start-screen {
+        justify-content: center;
     }
 }
 
@@ -140,19 +141,11 @@ h1 {
         width: 100px;
         height: 100px;
     }
-    .gold-button {
-        padding: 0.8rem 1.5rem;
-        font-size: 1.1rem;
-    }
 }
 
 @media(max-width: 400px) {
     h1 {
         font-size: 1.8rem;
-    }
-    .gold-button {
-        width: 100%;
-        margin: 0.5rem 0;
     }
 }
 
@@ -180,19 +173,20 @@ h1 {
     }
 }
 
-/* --- Стили для upload.html, results.html, finish.html (общий background) --- */
+/* --- Стили для upload.html и results.html (общие background) --- */
 .background {
-    min-height: 100vh; /* Используем vh для полной высоты */
-    width: 100%; /* Занимает всю ширину */
+    min-height: 100dvh;
     background: url('../assets/image-bkgr.jpeg') center/cover no-repeat;
     background-size: cover;
     position: relative;
     z-index: 0;
+
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     padding: 2rem;
-    color: var(--text-color-light);
+    color: #fff;
 }
 
 /* Псевдоэлемент для затемнения фонового изображения */
@@ -205,20 +199,6 @@ h1 {
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
     z-index: -1;
-}
-
-/* Контейнер для контента внутри .background, чтобы он не был слишком широким */
-.content-container {
-    background-color: rgba(0, 0, 0, 0.7); /* Полупрозрачный темный фон для контента */
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    max-width: 900px; /* Максимальная ширина для читаемости */
-    width: 100%;
-    box-sizing: border-box;
-    margin: 20px auto; /* Центрирование с отступами */
-    position: relative;
-    z-index: 1;
 }
 
 .background h3 {
@@ -236,17 +216,15 @@ h1 {
     margin-bottom: 2rem;
     width: 100%;
     max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .social-form input[type="text"],
 .social-form input[type="email"] {
     padding: 0.8rem 1.2rem;
-    border: 1px solid var(--border-color);
+    border: 1px solid #555;
     border-radius: 25px;
-    background: var(--input-bg-color);
-    color: var(--text-color-light);
+    background: #2a2a2a;
+    color: #fff;
     font-size: 1rem;
     outline: none;
     transition: border-color 0.3s ease;
@@ -254,12 +232,12 @@ h1 {
 
 .social-form input[type="text"]:focus,
 .social-form input[type="email"]:focus {
-    border-color: var(--gold-gradient); /* Использование градиента для фокуса */
+    border-color: #FFD700;
 }
 
 /* Стиль для поля ввода при ошибке */
 .social-form input[style*="border-color: red"] {
-    border-color: var(--status-error-color) !important;
+    border-color: red !important;
     box-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
 }
 
@@ -291,7 +269,6 @@ h1 {
     font-size: 1rem;
     color: var(--status-info-color); /* General info color */
     text-align: center;
-    min-height: 20px; /* Чтобы избежать "прыжков" при отсутствии текста */
 }
 
 /* Progress bar for re-upload status */
@@ -342,35 +319,33 @@ h1 {
 
 /* --- ОБЩИЕ СТИЛИ ДЛЯ ПРЕВЬЮ-ПУЗЫРЬКОВ (UPLOAD И RESULTS) --- */
 /* Контейнер для сетки предпросмотров */
-.previews-grid, .results-grid {
-    display: flex; /* Используем flexbox для гибкости */
+.previews-grid, .results-grid { /* Apply to both upload and results grids */
+    display: flex;
     flex-wrap: wrap;
-    gap: 15px; /* Пространство между пузырьками */
+    gap: 10px; /* Пространство между пузырьками */
     justify-content: center; /* Выравнивание превью по центру */
     margin-top: 20px;
     width: 100%;
     max-width: 800px; /* Ограничиваем ширину для лучшего вида */
     list-style: none; /* Убираем маркеры списка для UL */
     padding: 0; /* Убираем отступы для UL */
-    margin-left: auto;
-    margin-right: auto;
 }
 
 /* Базовый стиль для каждого медиа-пузырька */
 .media-bubble {
-    width: 150px; /* Увеличен размер для лучшей видимости */
-    height: 150px; /* Увеличен размер для лучшей видимости */
-    border-radius: 8px;
+    width: 120px; /* Стандартный размер для пузырьков */
+    height: 120px; /* Стандартный размер для пузырьков */
+    border-radius: 8px; /* Скругленные углы */
     overflow: hidden;
     position: relative;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    background-color: #fff;
+    background-color: #fff; /* Белый фон для содержимого */
     border: 1px solid #ddd;
     flex-shrink: 0;
-    display: flex;
+    display: flex; /* Для центрирования контента */
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.3s ease; /* Добавлен переход для border */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;
 }
 
@@ -379,18 +354,11 @@ h1 {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* НОВЫЙ: Стиль для выбранного медиа-пузырька */
-.media-bubble.selected {
-    border: 3px solid var(--gold-gradient); /* Золотая рамка */
-    box-shadow: 0 0 15px var(--gold-gradient); /* Золотое свечение */
-}
-
-.media-bubble-img, .media-bubble video {
+.media-bubble-img { /* Стили для изображения внутри пузырька */
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 8px;
-    display: block;
+    border-radius: 8px; /* Соответствует родительскому border-radius */
 }
 
 /* Спиннер для загрузки/обработки */
@@ -406,7 +374,7 @@ h1 {
     border-top: 4px solid #FFD700;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    z-index: 2;
+    z-index: 2; /* Над изображением */
 }
 
 /* Стили для overlay на upload.html (для названия файла) */
@@ -430,13 +398,13 @@ h1 {
 
 /* --- НОВЫЕ СТИЛИ ДЛЯ ПРЕВЬЮ НА RESULTS.HTML (используем media-bubble) --- */
 
-.result-bubble-overlay {
+.result-bubble-overlay { /* Overlay для информации о видео на странице результатов */
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.7); /* Более темный overlay */
     color: #fff;
     display: flex;
     flex-direction: column;
@@ -444,25 +412,25 @@ h1 {
     align-items: center;
     padding: 5px;
     text-align: center;
-    border-radius: 8px;
+    border-radius: 8px; /* Соответствует форме пузырька */
     box-sizing: border-box;
-    z-index: 1;
+    z-index: 1; /* Под спиннером, но над изображением */
 }
 
 .result-bubble-overlay .bubble-title {
     font-size: 0.85em;
     font-weight: bold;
-    background: var(--gold-gradient);
+    background: var(--gold-gradient); /* Золотой цвет для заголовка */
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    color: transparent;
+    color: transparent; /* Fallback for browsers not supporting text-fill-color */
     margin-bottom: 3px;
     word-wrap: break-word;
     white-space: normal;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-height: 50%;
+    max-height: 50%; /* Ограничиваем высоту для длинных имен */
     line-height: 1.2;
 }
 
@@ -472,27 +440,28 @@ h1 {
     padding: 2px 5px;
     border-radius: 3px;
     margin-top: 5px;
-    color: var(--text-color-dark);
+    color: var(--text-color-dark); /* Default to dark text for readability on colored backgrounds */
 }
 
 /* Цвета статусов для overlay на results.html */
-.result-bubble-overlay .status-pending { background-color: var(--status-pending-color); }
-.result-bubble-overlay .status-processing { background-color: var(--status-processing-color); color: var(--text-color-light); }
-.result-bubble-overlay .status-completed { background-color: var(--status-ok-color); color: var(--text-color-light); }
+.result-bubble-overlay .status-pending {
+    background-color: var(--status-pending-color);
+}
+.result-bubble-overlay .status-processing {
+    background-color: var(--status-processing-color);
+    color: var(--text-color-light); /* White text on blue-green */
+}
+.result-bubble-overlay .status-completed {
+    background-color: var(--status-ok-color); /* Используем OK цвет */
+    color: var(--text-color-light); /* White text on green */
+}
 .result-bubble-overlay .status-error,
-.result-bubble-overlay .status-failed { background-color: var(--status-bad-color); color: var(--text-color-light); }
-.result-bubble-overlay .status-info { background-color: var(--status-info-color); }
-
-/* НОВЫЙ: Чекбокс выбора видео внутри пузырька */
-.video-selection-checkbox {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    z-index: 10;
-    width: 25px; /* Увеличен размер чекбокса */
-    height: 25px; /* Увеличен размер чекбокса */
-    cursor: pointer;
-    accent-color: var(--gold-gradient); /* Изменение цвета самого чекбокса */
+.result-bubble-overlay .status-failed {
+    background-color: var(--status-bad-color); /* Используем BAD цвет */
+    color: var(--text-color-light); /* White text on red */
+}
+.result-bubble-overlay .status-info {
+    background-color: var(--status-info-color);
 }
 
 
@@ -504,11 +473,9 @@ h1 {
     padding-top: 2rem;
     width: 100%;
     max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
 }
 
-.header-section h1 {
+.header-section h1 { /* Changed from h2 to h1 to match your HTML */
     font-size: 2.5rem;
     background: var(--gold-gradient);
     -webkit-background-clip: text;
@@ -527,13 +494,14 @@ h1 {
 
 #uploadNewBtn {
     margin-top: 1.5rem;
+    /* Теперь анимация пульсации применена по умолчанию через .gold-button */
 }
 
 /* Контейнер для динамического статуса дозагрузки на results.html */
-.upload-status-container {
+.upload-status-container { /* Corrected class name to match your HTML */
     width: 100%;
     max-width: 600px;
-    margin: 1rem auto 2rem auto;
+    margin: 1rem auto 2rem auto; /* Центрируем и добавляем отступы */
     padding: 1rem;
     background: rgba(34, 34, 34, 0.8);
     border-radius: 10px;
@@ -541,133 +509,45 @@ h1 {
     text-align: center;
 }
 
-.upload-status-container.hidden {
+.upload-status-container.hidden { /* Corrected class name */
     display: none;
 }
 
-.upload-status-container .status-message {
+.upload-status-container .status-message { /* Corrected class name */
     margin-bottom: 0.5rem;
-    color: var(--status-info-color);
-}
-
-/* НОВЫЙ: Контейнер для переключателя "Объединить видео" */
-.connect-videos-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    margin-top: 30px;
-    margin-bottom: 20px;
-    padding: 15px 20px;
-    background-color: var(--input-bg-color); /* Используем цвет для полей ввода */
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-}
-
-.connect-videos-container label {
-    color: var(--text-color-light);
-    font-size: 1.1em;
-    user-select: none; /* Предотвращает выделение текста при клике */
-}
-
-/* НОВЫЙ: Стили для кастомного переключателя */
-.toggle-checkbox {
-    -webkit-appearance: none; /* Скрываем стандартный чекбокс */
-    -moz-appearance: none;
-    appearance: none;
-    width: 50px;
-    height: 28px;
-    background-color: #ccc; /* Серый фон по умолчанию */
-    border-radius: 14px; /* Округлые края */
-    position: relative;
-    cursor: pointer;
-    outline: none;
-    transition: background-color 0.3s;
-}
-
-.toggle-checkbox::before {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 24px;
-    height: 24px;
-    background-color: #fff; /* Белый кружок */
-    border-radius: 50%;
-    transition: transform 0.3s;
-    box-shadow: rgba(0, 0, 0, 0.2) 0px 2px 5px;
-}
-
-.toggle-checkbox:checked {
-    background-color: var(--gold-gradient); /* Золотой градиент при включении */
-}
-
-.toggle-checkbox:checked::before {
-    transform: translateX(22px); /* Перемещение кружка вправо */
-}
-
-/* НОВЫЙ: Стили для сообщения о статусе конкатенации */
-.concatenation-status {
-    margin-top: 15px;
-    padding: 10px;
-    border-radius: 5px;
-    font-size: 1em;
-    text-align: center;
-    min-height: 20px; /* Чтобы избежать "прыжков" при отсутствии текста */
-}
-
-.concatenation-status.info {
-    background-color: rgba(97, 218, 251, 0.2); /* Прозрачный синий */
-    color: var(--status-info-color);
-}
-
-.concatenation-status.pending {
-    background-color: rgba(240, 173, 78, 0.2); /* Прозрачный оранжевый */
-    color: var(--status-pending-color);
-}
-
-.concatenation-status.error {
-    background-color: rgba(217, 83, 79, 0.2); /* Прозрачный красный */
-    color: var(--status-error-color);
-}
-
-.concatenation-status.completed {
-    background-color: rgba(92, 184, 92, 0.2); /* Прозрачный зеленый */
-    color: var(--status-completed-color);
+    color: var(--status-info-color); /* Default color for status messages */
 }
 
 
 /* Адаптивность для карточек results.html */
 @media (max-width: 768px) {
-    .results-grid {
+    .results-grid { /* Apply to results grid */
+        /* grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); */ /* Использование flexbox делает это ненужным */
         gap: 1rem;
     }
-    .media-bubble {
-        width: 120px; /* Уменьшаем размер на мобильных */
-        height: 120px;
+    .media-bubble { /* Apply to media bubble */
+        width: 100px;
+        height: 100px;
     }
-    .header-section h1 {
+    .header-section h1 { /* Changed from h2 to h1 */
         font-size: 2rem;
     }
 }
 
 @media (max-width: 480px) {
-    .results-grid {
+    .results-grid { /* Apply to results grid */
+        /* grid-template-columns: 1fr; */ /* Использование flexbox делает это ненужным */
         padding: 1rem;
     }
-    .media-bubble {
-        width: 100px; /* Еще уменьшаем размер на очень маленьких экранах */
-        height: 100px;
+    .media-bubble { /* Apply to media bubble */
+        width: 120px; /* Keep a reasonable size for single column */
+        height: 120px;
     }
-    .header-section h1 {
+    .header-section h1 { /* Changed from h2 to h1 */
         font-size: 1.8rem;
     }
     .header-section p {
         font-size: 1rem;
-    }
-    .connect-videos-container {
-        flex-direction: column; /* Стек для чекбокса и текста */
-        gap: 5px;
     }
 }
 
@@ -773,23 +653,4 @@ h1 {
 
 #finishSessionBtn:hover {
     background: linear-gradient(45deg, #FF4D4D, #CC3B3B); /* Более темный красный при наведении */
-}
-
-/* Стили для video-display-container на finish.html */
-.video-display-container {
-    margin-top: 20px;
-    width: 100%;
-    max-width: 720px; /* Ширина видеоплеера */
-    background-color: #000;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.video-display-container video {
-    width: 100%;
-    height: auto;
-    display: block;
 }
