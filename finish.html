@@ -1,56 +1,101 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Объединенное Видео - Hife Video Analyzer</title>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Сессия завершена - Hife Video Analyzer</title>
     <link rel="stylesheet" href="css/style.css" />
     <link rel="icon" type="image/png" href="assets/favicon.png" />
-    <!-- Font Awesome для иконок (добавлено) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Эти стили были в предыдущей версии, я их сохранил */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h2 {
+            color: var(--text-color-light);
+            margin-bottom: 1.5rem;
+        }
+        .gold-button {
+            margin-top: 1rem;
+        }
+
+        /* НОВЫЕ СТИЛИ ДЛЯ ВИДЕОПЛЕЕРА И СТАТУСА НА finish.html */
+        .video-player-container {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 640px; /* Максимальная ширина для видео */
+            background-color: #000; /* Черный фон для плеера */
+            border-radius: 8px;
+            overflow: hidden; /* Скрывает все, что выходит за границы */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .video-player-container video {
+            width: 100%;
+            height: auto;
+            display: block; /* Убирает лишние отступы под видео */
+        }
+
+        #finishStatusMessage {
+            margin-top: 15px;
+            font-size: 1.1em;
+            color: var(--text-color-light);
+        }
+    </style>
 </head>
 <body class="fade-in">
     <div class="background">
-        <!-- ОТКРЫВАЕМ НОВЫЙ DIV С КЛАССОМ content-container -->
-        <div class="content-container">
-            <div class="header-section">
-                <h1 id="finishHeader">Ваше Объединенное Видео</h1>
-                <p>Ниже представлено ваше видео, созданное путем объединения выбранных клипов.</p>
-                <button id="backToResultsBtn" class="gold-button">Вернуться к Результатам</button>
-            </div>
+        <div class="content-container"> <h2>Ваша сессия завершена!</h2>
+            <p>Спасибо, что воспользовались Hife Video Analyzer. Ваши видео обрабатываются.</p>
+            <p>Вы можете закрыть эту страницу.</p>
 
-            <div class="video-display-container">
-                <video id="concatenatedVideoPlayer" controls autoplay loop muted playsinline></video>
+            <div class="video-player-container" style="display: none;">
+                <video id="concatenatedVideoPlayer" controls autoplay loop muted playsinline>
+                    Ваш браузер не поддерживает видео HTML5.
+                </video>
             </div>
-
-            <div class="status-message info" id="finishStatusMessage"></div>
-        </div>
-        <!-- ЗАКРЫВАЕМ DIV content-container -->
-    </div>
+            <p id="finishStatusMessage" class="status-message info"></p>
+            <button type="button" id="returnToUploadButton" class="gold-button">Начать новую сессию</button>
+        </div> </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const returnToUploadButton = document.getElementById('returnToUploadButton');
             const concatenatedVideoPlayer = document.getElementById('concatenatedVideoPlayer');
+            const videoPlayerContainer = document.querySelector('.video-player-container');
             const finishStatusMessage = document.getElementById('finishStatusMessage');
-            const backToResultsBtn = document.getElementById('backToResultsBtn');
 
-            // Get video URL from query parameter
-            const params = new URLSearchParams(window.location.search);
-            const videoUrl = params.get('videoUrl');
+            // Получаем URL объединенного видео из параметров URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const videoUrl = urlParams.get('videoUrl');
 
             if (videoUrl) {
-                concatenatedVideoPlayer.src = decodeURIComponent(videoUrl);
-                finishStatusMessage.textContent = 'Видео успешно загружено!';
-                finishStatusMessage.classList.add('completed');
-                concatenatedVideoPlayer.style.display = 'block'; // Show player
+                concatenatedVideoPlayer.src = videoUrl;
+                videoPlayerContainer.style.display = 'block'; // Показываем плеер
+                finishStatusMessage.textContent = 'Объединенное видео готово к просмотру!';
+                finishStatusMessage.className = 'status-message completed';
+                concatenatedVideoPlayer.load(); // Загружаем видео
+                console.log('Displaying concatenated video:', videoUrl);
             } else {
-                finishStatusMessage.textContent = 'Ошибка: URL видео не найден.';
-                finishStatusMessage.classList.add('error');
-                concatenatedVideoPlayer.style.display = 'none'; // Hide player
+                finishStatusMessage.textContent = 'Видео не было объединено. Вы можете начать новую сессию.';
+                finishStatusMessage.className = 'status-message info';
+                console.log('No video URL found for concatenation.');
             }
 
-            backToResultsBtn.addEventListener('click', () => {
-                window.location.replace('results.html');
+            returnToUploadButton.addEventListener('click', () => {
+                // Очищаем localStorage при начале новой сессии
+                localStorage.removeItem('uploadedVideos');
+                localStorage.removeItem('hifeUsername');
+                localStorage.removeItem('hifeEmail');
+                localStorage.removeItem('hifeLinkedin');
+                window.location.replace('upload.html'); // Возвращаемся к началу
             });
         });
     </script>
