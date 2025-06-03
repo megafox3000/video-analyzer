@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleVideoSelection(publicId, bubbleElement, checkboxElement) {
         if (!publicId) {
             console.warn('Attempted to select a video without a publicId.');
-            checkboxElement.checked = false; // Uncheck if publicId is missing
+            if (checkboxElement) checkboxElement.checked = false; // Uncheck if publicId is missing
             return;
         }
 
@@ -63,16 +63,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (selectedVideoPublicIds.has(publicId)) {
                 selectedVideoPublicIds.delete(publicId);
                 bubbleElement.classList.remove('selected');
-                checkboxElement.checked = false;
+                if (checkboxElement) checkboxElement.checked = false;
             } else {
                 selectedVideoPublicIds.add(publicId);
                 bubbleElement.classList.add('selected');
-                checkboxElement.checked = true;
+                if (checkboxElement) checkboxElement.checked = true;
             }
             updateConcatenationStatus();
         } else {
             // If "Concatenate" checkbox is inactive, prevent selection
-            checkboxElement.checked = false;
+            if (checkboxElement) checkboxElement.checked = false;
             bubbleElement.classList.remove('selected');
             selectedVideoPublicIds.delete(publicId); // Just in case
             updateConcatenationStatus();
@@ -225,7 +225,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Handler for metadata button
             const viewMetadataBtn = bubble.querySelector('.view-metadata-btn');
             if (viewMetadataBtn) {
-                viewMetadataBtn.addEventListener('click', () => {
+                viewMetadataBtn.addEventListener('click', (event) => {
+                    event.stopPropagation(); // Prevent bubble click from firing
                     displayMetadata(taskId, metadata);
                 });
             }
@@ -234,13 +235,27 @@ document.addEventListener('DOMContentLoaded', () => {
             const videoSelectionCheckbox = bubble.querySelector('.video-selection-checkbox');
             if (videoSelectionCheckbox) {
                 videoSelectionCheckbox.addEventListener('change', () => {
-                    toggleVideoSelection(taskId, bubble, videoSelectionCheckbox);
+                    // No need to call toggleVideoSelection here directly,
+                    // as the bubble click handler will now handle it.
+                    // This ensures consistency when clicking the checkbox itself.
                 });
                 // Restore selection state on page reload
                 if (selectedVideoPublicIds.has(taskId)) {
                     videoSelectionCheckbox.checked = true;
                     bubble.classList.add('selected');
                 }
+            }
+
+            // NEW: Add click listener to the entire bubble for selection
+            // Only add if the video is 'completed' or 'concatenated'
+            if (status === 'completed' || status === 'concatenated') {
+                bubble.addEventListener('click', () => {
+                    // Toggle the checkbox state and then call the selection function
+                    if (videoSelectionCheckbox) {
+                        videoSelectionCheckbox.checked = !videoSelectionCheckbox.checked;
+                        toggleVideoSelection(taskId, bubble, videoSelectionCheckbox);
+                    }
+                });
             }
         }
         updateConcatenationStatus(); // Update status after all videos are loaded
