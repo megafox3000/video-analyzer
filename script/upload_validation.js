@@ -3,14 +3,24 @@
 
 // УКАЖИТЕ ЗДЕСЬ АКТУАЛЬНЫЙ URL ВАШЕГО БЭКЕНДА НА RENDER.COM
 const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ URL
+
 const existingUploadedVideos = localStorage.getItem('uploadedVideos');
 const existingUsername = localStorage.getItem('hifeUsername');
 const existingEmail = localStorage.getItem('hifeEmail');
 const existingLinkedin = localStorage.getItem('hifeLinkedin');
 
 // If user data AND uploaded videos exist, redirect to results.html
-if ((existingUsername || existingEmail || existingLinkedin) && existingUploadedVideos && JSON.parse(existingUploadedVideos).length > 0) {
-    window.location.replace('results.html');
+// Corrected: Added try...catch for safer JSON parsing
+if ((existingUsername || existingEmail || existingLinkedin) && existingUploadedVideos) {
+    try {
+        const parsedVideos = JSON.parse(existingUploadedVideos);
+        if (parsedVideos.length > 0) {
+            window.location.replace('results.html');
+        }
+    } catch (e) {
+        console.error("Error parsing localStorage 'uploadedVideos':", e);
+        // If data is corrupted, do not redirect and allow user to start fresh
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -31,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedFilesPreviewSection = document.querySelector('.selected-files-preview-section');
     const selectedFilesPreviewContainer = document.getElementById('selectedFilesPreviewContainer');
 
-    const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com';
+    // Corrected: Removed duplicate RENDER_BACKEND_URL declaration
     const MAX_VIDEO_SIZE_MB = 100;
     const MAX_VIDEO_DURATION_SECONDS = 600; // Changed from 60 to 600 as per previous discussion
     const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
@@ -109,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         filesToUpload.forEach(file => {
             const previewBubble = document.createElement('div');
-            previewBubble.className = 'preview-bubble media-bubble'; // <--- ДОБАВЛЕН КЛАСС media-bubble
+            previewBubble.className = 'preview-bubble media-bubble'; // <--- ADDED media-bubble CLASS
 
             // Use <video> for preview, as it's a video file
             const videoElement = document.createElement('video');
@@ -118,8 +128,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             videoElement.src = objectURL;
             videoElement.autoplay = true; // Autoplay
-            videoElement.loop = true;     // Loop
-            videoElement.muted = true;    // Mute sound
+            videoElement.loop = true;    // Loop
+            videoElement.muted = true;   // Mute sound
             videoElement.playsinline = true; // For iOS, to play inline
             videoElement.preload = 'metadata'; // Load only metadata first
 
@@ -136,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (const file of filesToUpload) {
             if (file.size > MAX_VIDEO_SIZE_BYTES) {
-                generalStatusMessage.textContent = `Видео "${file.name}" слишком большое. Максимум ${MAX_VIDEO_SIZE_MB} MB.`;
+                generalStatusMessage.textContent = `Video "${file.name}" is too large. Max ${MAX_VIDEO_SIZE_MB} MB.`;
                 generalStatusMessage.style.color = 'var(--status-error-color)';
                 videoInput.value = ''; // Reset all selected files if at least one is invalid
                 allFilesValid = false;
@@ -160,15 +170,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalFilesForValidation = filesToValidateMetadata.length;
 
         if (totalFilesForValidation === 0) {
-             validateInputs();
-             // NEW: If no files for validation, revert button text to initial state
-             selectFilesButton.textContent = 'Choose your Video(s)';
-             clearPreviews();
-             selectedFilesPreviewSection.style.display = 'none';
-             return;
+              validateInputs();
+              // NEW: If no files for validation, revert button text to initial state
+              selectFilesButton.textContent = 'Choose your Video(s)';
+              clearPreviews();
+              selectedFilesPreviewSection.style.display = 'none';
+              return;
         }
 
-        generalStatusMessage.textContent = 'Проверка выбранных видео...';
+        generalStatusMessage.textContent = 'Checking selected videos...';
         generalStatusMessage.style.color = 'var(--status-info-color)';
 
 
@@ -183,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Revocation will happen in clearPreviews().
                 
                 if (isNaN(videoDuration) || videoDuration > MAX_VIDEO_DURATION_SECONDS) {
-                    generalStatusMessage.textContent = `Видео "${file.name}" слишком длинное. Максимум ${MAX_VIDEO_DURATION_SECONDS / 60} минут.`;
+                    generalStatusMessage.textContent = `Video "${file.name}" is too long. Max ${MAX_VIDEO_DURATION_SECONDS / 60} minutes.`;
                     generalStatusMessage.style.color = 'var(--status-error-color)';
                     videoInput.value = '';
                     allFilesValid = false;
@@ -192,13 +202,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 validationsCompleted++;
                 if (validationsCompleted === totalFilesForValidation) {
                     if (allFilesValid) {
-                        generalStatusMessage.textContent = `Все ${filesToUpload.length} видео готовы к загрузке. Нажмите "Transfer your Video(s)".`;
+                        generalStatusMessage.textContent = `All ${filesToUpload.length} videos are ready for upload. Click "Transfer your Video(s)".`;
                         generalStatusMessage.style.color = 'var(--status-completed-color)';
                         // NEW: Change button text after successful validation
                         selectFilesButton.textContent = 'Transfer your Video(s)';
                         validateInputs();
                     } else {
-                        generalStatusMessage.textContent = `Некоторые видео не прошли валидацию. Пожалуйста, выберите другие файлы.`;
+                        generalStatusMessage.textContent = `Some videos failed validation. Please select other files.`;
                         generalStatusMessage.style.color = 'var(--status-error-color)';
                         filesToUpload = [];
                         videoInput.value = ''; // Reset if invalid
@@ -214,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tempVideoElement.onerror = () => {
                 // No need to revoke URL here
                 
-                generalStatusMessage.textContent = `Не удалось загрузить метаданные видео "${file.name}". Возможно, файл поврежден или не является видео.`;
+                generalStatusMessage.textContent = `Failed to load video metadata "${file.name}". The file might be corrupted or not a video.`;
                 generalStatusMessage.style.color = 'var(--status-error-color)';
                 videoInput.value = '';
                 allFilesValid = false;
@@ -243,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadVideo(file, username, email, linkedin);
         } else {
             // All files uploaded. Now redirect to results.html
-            generalStatusMessage.textContent = 'Все видео успешно загружены!';
+            generalStatusMessage.textContent = 'All videos successfully uploaded!';
             generalStatusMessage.style.color = 'var(--status-completed-color)';
             selectFilesButton.disabled = false;
             // NEW: Revert button text to initial state after all uploads
@@ -263,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const linkedin = linkedinInput.value.trim();
 
         if (!username && !email && !linkedin) {
-            generalStatusMessage.textContent = 'Пожалуйста, введите Instagram ID, Email или LinkedIn.';
+            generalStatusMessage.textContent = 'Please enter Instagram ID, Email, or LinkedIn.';
             generalStatusMessage.style.color = 'var(--status-error-color)';
             validateInputs();
             return;
@@ -271,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // If no files in queue (or if input is empty), open file selection dialog
         if (filesToUpload.length === 0 || videoInput.files.length === 0) {
-            generalStatusMessage.textContent = 'Выберите видеофайл(ы)...';
+            generalStatusMessage.textContent = 'Select video file(s)...';
             generalStatusMessage.style.color = 'var(--status-info-color)';
             videoInput.click();
             return;
@@ -284,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function uploadVideo(file, username, email, linkedin) {
-        generalStatusMessage.textContent = `Загрузка видео ${currentFileIndex + 1} из ${filesToUpload.length}: ${file.name}...`;
+        generalStatusMessage.textContent = `Uploading video ${currentFileIndex + 1} of ${filesToUpload.length}: ${file.name}...`;
         generalStatusMessage.style.color = 'var(--status-info-color)';
 
         if (progressBarContainer) progressBarContainer.style.display = 'flex';
@@ -311,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const percent = (event.loaded / event.total) * 100;
                 if (progressBar) progressBar.style.width = `${percent.toFixed(0)}%`;
                 if (progressText) progressText.textContent = `${percent.toFixed(0)}%`;
-                generalStatusMessage.textContent = `Загрузка видео ${currentFileIndex + 1} из ${filesToUpload.length}: ${file.name} (${percent.toFixed(0)}%)`;
+                generalStatusMessage.textContent = `Uploading video ${currentFileIndex + 1} of ${filesToUpload.length}: ${file.name} (${percent.toFixed(0)}%)`;
                 generalStatusMessage.style.color = 'var(--status-info-color)';
             }
         });
@@ -322,13 +332,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const taskId = response.taskId;
 
                 const newVideoEntry = {
-                    taskId: taskId, // Вот так должно быть!
-                    original_filename: file.name,
-                    status: 'pending',
+                    taskId: taskId, // CRITICAL FIX HERE: Using taskId instead of id
+                    originalFilename: response.originalFilename || file.name, // Corrected: Use originalFilename from backend response
+                    status: 'uploaded', // Initial status after upload
                     timestamp: new Date().toISOString(),
-                    cloudinary_url: response.cloudinary_url
+                    cloudinary_url: response.cloudinary_url, // Save URL from Cloudinary
+                    metadata: response.metadata || {} // NEW: Save metadata if available
                 };
-
                 uploadedVideos.push(newVideoEntry);
                 localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
 
@@ -337,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } else {
                 const error = JSON.parse(currentUploadXhr.responseText);
-                generalStatusMessage.textContent = `Ошибка загрузки видео ${currentFileIndex + 1} из ${filesToUpload.length} ("${file.name}"): ${error.error || 'Неизвестная ошибка'}`;
+                generalStatusMessage.textContent = `Upload error for video ${currentFileIndex + 1} of ${filesToUpload.length} ("${file.name}"): ${error.error || 'Unknown error'}`;
                 generalStatusMessage.style.color = 'var(--status-error-color)';
                 resetProgressBar();
                 selectFilesButton.disabled = false;
@@ -357,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectFilesButton.disabled = false;
             // NEW: Revert button text to initial state on network error
             selectFilesButton.textContent = 'Choose your Video(s)';
-            generalStatusMessage.textContent = `Ошибка сети во время загрузки видео ${currentFileIndex + 1} из ${filesToUpload.length} ("${file.name}").`;
+            generalStatusMessage.textContent = `Network error during upload for video ${currentFileIndex + 1} of ${filesToUpload.length} ("${file.name}").`;
             generalStatusMessage.style.color = 'var(--status-error-color)';
             resetProgressBar();
             filesToUpload = []; // Clear queue on error
@@ -376,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (localStorage.getItem('uploadedVideos') && JSON.parse(localStorage.getItem('uploadedVideos')).length > 0) {
             window.location.replace('results.html');
         } else {
-            generalStatusMessage.textContent = "Видео не загружено для отображения результатов.";
+            generalStatusMessage.textContent = "No videos uploaded to show results.";
             generalStatusMessage.style.color = 'var(--status-pending-color)';
         }
     });
@@ -410,19 +420,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         if (!selectFilesButton.disabled && generalStatusMessage.style.color === 'var(--status-error-color)' &&
-            !generalStatusMessage.textContent.includes('слишком')) {
+            !generalStatusMessage.textContent.includes('too')) { // Changed 'слишком' to 'too' for consistency with English comments
             generalStatusMessage.textContent = '';
         }
     }
 
+
     function updateUploadedVideosList() {
         uploadedVideosList.innerHTML = '';
         if (uploadedVideos.length === 0) {
-            uploadedVideosList.innerHTML = '<p>Пока нет загруженных видео.</p>';
+            uploadedVideosList.innerHTML = '<p>No videos uploaded yet.</p>';
         } else {
             uploadedVideos.forEach(video => {
                 const li = document.createElement('li');
-                li.textContent = `${video.original_filename} (ID: ${video.id}) - Статус: ${video.status}`;
+                // Corrected: Use video.taskId instead of video.id for display
+                // Corrected: Use video.originalFilename instead of video.original_filename for consistency
+                li.textContent = `${video.originalFilename} (ID: ${video.taskId}) - Status: ${video.status}`; 
                 uploadedVideosList.appendChild(li);
             });
         }
