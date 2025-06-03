@@ -3,13 +3,15 @@
     --gold-gradient: linear-gradient(45deg, #FFD700, #FFA500);
     --text-color-dark: #000;
     --text-color-light: #fff;
-    --background-color-dark: #000;
+    --background-color-dark: #1a1a2e; /* Более темный фон для всего приложения */
+    --secondary-bg-color: #2a2a4a; /* Для контейнеров */
+    --tertiary-bg-color: #3a3a5a; /* Для медиа-баблов */
     --shadow-light: rgba(0,0,0,0.3);
     --shadow-dark: rgba(0,0,0,0.4);
 
-    /* Новые переменные для статусов (согласованы с JS) */
+    /* Переменные для статусов (согласованы с JS) */
     --status-pending-color: #ffa500; /* Orange */
-    --status-processing-color: #17a2b8; /* Blue-green (used for processing status) */
+    --status-processing-color: #17a2b8; /* Blue-green */
     --status-completed-color: #28a745; /* Green */
     --status-error-color: #dc3545; /* Red */
     --status-info-color: #c0c0c0; /* Light gray for general info messages */
@@ -22,20 +24,23 @@
     box-sizing: border-box;
 }
 
+/* Импорт шрифта Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 html, body {
     margin: 0;
     padding: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background: var(--background-color-dark);
+    font-family: 'Inter', 'Segoe UI', sans-serif; /* Изменено: Inter как основной, Segoe UI как запасной */
+    background: var(--background-color-dark); /* Используем новую переменную */
     color: var(--text-color-light);
     scroll-behavior: smooth;
     overflow-x: hidden;
-    min-height: 100vh; /* Гарантирует, что body занимает всю высоту окна */
-    width: 100%; /* Гарантирует, что body занимает всю ширину */
-    display: flex; /* Делает body флекс-контейнером */
-    flex-direction: column; /* Элементы внутри body располагаются по вертикали */
-    align-items: center; /* Центрирует содержимое body по горизонтали */
-    justify-content: center; /* Центрирует содержимое body по вертикали */
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start; /* Изменено: выравнивание по верху для общих страниц */
 }
 
 /* Анимация появления страницы */
@@ -50,7 +55,7 @@ body.fade-in {
 
 /* Стили для стартового экрана (index.html) */
 .start-screen {
-    height: 100vh; /* Заменено 100dvh на 100vh для стабильности */
+    height: 100vh;
     background: url('../assets/image-bkgr.jpeg') center/cover no-repeat;
     background-size: cover;
     display: flex;
@@ -59,8 +64,7 @@ body.fade-in {
     padding: 0 1rem;
     position: relative;
     text-align: center;
-    width: 100%; /* Гарантирует, что start-screen занимает всю ширину */
-    /* justify-content будет задаваться в медиа-запросах */
+    width: 100%;
 }
 
 /* Медиа-запросы для стартового экрана */
@@ -87,8 +91,8 @@ body.fade-in {
     box-shadow: 0 8px 20px var(--shadow-dark);
 }
 
-/* Стили для заголовка */
-h1 {
+/* Стили для заголовка на стартовом экране */
+.start-screen h1 { /* Уточнено для стартового экрана */
     font-size: 3.5rem;
     margin-bottom: 0.5rem;
     text-shadow: 2px 2px 8px var(--shadow-dark);
@@ -133,7 +137,7 @@ h1 {
 
 /* Медиа-запросы для адаптивности на маленьких экранах (общие) */
 @media(max-width: 768px) {
-    h1 {
+    .start-screen h1 { /* Уточнено */
         font-size: 2.5rem;
     }
     .logo {
@@ -143,7 +147,7 @@ h1 {
 }
 
 @media(max-width: 400px) {
-    h1 {
+    .start-screen h1 { /* Уточнено */
         font-size: 1.8rem;
     }
 }
@@ -183,10 +187,10 @@ h1 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: center; /* Центрируем содержимое по вертикали */
     padding: 2rem;
     color: #fff;
-    width: 100%; /* Убедимся, что фон занимает 100% ширины */
+    width: 100%;
 }
 
 /* Псевдоэлемент для затемнения фонового изображения */
@@ -204,19 +208,18 @@ h1 {
 /* Стили для контейнера содержимого на страницах, использующих .background */
 .content-container {
     width: 100%;
-    max-width: 800px; /* Ограничиваем ширину контента */
-    padding: 1rem; /* Добавляем внутренний отступ */
-    background: rgba(0, 0, 0, 0.6); /* Немного темнее фон для читаемости контента */
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    text-align: center; /* Центрируем текст внутри контейнера */
+    max-width: 800px;
+    padding: 1.5rem; /* Увеличен отступ */
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 12px; /* Увеличены скругления */
+    box-shadow: 0 6px 15px rgba(0,0,0,0.6); /* Более выраженная тень */
+    text-align: center;
     display: flex;
     flex-direction: column;
-    align-items: center; /* Центрируем элементы по горизонтали внутри content-container */
+    align-items: center;
 }
 
-
-.background h3 {
+.background h3 { /* Для заголовков внутри .background */
     font-size: 1.8rem;
     color: #FFD700;
     margin-bottom: 1.5rem;
@@ -231,8 +234,8 @@ h1 {
     margin-bottom: 2rem;
     width: 100%;
     max-width: 400px;
-    margin-left: auto; /* Для центрирования формы */
-    margin-right: auto; /* Для центрирования формы */
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .social-form input[type="text"],
@@ -284,7 +287,7 @@ h1 {
 .status-message {
     margin-top: 1rem;
     font-size: 1rem;
-    color: var(--status-info-color); /* General info color */
+    color: var(--status-info-color);
     text-align: center;
 }
 
@@ -336,30 +339,30 @@ h1 {
 
 /* --- ОБЩИЕ СТИЛИ ДЛЯ ПРЕВЬЮ-ПУЗЫРЬКОВ (UPLOAD И RESULTS) --- */
 /* Контейнер для сетки предпросмотров */
-.previews-grid, .results-grid { /* Apply to both upload and results grids */
+.previews-grid { /* Для upload.html */
     display: flex;
     flex-wrap: wrap;
-    gap: 10px; /* Пространство между пузырьками */
-    justify-content: center; /* Выравнивание превью по центру */
+    gap: 10px;
+    justify-content: center;
     margin-top: 20px;
     width: 100%;
-    max-width: 800px; /* Ограничиваем ширину для лучшего вида */
-    list-style: none; /* Убираем маркеры списка для UL */
-    padding: 0; /* Убираем отступы для UL */
+    max-width: 800px;
+    list-style: none;
+    padding: 0;
 }
 
-/* Базовый стиль для каждого медиа-пузырька */
-.media-bubble {
-    width: 120px; /* Стандартный размер для пузырьков */
-    height: 120px; /* Стандартный размер для пузырьков */
-    border-radius: 8px; /* Скругленные углы */
+/* Базовый стиль для каждого медиа-пузырька на upload.html */
+.media-bubble { /* Для upload.html */
+    width: 120px;
+    height: 120px;
+    border-radius: 8px;
     overflow: hidden;
     position: relative;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    background-color: #fff; /* Белый фон для содержимого */
-    border: 1px solid #ddd;
+    background-color: var(--tertiary-bg-color); /* Используем переменную */
+    border: 1px solid #444; /* Более темная рамка */
     flex-shrink: 0;
-    display: flex; /* Для центрирования контента */
+    display: flex;
     align-items: center;
     justify-content: center;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -375,8 +378,8 @@ h1 {
 .media-bubble-img, .media-bubble video { /* Применяется к изображениям и видео */
     width: 100%;
     height: 100%;
-    object-fit: cover; /* Заполняет контейнер, сохраняя пропорции и обрезая излишки */
-    border-radius: 8px; /* Соответствует родительскому border-radius */
+    object-fit: cover;
+    border-radius: 8px;
 }
 
 /* Спиннер для загрузки/обработки */
@@ -392,7 +395,7 @@ h1 {
     border-top: 4px solid #FFD700;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    z-index: 2; /* Над изображением */
+    z-index: 2;
 }
 
 /* Стили для overlay на upload.html (для названия файла) */
@@ -414,160 +417,97 @@ h1 {
     border-bottom-right-radius: 8px;
 }
 
-/* --- НОВЫЕ СТИЛИ ДЛЯ ПРЕВЬЮ НА RESULTS.HTML (используем media-bubble) --- */
-
-.result-bubble-overlay { /* Overlay для информации о видео на странице результатов */
-    position: absolute;
-    top: 0;
-    left: 0;
+/* --- Стили для results.html (основные секции и баблы) --- */
+/* Контейнер для сетки видео на results.html */
+#bubblesContainer { /* Используем ID для специфичности */
+    display: grid; /* Используем grid для более гибкого адаптивного макета */
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Адаптивная сетка */
+    gap: 20px; /* Пространство между видео-баблами */
+    padding: 20px 0;
     width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.7); /* Более темный overlay */
-    color: #fff;
+    max-width: 900px; /* Ограничиваем ширину для лучшего вида */
+}
+
+/* Индивидуальный видео-бабл на results.html */
+#bubblesContainer .media-bubble { /* Уточняем для results.html */
+    background-color: var(--tertiary-bg-color); /* Используем переменную */
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    padding: 15px;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border 0.2s ease;
+    cursor: pointer; /* Указываем, что элемент кликабельный */
+}
+
+#bubblesContainer .media-bubble:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+#bubblesContainer .media-bubble.selected {
+    border: 3px solid var(--gold-color); /* Золотая рамка для выбранных видео */
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
+    background-color: var(--secondary-bg-color); /* Немного другой фон при выборе */
+}
+
+/* Контейнер для видео-превью внутри бабла на results.html */
+#bubblesContainer .video-thumbnail {
+    width: 100%;
+    height: 180px; /* Фиксированная высота для единообразия */
+    background-color: #000;
+    display: flex;
     justify-content: center;
     align-items: center;
-    padding: 5px;
-    text-align: center;
-    border-radius: 8px; /* Соответствует форме пузырька */
-    box-sizing: border-box;
-    z-index: 1; /* Под спиннером, но над изображением */
+    overflow: hidden;
+    border-radius: 8px;
+    position: relative;
+    margin-bottom: 15px;
 }
 
-.result-bubble-overlay .bubble-title {
-    font-size: 0.85em;
-    font-weight: bold;
-    background: var(--gold-gradient); /* Золотой цвет для заголовка */
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    color: transparent; /* Fallback for browsers not supporting text-fill-color */
-    margin-bottom: 3px;
-    word-wrap: break-word;
-    white-space: normal;
+#bubblesContainer .video-thumbnail video,
+#bubblesContainer .video-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 8px;
+}
+
+/* Секция информации о видео (название, статус) на results.html */
+#bubblesContainer .video-info {
+    width: 100%;
+    text-align: center;
+}
+
+#bubblesContainer .video-info .file-name {
+    font-size: 1.1em;
+    font-weight: 500;
+    color: var(--text-color-light);
+    margin-bottom: 5px;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-height: 50%; /* Ограничиваем высоту для длинных имен */
-    line-height: 1.2;
+    max-width: 100%;
 }
 
-.result-bubble-overlay .bubble-status {
-    font-size: 0.75em;
-    font-weight: bold;
-    padding: 2px 5px;
-    border-radius: 3px;
-    margin-top: 5px;
-    color: var(--text-color-dark); /* Default to dark text for readability on colored backgrounds */
+#bubblesContainer .video-info .status {
+    font-size: 0.9em;
+    margin-bottom: 10px;
+    font-weight: 400;
 }
 
-/* Цвета статусов для overlay на results.html */
-.result-bubble-overlay .status-pending {
-    background-color: var(--status-pending-color);
-}
-.result-bubble-overlay .status-processing {
-    background-color: var(--status-processing-color);
-    color: var(--text-color-light); /* White text on blue-green */
-}
-.result-bubble-overlay .status-completed {
-    background-color: var(--status-ok-color); /* Используем OK цвет */
-    color: var(--text-color-light); /* White text on green */
-}
-.result-bubble-overlay .status-error,
-.result-bubble-overlay .status-failed {
-    background-color: var(--status-bad-color); /* Используем BAD цвет */
-    color: var(--text-color-light); /* White text on red */
-}
-.result-bubble-overlay .status-info {
-    background-color: var(--status-info-color);
-}
+/* Цвета статусов для results.html */
+.status.status-info { color: var(--status-info-color); }
+.status.status-pending { color: var(--status-pending-color); }
+.status.status-processing { color: var(--status-processing-color); } /* Добавлено для консистентности */
+.status.status-completed { color: var(--status-completed-color); }
+.status.status-error { color: var(--status-error-color); }
+.status.status-concatenated { color: var(--status-completed-color); } /* Новый статус */
 
-
-/* --- Стили для results.html (основные секции) --- */
-
-.header-section {
-    text-align: center;
-    margin-bottom: 2rem;
-    padding-top: 2rem;
-    width: 100%;
-    max-width: 800px;
-}
-
-.header-section h1 { /* Changed from h2 to h1 to match your HTML */
-    font-size: 2.5rem;
-    background: var(--gold-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    color: transparent;
-    text-shadow: 2px 2px 8px var(--shadow-dark);
-    margin-bottom: 0.5rem;
-}
-
-.header-section p {
-    font-size: 1.2rem;
-    color: #E0E0E0;
-    margin-top: 0.5rem;
-}
-
-#uploadNewBtn {
-    margin-top: 1.5rem;
-    /* Теперь анимация пульсации применена по умолчанию через .gold-button */
-}
-
-/* Контейнер для динамического статуса дозагрузки на results.html */
-.upload-status-container { /* Corrected class name to match your HTML */
-    width: 100%;
-    max-width: 600px;
-    margin: 1rem auto 2rem auto; /* Центрируем и добавляем отступы */
-    padding: 1rem;
-    background: rgba(34, 34, 34, 0.8);
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-    text-align: center;
-}
-
-.upload-status-container.hidden { /* Corrected class name */
-    display: none;
-}
-
-.upload-status-container .status-message { /* Corrected class name */
-    margin-bottom: 0.5rem;
-    color: var(--status-info-color); /* Default color for status messages */
-}
-
-
-/* Адаптивность для карточек results.html */
-@media (max-width: 768px) {
-    .results-grid { /* Apply to results grid */
-        /* grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); */ /* Использование flexbox делает это ненужным */
-        gap: 1rem;
-    }
-    .media-bubble { /* Apply to media bubble */
-        width: 100px;
-        height: 100px;
-    }
-    .header-section h1 { /* Changed from h2 to h1 */
-        font-size: 2rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .results-grid { /* Apply to results grid */
-        /* grid-template-columns: 1fr; */ /* Использование flexbox делает это ненужным */
-        padding: 1rem;
-    }
-    .media-bubble { /* Apply to media bubble */
-        width: 120px; /* Keep a reasonable size for single column */
-        height: 120px;
-    }
-    .header-section h1 { /* Changed from h2 to h1 */
-        font-size: 1.8rem;
-    }
-    .header-section p {
-        font-size: 1rem;
-    }
-}
 
 /* --- Стили для модального окна --- */
 .modal {
@@ -596,16 +536,16 @@ h1 {
 }
 
 .modal-content {
-    background-color: #222;
+    background-color: var(--secondary-bg-color); /* Используем переменную */
     margin: auto;
     padding: 2rem;
     border: 1px solid #444;
-    border-radius: 10px;
+    border-radius: 12px; /* Увеличены скругления */
     width: 90%;
     max-width: 700px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.7);
     position: relative;
-    color: #f0f0f0;
+    color: var(--text-color-light);
     max-height: 90vh;
     overflow-y: auto;
     animation: slideInModal 0.4s ease-out;
@@ -616,46 +556,43 @@ h1 {
     to { transform: translateY(0); opacity: 1; }
 }
 
-.modal-content h4 {
-    color: var(--gold-gradient);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    color: transparent;
-    font-size: 1.8rem;
-    margin-bottom: 1rem;
-    text-shadow: 1px 1px 4px var(--shadow-dark);
+#modalTitle { /* Изменено с h4 на ID */
+    color: var(--gold-color); /* Прямой цвет вместо градиента для текста */
+    font-size: 1.5em; /* Согласовано с results.js */
+    margin-bottom: 15px; /* Согласовано с results.js */
+    text-align: center;
+    font-weight: 600;
 }
 
-.modal-content pre {
-    background-color: #1a1a1a;
-    padding: 1rem;
-    border-radius: 5px;
+#modalMetadata { /* Изменено с pre на ID */
+    background-color: var(--primary-bg-color); /* Используем переменную */
+    padding: 15px; /* Согласовано с results.js */
+    border-radius: 8px; /* Согласовано с results.js */
     white-space: pre-wrap;
     word-wrap: break-word;
     font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 0.9rem;
+    font-size: 0.9em; /* Согласовано с results.js */
     line-height: 1.4;
     color: #b0b0b0;
     border: 1px solid #333;
+    max-height: 400px; /* Согласовано с results.js */
+    overflow-y: auto; /* Согласовано с results.js */
 }
 
 .close-button {
     color: #aaa;
-    float: right;
-    font-size: 2.5rem;
-    font-weight: bold;
     position: absolute;
     top: 10px;
     right: 20px;
+    font-size: 28px; /* Согласовано с results.js */
+    font-weight: bold;
     cursor: pointer;
     transition: color 0.3s ease;
 }
 
 .close-button:hover,
 .close-button:focus {
-    color: #FFD700;
+    color: var(--gold-color);
     text-decoration: none;
     cursor: pointer;
 }
@@ -673,4 +610,105 @@ h1 {
 
 #finishSessionBtn:hover {
     background: linear-gradient(45deg, #FF4D4D, #CC3B3B); /* Более темный красный при наведении */
+}
+
+/* Concatenation section */
+.concatenation-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 30px;
+    padding: 20px;
+    background-color: var(--secondary-bg-color); /* Используем переменную */
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 900px;
+    box-sizing: border-box;
+}
+
+.concatenation-section label {
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+/* Чекбокс для "Enable Video Concatenation" (он остался) */
+.concatenation-section input[type="checkbox"] {
+    margin-right: 10px;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: 2px solid var(--gold-color);
+    border-radius: 4px;
+    background-color: var(--tertiary-bg-color);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.concatenation-section input[type="checkbox"]:checked {
+    background-color: var(--gold-color);
+    border-color: var(--gold-color);
+}
+
+.concatenation-section input[type="checkbox"]:checked::before {
+    content: '✔';
+    display: block;
+    color: var(--text-color-dark);
+    font-size: 16px;
+    line-height: 18px;
+    text-align: center;
+}
+
+.concatenation-status {
+    margin-top: 15px;
+    font-size: 1em;
+    padding: 10px 15px;
+    border-radius: 8px;
+    width: fit-content;
+    text-align: center;
+}
+
+.concatenation-status.info { background-color: var(--tertiary-bg-color); color: var(--status-info-color); }
+.concatenation-status.pending { background-color: var(--status-pending-color); color: var(--text-color-light); } /* Изменено: белый текст на оранжевом */
+.concatenation-status.completed { background-color: var(--status-completed-color); color: var(--text-color-light); } /* Изменено: белый текст на зеленом */
+.concatenation-status.error { background-color: var(--status-error-color); color: var(--text-color-light); } /* Изменено: белый текст на красном */
+
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    body {
+        padding: 15px;
+    }
+    .content-container {
+        padding: 20px;
+    }
+    #bubblesContainer {
+        grid-template-columns: 1fr; /* Single column on small screens */
+    }
+    /* Адаптивность для карточек results.html */
+    #bubblesContainer .media-bubble { /* Apply to media bubble */
+        width: 100%; /* Занимает всю ширину на маленьких экранах */
+        max-width: 250px; /* Ограничиваем максимальную ширину */
+        margin: 0 auto; /* Центрируем */
+    }
+    .header-section h1 {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    #bubblesContainer {
+        padding: 1rem;
+    }
+    .header-section h1 {
+        font-size: 1.8rem;
+    }
+    .header-section p {
+        font-size: 1rem;
+    }
 }
