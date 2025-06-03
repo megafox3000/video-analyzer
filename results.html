@@ -1,54 +1,51 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Результаты обработки</title>
-    <link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Результаты анализа видео - Hife Video Analyzer</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
 </head>
 <body class="fade-in">
     <div class="background">
-        <!-- ОТКРЫВАЕМ НОВЫЙ DIV С КЛАССОМ content-container -->
-        <div class="content-container">
-            <!-- Здесь начинается ваш текущий основной контент -->
-            <div class="header-section">
-                <h1>Результаты обработки видео</h1>
-                <p>Здесь вы можете просмотреть обработанные видео.</p>
-            </div>
-
-            <div id="bubblesContainer" class="results-grid">
-                <!-- Динамически добавляемые пузырьки с видео -->
-            </div>
-
-            <div class="upload-status-container hidden">
-                <p class="status-message info" id="uploadStatusMessage"></p>
-                <div class="progress-bar-container">
-                    <div class="progress-bar" id="uploadProgressBar"></div>
-                    <span class="progress-text" id="progressText">0%</span>
-                </div>
+        <div class="content-container"> <div class="header-section">
+                <h1 id="resultsHeader">Ваши Видео</h1>
+                <p id="usernameDisplay"></p>
+                <button id="uploadNewBtn" class="gold-button">Загрузить новое видео</button>
+                <button id="finishSessionBtn" class="gold-button">Завершить сессию</button>
             </div>
 
             <div class="connect-videos-container">
-                <input type="checkbox" id="connectVideosCheckbox" class="toggle-checkbox">
-                <label for="connectVideosCheckbox" class="toggle-label"></label>
-                <span>Соединить видео</span>
+                <label class="toggle-label" for="connectVideosCheckbox">
+                    Объединить выбранные видео
+                </label>
+                <input type="checkbox" id="connectVideosCheckbox" class="toggle-checkbox" />
+            </div>
+            <div id="concatenationStatusDiv" class="concatenation-status info">
+                Выберите 2 или более видео для объединения.
+            </div>
+            <div id="bubblesContainer" class="results-grid">
             </div>
 
-            <button id="uploadNewBtn" class="gold-button">Загрузить новые видео</button>
-            <button id="finishSessionBtn" class="gold-button">Завершить сессию</button>
-            <!-- Здесь заканчивается ваш текущий основной контент -->
-        </div>
-        <!-- ЗАКРЫВАЕМ DIV content-container -->
-    </div>
+            <input type="file" id="videoFileInput" accept="video/*" hidden multiple />
 
-    <!-- Модальное окно (остается вне content-container, но внутри body) -->
-    <div id="metadataModal" class="modal">
-        <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <h4>Метаданные видео</h4>
-            <pre id="modalMetadataContent"></pre>
-        </div>
-    </div>
+            <div id="dynamicUploadStatusContainer" class="upload-status-container hidden">
+                <p id="uploadStatusText" class="status-message info">Готов к загрузке нового видео.</p>
+                <div class="progress-bar-container" style="display: none;">
+                    <div class="progress-bar" id="progressBar"></div>
+                    <div class="progress-text" id="progressText">0%</div>
+                </div>
+            </div>
+
+            <div id="metadataModal" class="modal">
+                <div class="modal-content">
+                    <span class="close-button">&times;</span>
+                    <h4 id="modalTitle">Метаданные видео</h4>
+                    <pre id="modalMetadata"></pre>
+                </div>
+            </div>
+        </div> </div>
 
     <script src="script/results.js"></script>
 </body>
