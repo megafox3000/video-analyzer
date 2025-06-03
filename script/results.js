@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // УКАЖИТЕ ЗДЕСЬ АКТУАЛЬНЫЙ URL ВАШЕГО БЭКЕНДА НА RENDER.COM
+    // ЭТО ОЧЕНЬ ВАЖНОЕ ИЗМЕНЕНИЕ!
+    const backendUrl = "https://video-meta-api.onrender.com"; // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ URL
+
     // Получение элементов DOM (существующие и НОВЫЕ)
     const usernameDisplay = document.getElementById('usernameDisplay');
     const resultsHeader = document.getElementById('resultsHeader');
@@ -69,13 +73,13 @@ document.addEventListener('DOMContentLoaded', () => {
             updateConcatenationStatus();
         } else {
             // Если чекбокс "Объединить" неактивен, запрещаем выбор
+            // Включаем этот блок, чтобы предотвратить выбор, если галочка снята
             checkboxElement.checked = false;
             bubbleElement.classList.remove('selected');
             selectedVideoPublicIds.delete(publicId); // На всякий случай
             updateConcatenationStatus();
         }
     }
-
 
     // Существующая функция: fetchAndDisplayVideos, теперь с добавлением чекбоксов и public_id
     async function fetchAndDisplayVideos() {
@@ -91,6 +95,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (const videoData of uploadedVideos) {
             const taskId = videoData.taskId;
+            // НАЧАЛО ИСПРАВЛЕНИЯ: Защитная проверка на наличие taskId
+            if (!taskId) {
+                console.warn('Skipping video entry due to missing taskId:', videoData);
+                continue; // Пропускаем эту запись и переходим к следующей
+            }
+            // КОНЕЦ ИСПРАВЛЕНИЯ
+
             const originalFilename = videoData.originalFilename || 'video';
             const cloudinaryUrl = videoData.cloudinary_url; // Получаем URL из localStorage
 
@@ -101,7 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Запрашиваем актуальный статус с бэкенда
             if (status === 'uploaded' || status === 'pending' || status === 'processing') {
                 try {
-                    const response = await fetch(`/task-status/${taskId}`);
+                    // ИСПРАВЛЕНО: Явное указание backendUrl для всех запросов
+                    const response = await fetch(`${backendUrl}/task-status/${taskId}`); 
                     const data = await response.json();
                     if (response.ok) {
                         status = data.status;
@@ -235,7 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!pollingIntervals[taskId]) {
             pollingIntervals[taskId] = setInterval(async () => {
                 try {
-                    const response = await fetch(`/task-status/${taskId}`);
+                    // ИСПРАВЛЕНО: Явное указание backendUrl
+                    const response = await fetch(`${backendUrl}/task-status/${taskId}`); 
                     const data = await response.json();
                     if (response.ok) {
                         const task = uploadedVideos.find(v => v.taskId === taskId);
@@ -321,7 +334,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 uploadStatusText.textContent = `Загрузка: ${file.name}`;
-                const response = await fetch('/upload_video', {
+                // ИСПРАВЛЕНО: Явное указание backendUrl
+                const response = await fetch(`${backendUrl}/upload_video`, { 
                     method: 'POST',
                     body: formData
                 });
@@ -339,13 +353,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Добавляем новое видео в localStorage, если его там нет
                     const existingVideoIndex = uploadedVideos.findIndex(v => v.taskId === data.taskId);
                     if (existingVideoIndex === -1) {
-                         uploadedVideos.push({
-                            taskId: data.taskId,
-                            originalFilename: file.name,
-                            status: 'uploaded', // Изначальный статус после загрузки
-                            cloudinary_url: data.cloudinary_url,
-                            metadata: {} // Метаданные будут получены при опросе
-                        });
+                           uploadedVideos.push({
+                                taskId: data.taskId,
+                                originalFilename: file.name,
+                                status: 'uploaded', // Изначальный статус после загрузки
+                                cloudinary_url: data.cloudinary_url,
+                                metadata: {} // Метаданные будут получены при опросе
+                            });
                     } else {
                         // Обновляем существующую запись, если видео уже было в localStorage (например, при повторной загрузке)
                         uploadedVideos[existingVideoIndex] = {
@@ -410,7 +424,8 @@ document.addEventListener('DOMContentLoaded', () => {
             concatenationStatusDiv.className = 'concatenation-status pending';
 
             try {
-                const response = await fetch('/concatenate_videos', {
+                // ИСПРАВЛЕНО: Явное указание backendUrl
+                const response = await fetch(`${backendUrl}/concatenate_videos`, { 
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
