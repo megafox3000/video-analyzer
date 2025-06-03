@@ -1,6 +1,8 @@
 // In the beginning of your script/upload_validation.js file,
 // BEFORE document.addEventListener('DOMContentLoaded', ...)
 
+// УКАЖИТЕ ЗДЕСЬ АКТУАЛЬНЫЙ URL ВАШЕГО БЭКЕНДА НА RENDER.COM
+const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ URL
 const existingUploadedVideos = localStorage.getItem('uploadedVideos');
 const existingUsername = localStorage.getItem('hifeUsername');
 const existingEmail = localStorage.getItem('hifeEmail');
@@ -320,12 +322,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const taskId = response.taskId;
 
                 const newVideoEntry = {
-                    id: taskId,
+                    taskId: taskId, // Вот так должно быть!
                     original_filename: file.name,
                     status: 'pending',
                     timestamp: new Date().toISOString(),
-                    cloudinary_url: response.cloudinary_url // Save Cloudinary URL
+                    cloudinary_url: response.cloudinary_url
                 };
+
                 uploadedVideos.push(newVideoEntry);
                 localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
 
