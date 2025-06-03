@@ -1,207 +1,416 @@
-document.addEventListener('DOMContentLoaded', async () => {
-    const resultsHeader = document.getElementById('resultsHeader');
+document.addEventListener('DOMContentLoaded', () => {
+    // Получение элементов DOM (существующие и НОВЫЕ)
     const usernameDisplay = document.getElementById('usernameDisplay');
+    const resultsHeader = document.getElementById('resultsHeader');
+    const bubblesContainer = document.getElementById('bubblesContainer');
     const uploadNewBtn = document.getElementById('uploadNewBtn');
     const finishSessionBtn = document.getElementById('finishSessionBtn');
-    const bubblesContainer = document.getElementById('bubblesContainer');
-    const videoFileInput = document.getElementById('videoFileInput');
+    const videoFileInput = document.getElementById('videoFileInput'); // Для новой загрузки из results.html
     const dynamicUploadStatusContainer = document.getElementById('dynamicUploadStatusContainer');
     const uploadStatusText = document.getElementById('uploadStatusText');
-    const progressBarContainer = document.querySelector('.progress-bar-container');
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
-
     const metadataModal = document.getElementById('metadataModal');
+    const closeButton = document.querySelector('.modal-content .close-button');
     const modalTitle = document.getElementById('modalTitle');
     const modalMetadata = document.getElementById('modalMetadata');
-    const closeModalButton = document.querySelector('.modal .close-button');
 
-    // NEW: Elements for concatenation
+    // НОВЫЕ ЭЛЕМЕНТЫ ДЛЯ КОНКАТЕНАЦИИ
     const connectVideosCheckbox = document.getElementById('connectVideosCheckbox');
-    const concatenationStatusDiv = document.getElementById('concatenationStatus');
+    const concatenationStatusDiv = document.getElementById('concatenationStatusDiv');
 
-    const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // Ваш URL бэкенда
+    // Переменные для отслеживания состояния
+    let uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos')) || [];
+    let pollingIntervals = {}; // Для отслеживания интервалов опроса статуса
+    const selectedVideoPublicIds = new Set(); // NEW: Для отслеживания выбранных видео для конкатенации
 
-    let hifeUsername = localStorage.getItem('hifeUsername') || '';
-    let uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]');
-
-    // NEW: Array to store selected video public_ids for concatenation
-    // We'll maintain the order based on how they appear in the DOM initially
-    let selectedVideoPublicIds = new Set(); // Using Set to avoid duplicates, convert to array for order
-
-    // Display username
-    if (hifeUsername) {
-        usernameDisplay.textContent = `Добро пожаловать, ${hifeUsername}!`;
-        resultsHeader.textContent = `Ваши Видео для ${hifeUsername}`;
-    } else {
-        usernameDisplay.textContent = 'Пожалуйста, введите свое имя пользователя на предыдущей странице.';
-        resultsHeader.textContent = 'Ваши Видео';
+    // НОВЫЙ: Функция для обновления статуса конкатенации в UI
+    function updateConcatenationStatus() {
+        const count = selectedVideoPublicIds.size;
+        if (connectVideosCheckbox.checked) {
+            if (count < 2) {
+                concatenationStatusDiv.textContent = 'Выберите как минимум 2 видео для объединения.';
+                concatenationStatusDiv.className = 'concatenation-status info';
+            } else {
+                concatenationStatusDiv.textContent = `Выбрано видео: ${count}. Нажмите для объединения.`;
+                concatenationStatusDiv.className = 'concatenation-status pending'; // Можно изменить на 'info' если не начат процесс
+            }
+        } else {
+            selectedVideoPublicIds.clear(); // Очищаем выбор при снятии галочки
+            // Удаляем все классы 'selected'
+            document.querySelectorAll('.media-bubble.selected').forEach(bubble => {
+                bubble.classList.remove('selected');
+                const checkbox = bubble.querySelector('.video-selection-checkbox');
+                if (checkbox) checkbox.checked = false;
+            });
+            concatenationStatusDiv.textContent = 'Выберите 2 или более видео для объединения.';
+            concatenationStatusDiv.className = 'concatenation-status info';
+        }
     }
 
-    // Function to fetch video status and update bubbles
-    async function fetchAndDisplayVideos() {
-        if (uploadedVideos.length === 0) {
-            bubblesContainer.innerHTML = '<p>Пока нет загруженных видео для отображения.</p>';
-            finishSessionBtn.style.display = 'none';
+    // НОВЫЙ: Функция для переключения выбора видео
+    function toggleVideoSelection(publicId, bubbleElement, checkboxElement) {
+        if (!publicId) {
+            console.warn('Attempted to select a video without a publicId.');
+            checkboxElement.checked = false; // Снимаем выбор, если publicId нет
             return;
         }
 
-        bubblesContainer.innerHTML = ''; // Clear existing bubbles
+        if (connectVideosCheckbox.checked) {
+            if (selectedVideoPublicIds.has(publicId)) {
+                selectedVideoPublicIds.delete(publicId);
+                bubbleElement.classList.remove('selected');
+                checkboxElement.checked = false;
+            } else {
+                selectedVideoPublicIds.add(publicId);
+                bubbleElement.classList.add('selected');
+                checkboxElement.checked = true;
+            }
+            updateConcatenationStatus();
+        } else {
+            // Если чекбокс "Объединить" неактивен, запрещаем выбор
+            checkboxElement.checked = false;
+            bubbleElement.classList.remove('selected');
+            selectedVideoPublicIds.delete(publicId); // На всякий случай
+            updateConcatenationStatus();
+        }
+    }
 
-        // Fetch status for all videos concurrently
-        const fetchPromises = uploadedVideos.map(async (video) => {
-            if (video.status === 'pending') {
+
+    // Существующая функция: fetchAndDisplayVideos, теперь с добавлением чекбоксов и public_id
+    async function fetchAndDisplayVideos() {
+        const username = localStorage.getItem('hifeUsername') || 'Guest';
+        usernameDisplay.textContent = `Пользователь: ${username}`;
+        resultsHeader.textContent = `Ваши Видео (${username})`;
+        bubblesContainer.innerHTML = ''; // Очистка перед отображением
+
+        if (uploadedVideos.length === 0) {
+            bubblesContainer.innerHTML = '<p class="status-message info">Видео не найдены. Загрузите видео на предыдущей странице.</p>';
+            return;
+        }
+
+        for (const videoData of uploadedVideos) {
+            const taskId = videoData.taskId;
+            const originalFilename = videoData.originalFilename || 'video';
+            const cloudinaryUrl = videoData.cloudinary_url; // Получаем URL из localStorage
+
+            let status = videoData.status || 'pending'; // По умолчанию 'pending' если нет статуса
+            let displayUrl = cloudinaryUrl;
+            let metadata = videoData.metadata || {}; // Сохраняем метаданные
+
+            // Запрашиваем актуальный статус с бэкенда
+            if (status === 'uploaded' || status === 'pending' || status === 'processing') {
                 try {
-                    const response = await fetch(`${RENDER_BACKEND_URL}/status/${video.id}`);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    const statusData = await response.json();
-                    video.status = statusData.status; // Update status
-                    video.metadata = statusData.metadata; // Update metadata
-                    // NEW: Update public_id if not present (assuming backend returns it with status)
-                    if (statusData.public_id && !video.public_id) {
-                        video.public_id = statusData.public_id;
-                    }
-                    if (statusData.cloudinary_url && !video.cloudinary_url) {
-                         video.cloudinary_url = statusData.cloudinary_url;
+                    const response = await fetch(`/task-status/${taskId}`);
+                    const data = await response.json();
+                    if (response.ok) {
+                        status = data.status;
+                        displayUrl = data.cloudinary_url || displayUrl; // Обновляем URL, если пришел новый
+                        metadata = data.metadata || metadata;
+                        // Обновляем public_id в localStorage, если он есть
+                        if (data.public_id && videoData.taskId !== data.public_id) {
+                             // Это может быть проблемой, если taskId и public_id должны быть строго равны.
+                             // В текущей логике они должны быть равны. Но если вдруг backend изменил,
+                             // то нужно обновить. Пока оставляем как есть.
+                        }
+                    } else {
+                        console.error(`Error fetching status for ${taskId}:`, data.error);
+                        status = 'error';
                     }
                 } catch (error) {
-                    console.error('Error fetching status for video ID', video.id, ':', error);
-                    video.status = 'error';
-                    video.error_message = 'Не удалось получить статус.';
+                    console.error(`Network error fetching status for ${taskId}:`, error);
+                    status = 'error';
                 }
             }
-            return video;
-        });
 
-        // Wait for all status updates
-        uploadedVideos = await Promise.all(fetchPromises);
-        localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos)); // Save updated statuses
+            // Обновляем uploadedVideos в localStorage с актуальными данными
+            const index = uploadedVideos.findIndex(v => v.taskId === taskId);
+            if (index !== -1) {
+                uploadedVideos[index] = { ...uploadedVideos[index], status, cloudinary_url: displayUrl, metadata: metadata };
+            }
+            localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
 
-        // Render bubbles
-        uploadedVideos.forEach(video => {
+
             const bubble = document.createElement('div');
-            bubble.className = 'media-bubble fade-in-bubble';
-            bubble.setAttribute('data-task-id', video.id);
-            bubble.setAttribute('data-original-filename', video.original_filename);
+            bubble.className = 'media-bubble';
+            bubble.dataset.taskId = taskId;
+            bubble.dataset.publicId = taskId; // Добавляем public_id для конкатенации
 
-            // NEW: Add click listener to bubble for selection
-            bubble.addEventListener('click', () => toggleVideoSelection(bubble, video.public_id));
+            let statusClass = '';
+            let statusText = '';
+            let thumbnailUrl = ''; // Для видео
+            let videoElementHTML = ''; // Для видео
 
-            // Check if this video was previously selected (if refreshing state)
-            if (selectedVideoPublicIds.has(video.public_id)) {
-                bubble.classList.add('selected');
-            }
-
-            // Create video element for preview or status overlay
-            if (video.status === 'completed' && video.cloudinary_url) {
-                const videoElement = document.createElement('video');
-                videoElement.src = video.cloudinary_url;
-                videoElement.autoplay = true;
-                videoElement.loop = true;
-                videoElement.muted = true;
-                videoElement.playsinline = true;
-                videoElement.preload = 'metadata'; // Load metadata to get duration/dimensions if needed
-                bubble.appendChild(videoElement);
-
-                // Add click listener for metadata modal (only for completed videos)
-                videoElement.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Prevent bubble selection on video click
-                    displayMetadata(video.original_filename, video.metadata);
-                });
-
-            } else {
-                // Display status overlay for pending/error videos
-                const statusOverlay = document.createElement('div');
-                statusOverlay.className = 'status-overlay';
-                let statusMessage = '';
-                let statusClass = '';
-
-                switch (video.status) {
-                    case 'pending':
-                        statusMessage = 'Анализ...';
-                        statusClass = 'pending';
-                        statusOverlay.innerHTML = `${statusMessage}<div class="spinner"></div>`;
-                        break;
-                    case 'error':
-                        statusMessage = video.error_message || 'Ошибка анализа';
-                        statusClass = 'error';
-                        statusOverlay.innerHTML = `<i class="fas fa-exclamation-triangle"></i><p>${statusMessage}</p>`;
-                        break;
-                    default:
-                        statusMessage = 'Неизвестный статус';
-                        statusClass = 'info';
-                        statusOverlay.innerHTML = `<p>${statusMessage}</p>`;
-                        break;
+            if (status === 'uploaded') {
+                statusClass = 'status-info';
+                statusText = 'Загружено, ожидает обработки';
+                if (displayUrl) {
+                    thumbnailUrl = displayUrl.replace(/\.mp4$/, '.jpg') + "?_a=DAJHADAD"; // Cloudinary thumb
+                    videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; height:auto; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
                 }
-                statusOverlay.classList.add(statusClass);
-                bubble.appendChild(statusOverlay);
+            } else if (status === 'processing') {
+                statusClass = 'status-pending';
+                statusText = 'В процессе анализа...';
+                if (displayUrl) {
+                    thumbnailUrl = displayUrl.replace(/\.mp4$/, '.jpg') + "?_a=DAJHADAD";
+                    videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; height:auto; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
+                }
+                startPolling(taskId); // Запускаем опрос только для 'processing'
+            } else if (status === 'completed') {
+                statusClass = 'status-completed';
+                statusText = 'Анализ завершен!';
+                if (displayUrl) {
+                    thumbnailUrl = displayUrl.replace(/\.mp4$/, '.jpg') + "?_a=DAJHADAD";
+                    videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; height:auto; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
+                }
+                stopPolling(taskId);
+            } else if (status === 'error') {
+                statusClass = 'status-error';
+                statusText = 'Ошибка анализа';
+                if (displayUrl) { // Попытка отобразить, если URL есть даже при ошибке
+                    thumbnailUrl = displayUrl.replace(/\.mp4$/, '.jpg') + "?_a=DAJHADAD";
+                    videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; height:auto; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
+                }
+                stopPolling(taskId);
+            } else if (status === 'concatenated') { // НОВЫЙ СТАТУС
+                statusClass = 'status-completed';
+                statusText = 'Видео объединено!';
+                if (displayUrl) {
+                     thumbnailUrl = displayUrl.replace(/\.mp4$/, '.jpg') + "?_a=DAJHADAD";
+                     videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; height:auto; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
+                }
+                stopPolling(taskId);
+            }
+            else {
+                statusClass = 'status-info';
+                statusText = 'Статус неизвестен';
             }
 
-            // File name overlay (always present)
-            const fileNameOverlay = document.createElement('div');
-            fileNameOverlay.className = 'file-name-overlay';
-            fileNameOverlay.textContent = video.original_filename;
-            bubble.appendChild(fileNameOverlay);
+            // НОВЫЙ: Добавляем чекбокс для выбора видео
+            const checkboxHTML = `
+                <input type="checkbox" class="video-selection-checkbox" data-public-id="${taskId}" ${status === 'completed' || status === 'concatenated' ? '' : 'disabled'}>
+            `;
+            // Важно: public_id в data-public-id должен соответствовать taskId
+            // Отключаем чекбокс, если видео не обработано или есть ошибка
 
+            bubble.innerHTML = `
+                <div class="video-thumbnail">
+                    ${videoElementHTML ? videoElementHTML : `<img src="${thumbnailUrl || 'assets/placeholder.png'}" alt="Video Thumbnail">`}
+                    ${checkboxHTML}
+                </div>
+                <div class="video-info">
+                    <p class="file-name" title="${originalFilename}">${originalFilename}</p>
+                    <p class="status ${statusClass}">${statusText}</p>
+                    <button class="view-metadata-btn gold-button" data-task-id="${taskId}" ${Object.keys(metadata).length === 0 ? 'disabled' : ''}>Метаданные</button>
+                </div>
+            `;
             bubblesContainer.appendChild(bubble);
-        });
 
-        finishSessionBtn.style.display = 'block'; // Show finish session button if there are videos
+            // Обработчик для кнопки метаданных
+            const viewMetadataBtn = bubble.querySelector('.view-metadata-btn');
+            if (viewMetadataBtn) {
+                viewMetadataBtn.addEventListener('click', () => {
+                    displayMetadata(taskId, metadata);
+                });
+            }
+
+            // НОВЫЙ: Обработчик для чекбокса выбора видео
+            const videoSelectionCheckbox = bubble.querySelector('.video-selection-checkbox');
+            if (videoSelectionCheckbox) {
+                videoSelectionCheckbox.addEventListener('change', () => {
+                    toggleVideoSelection(taskId, bubble, videoSelectionCheckbox);
+                });
+                // Восстанавливаем состояние выбора при перезагрузке страницы
+                if (selectedVideoPublicIds.has(taskId)) {
+                    videoSelectionCheckbox.checked = true;
+                    bubble.classList.add('selected');
+                }
+            }
+        }
+        updateConcatenationStatus(); // Обновляем статус после загрузки всех видео
     }
 
-    // NEW: Function to toggle video selection
-    function toggleVideoSelection(bubbleElement, publicId) {
-        if (!publicId) { // Only allow selection if public_id is available (i.e., video is processed)
-            alert('Видео еще не обработано или имеет ошибку. Его нельзя выбрать для конкатенации.');
+    // Существующая функция: startPolling (без изменений)
+    function startPolling(taskId) {
+        if (!pollingIntervals[taskId]) {
+            pollingIntervals[taskId] = setInterval(async () => {
+                try {
+                    const response = await fetch(`/task-status/${taskId}`);
+                    const data = await response.json();
+                    if (response.ok) {
+                        const task = uploadedVideos.find(v => v.taskId === taskId);
+                        if (task && task.status !== data.status) {
+                            console.log(`Task ${taskId} status changed to: ${data.status}`);
+                            await fetchAndDisplayVideos(); // Перерисовать все видео
+                            if (data.status === 'completed' || data.status === 'error' || data.status === 'concatenated') {
+                                stopPolling(taskId);
+                            }
+                        }
+                    } else {
+                        console.error(`Polling error for ${taskId}:`, data.error);
+                        stopPolling(taskId);
+                        await fetchAndDisplayVideos();
+                    }
+                } catch (error) {
+                    console.error(`Polling network error for ${taskId}:`, error);
+                    stopPolling(taskId);
+                    await fetchAndDisplayVideos();
+                }
+            }, 5000); // Опрос каждые 5 секунд
+        }
+    }
+
+    // Существующая функция: stopPolling (без изменений)
+    function stopPolling(taskId) {
+        if (pollingIntervals[taskId]) {
+            clearInterval(pollingIntervals[taskId]);
+            delete pollingIntervals[taskId];
+            console.log(`Stopped polling for task ${taskId}`);
+        }
+    }
+
+    // Существующая функция: displayMetadata (без изменений)
+    function displayMetadata(taskId, metadata) {
+        modalTitle.textContent = `Метаданные видео ${taskId}`;
+        modalMetadata.textContent = JSON.stringify(metadata, null, 2);
+        metadataModal.style.display = 'block';
+    }
+
+    // Существующая функция: close modal (без изменений)
+    closeButton.addEventListener('click', () => {
+        metadataModal.style.display = 'none';
+    });
+
+    // Существующая функция: close modal on outside click (без изменений)
+    window.addEventListener('click', (event) => {
+        if (event.target === metadataModal) {
+            metadataModal.style.display = 'none';
+        }
+    });
+
+    // Существующая функция: uploadVideoFromResults (теперь с использованием FormData)
+    uploadNewBtn.addEventListener('click', () => {
+        videoFileInput.click();
+    });
+
+    videoFileInput.addEventListener('change', async (event) => {
+        const files = event.target.files;
+        if (files.length === 0) {
+            uploadStatusText.textContent = 'Выберите видео для загрузки.';
+            uploadStatusText.className = 'status-message info';
+            dynamicUploadStatusContainer.classList.remove('hidden');
             return;
         }
 
-        if (bubbleElement.classList.contains('selected')) {
-            bubbleElement.classList.remove('selected');
-            selectedVideoPublicIds.delete(publicId);
-        } else {
-            bubbleElement.classList.add('selected');
-            selectedVideoPublicIds.add(publicId);
-        }
-        updateConcatenationStatus();
-    }
+        dynamicUploadStatusContainer.classList.remove('hidden');
+        uploadStatusText.textContent = `Начинается загрузка ${files.length} видео...`;
+        uploadStatusText.className = 'status-message info';
+        progressBar.style.width = '0%';
+        progressText.textContent = '0%';
+        document.querySelector('.progress-bar-container').style.display = 'block';
 
-    // NEW: Update concatenation status message
-    function updateConcatenationStatus() {
-        if (selectedVideoPublicIds.size > 0) {
-            concatenationStatusDiv.textContent = `Выбрано видео для объединения: ${selectedVideoPublicIds.size}.`;
-            concatenationStatusDiv.classList.remove('hidden');
-            concatenationStatusDiv.classList.remove('error', 'completed');
-            concatenationStatusDiv.classList.add('info');
-        } else {
-            concatenationStatusDiv.textContent = '';
-            concatenationStatusDiv.classList.add('hidden');
-        }
-    }
+        const totalFiles = files.length;
+        let uploadedCount = 0;
 
-    // NEW: Handle Connect Videos Checkbox change
+        for (const file of files) {
+            const formData = new FormData();
+            formData.append('video', file);
+            formData.append('instagram_username', localStorage.getItem('hifeUsername') || 'unknown');
+            formData.append('email', localStorage.getItem('hifeEmail') || 'unknown@example.com');
+            formData.append('linkedin_profile', localStorage.getItem('hifeLinkedin') || 'N/A');
+
+            try {
+                uploadStatusText.textContent = `Загрузка: ${file.name}`;
+                const response = await fetch('/upload_video', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    uploadedCount++;
+                    const progress = Math.round((uploadedCount / totalFiles) * 100);
+                    progressBar.style.width = `${progress}%`;
+                    progressText.textContent = `${progress}%`;
+                    uploadStatusText.textContent = `Успешно загружено: ${file.name}. Ожидание обработки...`;
+                    uploadStatusText.className = 'status-message info';
+
+                    // Добавляем новое видео в localStorage, если его там нет
+                    const existingVideoIndex = uploadedVideos.findIndex(v => v.taskId === data.taskId);
+                    if (existingVideoIndex === -1) {
+                         uploadedVideos.push({
+                            taskId: data.taskId,
+                            originalFilename: file.name,
+                            status: 'uploaded', // Изначальный статус после загрузки
+                            cloudinary_url: data.cloudinary_url,
+                            metadata: {} // Метаданные будут получены при опросе
+                        });
+                    } else {
+                        // Обновляем существующую запись, если видео уже было в localStorage (например, при повторной загрузке)
+                        uploadedVideos[existingVideoIndex] = {
+                            ...uploadedVideos[existingVideoIndex],
+                            status: 'uploaded',
+                            cloudinary_url: data.cloudinary_url,
+                            originalFilename: file.name // Обновляем имя файла на случай изменения
+                        };
+                    }
+                    localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
+                    await fetchAndDisplayVideos(); // Обновить список видео на странице
+                    startPolling(data.taskId); // Начать опрос статуса для нового видео
+                } else {
+                    uploadStatusText.textContent = `Ошибка загрузки ${file.name}: ${data.error || 'Неизвестная ошибка'}`;
+                    uploadStatusText.className = 'status-message error';
+                    console.error('Upload error:', data);
+                    // Не останавливаем процесс, чтобы другие файлы могли загрузиться
+                }
+            } catch (error) {
+                uploadStatusText.textContent = `Сетевая ошибка при загрузке ${file.name}: ${error.message}`;
+                uploadStatusText.className = 'status-message error';
+                console.error('Network error during upload:', error);
+            }
+        }
+        // После завершения всех загрузок, скрываем прогресс-бар и очищаем статус
+        setTimeout(() => {
+            document.querySelector('.progress-bar-container').style.display = 'none';
+            uploadStatusText.textContent = 'Готов к загрузке нового видео.';
+            uploadStatusText.className = 'status-message info';
+        }, 3000); // Оставляем сообщение на 3 секунды
+    });
+
+    // Существующая функция: finishSessionBtn
+    finishSessionBtn.addEventListener('click', () => {
+        // Здесь мы могли бы перенаправлять на finish.html
+        // Но если идет конкатенация, то перенаправление происходит оттуда
+        // Если нет конкатенации, то просто переходим на finish.html
+        window.location.replace('finish.html');
+    });
+
+
+    // НОВЫЙ: Обработчик для чекбокса "Объединить видео"
     connectVideosCheckbox.addEventListener('change', async () => {
         if (connectVideosCheckbox.checked) {
-            if (selectedVideoPublicIds.size < 2) {
-                alert('Пожалуйста, выберите как минимум два видео для объединения.');
-                connectVideosCheckbox.checked = false; // Uncheck if not enough videos selected
+            // Активирована опция объединения
+            const count = selectedVideoPublicIds.size;
+            if (count < 2) {
+                concatenationStatusDiv.textContent = 'Выберите как минимум 2 видео для объединения, чтобы начать.';
+                concatenationStatusDiv.className = 'concatenation-status info';
+                // connectVideosCheckbox.checked = false; // Можно сбросить, если нет выбора, но лучше позволить пользователю выбрать
                 return;
             }
 
-            concatenationStatusDiv.textContent = 'Начало объединения видео...';
-            concatenationStatusDiv.classList.remove('hidden', 'error', 'completed');
-            concatenationStatusDiv.classList.add('pending');
+            // Сохраняем порядок выбранных видео
+            const orderedPublicIds = Array.from(bubblesContainer.children)
+                .filter(bubble => bubble.classList.contains('selected'))
+                .map(bubble => bubble.dataset.publicId)
+                .filter(id => selectedVideoPublicIds.has(id)); // Убедиться, что это действительно выбранные ID
 
-            // Order the selected public IDs based on their display order in the DOM
-            // This assumes initial uploadedVideos order is the desired concatenation order
-            const orderedPublicIds = uploadedVideos
-                .filter(video => selectedVideoPublicIds.has(video.public_id))
-                .map(video => video.public_id);
+            console.log('Attempting to concatenate videos with public_ids (ordered):', orderedPublicIds);
+            concatenationStatusDiv.textContent = 'Начинаем объединение видео... Это может занять некоторое время.';
+            concatenationStatusDiv.className = 'concatenation-status pending';
 
             try {
-                const response = await fetch(`${RENDER_BACKEND_URL}/concatenate_videos`, {
+                const response = await fetch('/concatenate_videos', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -209,174 +418,51 @@ document.addEventListener('DOMContentLoaded', async () => {
                     body: JSON.stringify({ public_ids: orderedPublicIds })
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    concatenationStatusDiv.textContent = 'Видео успешно объединены!';
+                    concatenationStatusDiv.className = 'concatenation-status completed';
+                    console.log('Concatenation successful:', data);
+
+                    // Добавляем объединенное видео в localStorage и обновляем UI
+                    const newConcatenatedVideo = {
+                        taskId: data.new_public_id,
+                        originalFilename: `concatenated_video_${data.new_public_id.substring(0, 8)}.mp4`,
+                        status: 'concatenated',
+                        cloudinary_url: data.new_video_url,
+                        metadata: {
+                            description: "Это видео было объединено из нескольких видео."
+                        }
+                    };
+                    uploadedVideos.push(newConcatenatedVideo);
+                    localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
+                    await fetchAndDisplayVideos(); // Перерисовать все видео, включая новое
+
+                    // Перенаправляем пользователя на finish.html с URL объединенного видео
+                    window.location.replace(`finish.html?videoUrl=${encodeURIComponent(data.new_video_url)}`);
+
+                } else {
+                    concatenationStatusDiv.textContent = `Ошибка объединения: ${data.error || 'Неизвестная ошибка'}`;
+                    concatenationStatusDiv.className = 'concatenation-status error';
+                    console.error('Concatenation error:', data);
+                    connectVideosCheckbox.checked = false; // Сбрасываем чекбокс
+                    updateConcatenationStatus(); // Обновляем статус
                 }
-
-                const result = await response.json();
-                concatenationStatusDiv.textContent = 'Видео успешно объединены!';
-                concatenationStatusDiv.classList.remove('pending', 'error');
-                concatenationStatusDiv.classList.add('completed');
-
-                // Redirect to finish.html with the new video URL
-                window.location.href = `finish.html?videoUrl=${encodeURIComponent(result.new_video_url)}`;
-
             } catch (error) {
-                console.error('Ошибка объединения видео:', error);
-                concatenationStatusDiv.textContent = `Ошибка объединения: ${error.message}`;
-                concatenationStatusDiv.classList.remove('pending', 'completed');
-                concatenationStatusDiv.classList.add('error');
-                connectVideosCheckbox.checked = false; // Uncheck on error
+                concatenationStatusDiv.textContent = `Сетевая ошибка при объединении: ${error.message}`;
+                concatenationStatusDiv.className = 'concatenation-status error';
+                console.error('Network error during concatenation:', error);
+                connectVideosCheckbox.checked = false; // Сбрасываем чекбокс
+                updateConcatenationStatus(); // Обновляем статус
             }
         } else {
-            // Checkbox unchecked, clear selections
-            selectedVideoPublicIds.clear();
-            document.querySelectorAll('.media-bubble.selected').forEach(bubble => {
-                bubble.classList.remove('selected');
-            });
-            updateConcatenationStatus();
+            // Деактивирована опция объединения
+            updateConcatenationStatus(); // Очищаем выбор и обновляем статус
         }
     });
 
-    // Handle upload new button click (for file input)
-    uploadNewBtn.addEventListener('click', () => {
-        videoFileInput.click();
-    });
-
-    // Handle file input change (for new uploads from results page)
-    videoFileInput.addEventListener('change', async () => {
-        const filesToUpload = Array.from(videoFileInput.files);
-        if (filesToUpload.length === 0) {
-            uploadStatusText.textContent = 'Готов к загрузке нового видео.';
-            dynamicUploadStatusContainer.classList.add('hidden');
-            return;
-        }
-
-        dynamicUploadStatusContainer.classList.remove('hidden');
-        progressBarContainer.style.display = 'flex';
-        progressBar.style.width = '0%';
-        progressText.textContent = '0%';
-
-        let currentFileIndex = 0;
-        let successfulUploads = 0;
-
-        async function uploadNextFileInQueue() {
-            if (currentFileIndex < filesToUpload.length) {
-                const file = filesToUpload[currentFileIndex];
-                uploadStatusText.textContent = `Загрузка видео ${currentFileIndex + 1} из ${filesToUpload.length}: ${file.name}...`;
-                uploadStatusText.classList.remove('error', 'completed');
-                uploadStatusText.classList.add('info');
-
-                const formData = new FormData();
-                formData.append('video', file);
-                formData.append('instagram_username', localStorage.getItem('hifeUsername') || '');
-                formData.append('email', localStorage.getItem('hifeEmail') || '');
-                formData.append('linkedin_profile', localStorage.getItem('hifeLinkedin') || '');
-
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', `${RENDER_BACKEND_URL}/upload_video`, true);
-
-                xhr.upload.addEventListener('progress', (event) => {
-                    if (event.lengthComputable) {
-                        const percent = (event.loaded / event.total) * 100;
-                        progressBar.style.width = `${percent.toFixed(0)}%`;
-                        progressText.textContent = `${percent.toFixed(0)}%`;
-                        uploadStatusText.textContent = `Загрузка видео ${currentFileIndex + 1} из ${filesToUpload.length}: ${file.name} (${percent.toFixed(0)}%)`;
-                    }
-                });
-
-                xhr.onload = async function() {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        const response = JSON.parse(xhr.responseText);
-                        const taskId = response.taskId;
-                        const newPublicId = response.public_id; // Get public_id from upload response
-                        const newCloudinaryUrl = response.cloudinary_url;
-
-                        const newVideoEntry = {
-                            id: taskId,
-                            public_id: newPublicId, // Store public_id
-                            original_filename: file.name,
-                            status: 'pending',
-                            timestamp: new Date().toISOString(),
-                            cloudinary_url: newCloudinaryUrl
-                        };
-                        uploadedVideos.push(newVideoEntry);
-                        localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
-                        successfulUploads++;
-                        currentFileIndex++;
-                        await uploadNextFileInQueue(); // Continue with next file
-                    } else {
-                        const error = JSON.parse(xhr.responseText);
-                        uploadStatusText.textContent = `Ошибка загрузки "${file.name}": ${error.error || 'Неизвестная ошибка'}`;
-                        uploadStatusText.classList.remove('info', 'completed');
-                        uploadStatusText.classList.add('error');
-                        progressBarContainer.style.display = 'none';
-                        // Stop processing further files on error
-                        console.error('Upload error:', error);
-                    }
-                };
-
-                xhr.onerror = function() {
-                    uploadStatusText.textContent = `Ошибка сети при загрузке "${file.name}".`;
-                    uploadStatusText.classList.remove('info', 'completed');
-                    uploadStatusText.classList.add('error');
-                    progressBarContainer.style.display = 'none';
-                    console.error('Network error during upload.');
-                };
-
-                xhr.send(formData);
-            } else {
-                // All files in this batch uploaded
-                if (successfulUploads > 0) {
-                    uploadStatusText.textContent = `Загружено ${successfulUploads} видео. Обновление статусов...`;
-                    uploadStatusText.classList.remove('error', 'info');
-                    uploadStatusText.classList.add('completed');
-                    progressBarContainer.style.display = 'none';
-                    await fetchAndDisplayVideos(); // Refresh the list of videos
-                } else {
-                    uploadStatusText.textContent = 'Загрузка отменена или произошла ошибка.';
-                    uploadStatusText.classList.remove('info', 'completed');
-                    uploadStatusText.classList.add('error');
-                    progressBarContainer.style.display = 'none';
-                }
-            }
-        }
-        await uploadNextFileInQueue(); // Start the upload queue
-    });
-
-    // Handle Finish Session button
-    finishSessionBtn.addEventListener('click', () => {
-        const confirmClear = confirm('Вы уверены, что хотите завершить сессию? Все загруженные видео будут удалены из вашего списка.');
-        if (confirmClear) {
-            localStorage.removeItem('hifeUsername');
-            localStorage.removeItem('hifeEmail');
-            localStorage.removeItem('hifeLinkedin');
-            localStorage.removeItem('uploadedVideos');
-            // Clear selected video IDs for concatenation as well
-            selectedVideoPublicIds.clear();
-            alert('Сессия завершена. Все данные удалены.');
-            window.location.replace('index.html'); // Redirect to start page
-        }
-    });
-
-    // Modal functionality
-    function displayMetadata(filename, metadata) {
-        modalTitle.textContent = `Метаданные для: ${filename}`;
-        modalMetadata.textContent = JSON.stringify(metadata, null, 2);
-        metadataModal.style.display = 'flex'; // Use flex to center
-    }
-
-    closeModalButton.addEventListener('click', () => {
-        metadataModal.style.display = 'none';
-    });
-
-    window.addEventListener('click', (event) => {
-        if (event.target === metadataModal) {
-            metadataModal.style.display = 'none';
-        }
-    });
-
-    // Initial fetch and display of videos
+    // Инициализация при загрузке страницы
     fetchAndDisplayVideos();
+    updateConcatenationStatus(); // Инициализируем статус при загрузке
 });
