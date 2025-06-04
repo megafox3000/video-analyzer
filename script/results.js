@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log(`results.js: Исходные данные для ${taskId}: URL=${cloudinaryUrl}, Статус=${status}, Метаданные=${JSON.stringify(metadata)}`);
 
             // Запрашиваем актуальный статус с бэкенда
-            if (status === 'uploaded' || status === 'pending' || status === 'processing') {
+            if (status === 'uploaded' || status === 'pending' || status === 'processing' || status === 'completed') {
                 try {
                     console.log(`results.js: Запрос статуса с бэкенда для ${taskId}...`);
                     const response = await fetch(`${backendUrl}/task-status/${taskId}`); 
@@ -162,14 +162,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusText = 'Загружено, ожидает обработки';
                 if (displayUrl) {
                     thumbnailUrl = displayUrl.replace(/\.mp4$/, '.jpg') + "?_a=DAJHADAD";
-                    videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; height:auto; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
+                    // ИЗМЕНЕНО: Убрано height:auto из inline стиля
+                    videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
                 }
             } else if (status === 'processing') {
                 statusClass = 'status-pending';
                 statusText = 'В процессе анализа...';
                 if (displayUrl) {
                     thumbnailUrl = displayUrl.replace(/\.mp4$/, '.jpg') + "?_a=DAJHADAD";
-                    videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; height:auto; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
+                    // ИЗМЕНЕНО: Убрано height:auto из inline стиля
+                    videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
                 }
                 startPolling(taskId);
             } else if (status === 'completed') {
@@ -177,7 +179,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusText = 'Анализ завершен!';
                 if (displayUrl) {
                     thumbnailUrl = displayUrl.replace(/\.mp4$/, '.jpg') + "?_a=DAJHADAD";
-                    videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; height:auto; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
+                    // ИЗМЕНЕНО: Убрано height:auto из inline стиля
+                    videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
                 }
                 stopPolling(taskId);
             } else if (status === 'error') {
@@ -185,7 +188,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusText = 'Ошибка анализа';
                 if (displayUrl) {
                     thumbnailUrl = displayUrl.replace(/\.mp4$/, '.jpg') + "?_a=DAJHADAD";
-                    videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; height:auto; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
+                    // ИЗМЕНЕНО: Убрано height:auto из inline стиля
+                    videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
                 }
                 stopPolling(taskId);
             } else if (status === 'concatenated') {
@@ -193,7 +197,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusText = 'Видео объединено!';
                 if (displayUrl) {
                      thumbnailUrl = displayUrl.replace(/\.mp4$/, '.jpg') + "?_a=DAJHADAD";
-                     videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; height:auto; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
+                     // ИЗМЕНЕНО: Убрано height:auto из inline стиля
+                     videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
                 }
                 stopPolling(taskId);
             }
@@ -221,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const viewMetadataBtn = bubble.querySelector('.view-metadata-btn');
             if (viewMetadataBtn) {
                 viewMetadataBtn.addEventListener('click', (event) => {
-                    event.stopPropagation(); // Предотвращаем срабатывание клика по баблу
+                    event.stopPropagation();
                     displayMetadata(taskId, metadata);
                     console.log(`results.js: Клик по кнопке Метаданные для ${taskId}`);
                 });
@@ -361,14 +366,14 @@ document.addEventListener('DOMContentLoaded', () => {
                            uploadedVideos.push({
                                 taskId: data.taskId,
                                 originalFilename: data.originalFilename || file.name, 
-                                status: 'uploaded', 
+                                status: 'completed', 
                                 cloudinary_url: data.cloudinary_url,
                                 metadata: data.metadata || {} 
                             });
                     } else {
                         uploadedVideos[existingVideoIndex] = {
                             ...uploadedVideos[existingVideoIndex],
-                            status: 'uploaded',
+                            status: 'completed', 
                             cloudinary_url: data.cloudinary_url,
                             originalFilename: data.originalFilename || file.name, 
                             metadata: data.metadata || {}
@@ -459,7 +464,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (error) {
                 concatenationStatusDiv.textContent = `Сетевая ошибка при объединении: ${error.message}`;
-                concatenationStatusDiv.className = 'concatenation-status error';
                 console.error('results.js: Сетевая ошибка при объединении:', error);
                 connectVideosCheckbox.checked = false; 
                 updateConcatenationStatus(); 
