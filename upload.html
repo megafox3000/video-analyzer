@@ -9,38 +9,50 @@
 </head>
 <body class="fade-in">
     <div class="background">
-        <h3>Connect Your Socials and upload your video(s)</h3>
-        <form class="social-form">
-            <label for="instagramInput" class="sr-only">Instagram Username</label>
-            <input type="text" id="instagramInput" placeholder="Instagram (обязательно)" name="instagram"/>
+        <div class="content-container">
+            <h3>Connect Your Socials and upload your video(s)</h3>
+            <form class="social-form">
+                <label for="instagramInput" class="sr-only">Instagram Username</label>
+                <!-- ИЗМЕНЕНО: name="instagram_username" -->
+                <input type="text" id="instagramInput" placeholder="Instagram (обязательно)" name="instagram_username"/>
 
-            <label for="linkedinInput" class="sr-only">LinkedIn Profile URL</label>
-            <input type="text" id="linkedinInput" placeholder="LinkedIn" name="linkedin"/>
+                <label for="linkedinInput" class="sr-only">LinkedIn Profile URL</label>
+                <!-- ИЗМЕНЕНО: name="linkedin_profile" -->
+                <input type="text" id="linkedinInput" placeholder="LinkedIn" name="linkedin_profile"/>
 
-            <label for="emailInput" class="sr-only">Email Address</label>
-            <input type="email" id="emailInput" placeholder="Email" name="email"/>
-        </form>
+                <label for="emailInput" class="sr-only">Email Address</label>
+                <!-- Это поле уже было правильным: name="email" -->
+                <input type="email" id="emailInput" placeholder="Email" name="email"/>
+            </form>
 
-        <div class="button-center-group">
-            <input type="file" id="videoFileInput" accept="video/*" multiple hidden />
-            <button type="button" id="selectFilesButton" class="gold-button">Choose your Video(s)</button> 
-            <button type="button" id="finishUploadButton" class="gold-button" style="display: none;">Перейти к результатам</button> 
-        </div>
-        
-        <p id="generalStatusMessage" class="status-message"></p>
+            <div class="button-center-group">
+                <input type="file" id="videoFileInput" accept="video/*" multiple hidden />
+                <button type="button" id="selectFilesButton" class="gold-button">Choose your Video(s)</button>
+                <button type="button" id="finishUploadButton" class="gold-button" style="display: none;">Перейти к результатам</button>
+            </div>
 
-        <div class="progress-bar-container" style="display: none;">
-            <div class="progress-bar" id="progressBar"></div>
-            <div class="progress-text" id="progressText">0%</div>
-        </div>
+            <p id="generalStatusMessage" class="status-message"></p>
 
-        <div id="fileValidationStatusList" class="video-info-list"></div>
-        <div id="videoUploadProgressList" class="video-info-list"></div>
+            <div class="progress-bar-container" style="display: none;">
+                <div class="progress-bar" id="progressBar"></div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
 
-        <div class="upload-section">
-            <h2>Ваши загруженные видео</h2>
-            <ul id="uploadedVideosList" class="uploaded-videos-list">
-            </ul>
+            <div class="selected-files-preview-section" style="display: none;">
+                <h3>Выбранные для загрузки видео:</h3>
+                <div id="selectedFilesPreviewContainer" class="previews-grid">
+                    </div>
+            </div>
+
+            <div id="fileValidationStatusList" class="video-info-list"></div>
+            <div id="videoUploadProgressList" class="video-info-list"></div>
+
+            <div class="upload-section">
+                <h2>Ваши загруженные видео</h2>
+                <ul id="uploadedVideosList" class="uploaded-videos-list">
+                    <p>Пока нет загруженных видео.</p>
+                </ul>
+            </div>
         </div>
     </div>
 
