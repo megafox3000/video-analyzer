@@ -159,15 +159,17 @@ h1, h2 {
     border-radius: 8px;
     position: relative;
     margin-bottom: 15px;
+    border: 2px solid red; /* ОТЛАДКА: Красная рамка */
 }
 
 .video-thumbnail video,
 .video-thumbnail img {
     width: 100%;
-    height: 100%;
+    height: 100%; /* Убеждаемся, что видео занимает всю высоту родителя */
     object-fit: cover; /* Ensures video/image covers the area */
     display: block;
     border-radius: 8px;
+    border: 2px solid blue; /* ОТЛАДКА: Синяя рамка */
 }
 
 /* Video info section */
@@ -332,7 +334,6 @@ h1, h2 {
 .concatenation-status.error { background-color: #dc3545; color: #e0e0e0; }
 
 /* Progress bar for re-upload status */
-/* Note: This is for the dynamic upload on results.html, not the main progress bar */
 .progress-bar-container {
     width: 100%;
     background-color: #333;
