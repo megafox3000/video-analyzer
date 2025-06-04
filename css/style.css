@@ -326,6 +326,10 @@ h1, h2 {
     border-radius: 8px;
     width: fit-content;
     text-align: center;
+    /* НОВЫЕ СТИЛИ ДЛЯ ОТЛАДКИ КЛИКА */
+    pointer-events: auto; /* Убеждаемся, что элемент может принимать события указателя */
+    z-index: 50; /* Поднимаем его над другими элементами */
+    border: 2px dashed yellow; /* ОТЛАДКА: Желтая пунктирная рамка */
 }
 
 .concatenation-status.info { background-color: #3a3a5a; color: #a0a0e0; }
