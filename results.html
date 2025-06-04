@@ -9,43 +9,34 @@
 </head>
 <body class="fade-in">
     <div class="background">
-        <div class="content-container"> <div class="header-section">
-                <h1 id="resultsHeader">Ваши Видео</h1>
-                <p id="usernameDisplay"></p>
-                <button id="uploadNewBtn" class="gold-button">Загрузить новое видео</button>
-                <button id="finishSessionBtn" class="gold-button">Завершить сессию</button>
-            </div>
+        <div class="header-section">
+            <h1 id="resultsHeader">Ваши Видео</h1>
+            <p id="usernameDisplay"></p>
+            <button id="uploadNewBtn" class="gold-button">Загрузить новое видео</button>
+            <button id="finishSessionBtn" class="gold-button">Завершить сессию</button>
+        </div>
 
-            <div class="connect-videos-container">
-                <label class="toggle-label" for="connectVideosCheckbox">
-                    Объединить выбранные видео
-                </label>
-                <input type="checkbox" id="connectVideosCheckbox" class="toggle-checkbox" />
-            </div>
-            <div id="concatenationStatusDiv" class="concatenation-status info">
-                Выберите 2 или более видео для объединения.
-            </div>
-            <div id="bubblesContainer" class="results-grid">
-            </div>
+        <div id="bubblesContainer" class="results-grid">
+        </div>
 
-            <input type="file" id="videoFileInput" accept="video/*" hidden multiple />
+        <input type="file" id="videoFileInput" accept="video/*" hidden />
 
-            <div id="dynamicUploadStatusContainer" class="upload-status-container hidden">
-                <p id="uploadStatusText" class="status-message info">Готов к загрузке нового видео.</p>
-                <div class="progress-bar-container" style="display: none;">
-                    <div class="progress-bar" id="progressBar"></div>
-                    <div class="progress-text" id="progressText">0%</div>
-                </div>
+        <div id="dynamicUploadStatusContainer" class="upload-status-container hidden">
+            <p id="uploadStatusText" class="status-message info">Готов к загрузке нового видео.</p>
+            <div class="progress-bar-container" style="display: none;">
+                <div class="progress-bar" id="progressBar"></div>
+                <div class="progress-text" id="progressText">0%</div>
             </div>
+        </div>
 
-            <div id="metadataModal" class="modal">
-                <div class="modal-content">
-                    <span class="close-button">&times;</span>
-                    <h4 id="modalTitle">Метаданные видео</h4>
-                    <pre id="modalMetadata"></pre>
-                </div>
+        <div id="metadataModal" class="modal">
+            <div class="modal-content">
+                <span class="close-button">&times;</span>
+                <h4 id="modalTitle">Метаданные видео</h4>
+                <pre id="modalMetadata"></pre>
             </div>
-        </div> </div>
+        </div>
+    </div>
 
     <script src="script/results.js"></script>
 </body>
