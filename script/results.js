@@ -38,9 +38,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (count < 2) {
                 concatenationStatusDiv.textContent = 'Выберите как минимум 2 видео для объединения.';
                 concatenationStatusDiv.className = 'concatenation-status info';
+                concatenationStatusDiv.style.cursor = 'default'; // Не кликабельно
             } else {
-                concatenationStatusDiv.textContent = `Выбрано видео: ${count}. Нажмите для объединения.`;
+                concatenationStatusDiv.textContent = `Выбрано видео: ${count}. Нажмите здесь для объединения.`; // Уточнено
                 concatenationStatusDiv.className = 'concatenation-status pending';
+                concatenationStatusDiv.style.cursor = 'pointer'; // Кликабельно
             }
         } else {
             selectedVideoPublicIds.clear();
@@ -49,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             concatenationStatusDiv.textContent = 'Выберите 2 или более видео для объединения.';
             concatenationStatusDiv.className = 'concatenation-status info';
+            concatenationStatusDiv.style.cursor = 'default'; // Не кликабельно
         }
     }
 
@@ -162,7 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusText = 'Загружено, ожидает обработки';
                 if (displayUrl) {
                     thumbnailUrl = displayUrl.replace(/\.mp4$/, '.jpg') + "?_a=DAJHADAD";
-                    // ИЗМЕНЕНО: Убрано height:auto из inline стиля
                     videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
                 }
             } else if (status === 'processing') {
@@ -170,7 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusText = 'В процессе анализа...';
                 if (displayUrl) {
                     thumbnailUrl = displayUrl.replace(/\.mp4$/, '.jpg') + "?_a=DAJHADAD";
-                    // ИЗМЕНЕНО: Убрано height:auto из inline стиля
                     videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
                 }
                 startPolling(taskId);
@@ -179,7 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusText = 'Анализ завершен!';
                 if (displayUrl) {
                     thumbnailUrl = displayUrl.replace(/\.mp4$/, '.jpg') + "?_a=DAJHADAD";
-                    // ИЗМЕНЕНО: Убрано height:auto из inline стиля
                     videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
                 }
                 stopPolling(taskId);
@@ -188,7 +188,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusText = 'Ошибка анализа';
                 if (displayUrl) {
                     thumbnailUrl = displayUrl.replace(/\.mp4$/, '.jpg') + "?_a=DAJHADAD";
-                    // ИЗМЕНЕНО: Убрано height:auto из inline стиля
                     videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
                 }
                 stopPolling(taskId);
@@ -197,7 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusText = 'Видео объединено!';
                 if (displayUrl) {
                      thumbnailUrl = displayUrl.replace(/\.mp4$/, '.jpg') + "?_a=DAJHADAD";
-                     // ИЗМЕНЕНО: Убрано height:auto из inline стиля
                      videoElementHTML = `<video controls preload="metadata" muted playsinline style="width:100%; display:block;"><source src="${displayUrl}" type="video/mp4"></video>`;
                 }
                 stopPolling(taskId);
@@ -405,73 +403,90 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.replace('finish.html');
     });
 
-    // Обработчик для чекбокса "Объединить видео"
-    connectVideosCheckbox.addEventListener('change', async () => {
-        if (connectVideosCheckbox.checked) {
-            const count = selectedVideoPublicIds.size;
-            if (count < 2) {
-                concatenationStatusDiv.textContent = 'Выберите как минимум 2 видео для объединения, чтобы начать.';
-                concatenationStatusDiv.className = 'concatenation-status info';
-                return;
-            }
+    // НОВОЕ: Функция для запуска конкатенации
+    async function initiateConcatenation() {
+        const count = selectedVideoPublicIds.size;
+        if (count < 2) {
+            console.warn('results.js: Недостаточно видео для объединения.');
+            concatenationStatusDiv.textContent = 'Выберите как минимум 2 видео для объединения.';
+            concatenationStatusDiv.className = 'concatenation-status info';
+            return;
+        }
 
-            const orderedPublicIds = Array.from(bubblesContainer.children)
-                .filter(bubble => bubble.classList.contains('selected'))
-                .map(bubble => bubble.dataset.publicId)
-                .filter(id => selectedVideoPublicIds.has(id));
+        const orderedPublicIds = Array.from(bubblesContainer.children)
+            .filter(bubble => bubble.classList.contains('selected'))
+            .map(bubble => bubble.dataset.publicId)
+            .filter(id => selectedVideoPublicIds.has(id));
 
-            console.log('results.js: Попытка объединить видео с public_ids (в порядке):', orderedPublicIds);
-            concatenationStatusDiv.textContent = 'Начинаем объединение видео... Это может занять некоторое время.';
-            concatenationStatusDiv.className = 'concatenation-status pending';
+        console.log('results.js: Попытка объединить видео с public_ids (в порядке):', orderedPublicIds);
+        concatenationStatusDiv.textContent = 'Начинаем объединение видео... Это может занять некоторое время.';
+        concatenationStatusDiv.className = 'concatenation-status pending';
+        concatenationStatusDiv.style.cursor = 'default'; // Отключаем клик во время обработки
 
-            try {
-                const response = await fetch(`${backendUrl}/concatenate_videos`, { 
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ public_ids: orderedPublicIds })
-                });
+        try {
+            const response = await fetch(`${backendUrl}/concatenate_videos`, { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ public_ids: orderedPublicIds })
+            });
 
-                const data = await response.json();
+            const data = await response.json();
 
-                if (response.ok) {
-                    concatenationStatusDiv.textContent = 'Видео успешно объединены!';
-                    concatenationStatusDiv.className = 'concatenation-status completed';
-                    console.log('results.js: Объединение успешно:', data);
+            if (response.ok) {
+                concatenationStatusDiv.textContent = 'Видео успешно объединены!';
+                concatenationStatusDiv.className = 'concatenation-status completed';
+                console.log('results.js: Объединение успешно:', data);
 
-                    const newConcatenatedVideo = {
-                        taskId: data.new_public_id,
-                        originalFilename: `concatenated_video_${data.new_public_id.substring(0, 8)}.mp4`,
-                        status: 'concatenated',
-                        cloudinary_url: data.new_video_url,
-                        metadata: {
-                            description: "Это видео было объединено из нескольких видео."
-                        }
-                    };
-                    uploadedVideos.push(newConcatenatedVideo);
-                    localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
-                    await fetchAndDisplayVideos();
+                const newConcatenatedVideo = {
+                    taskId: data.new_public_id,
+                    originalFilename: `concatenated_video_${data.new_public_id.substring(0, 8)}.mp4`,
+                    status: 'concatenated',
+                    cloudinary_url: data.new_video_url,
+                    metadata: {
+                        description: "Это видео было объединено из нескольких видео."
+                    }
+                };
+                uploadedVideos.push(newConcatenatedVideo);
+                localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
+                await fetchAndDisplayVideos();
 
-                    window.location.replace(`finish.html?videoUrl=${encodeURIComponent(data.new_video_url)}`);
+                window.location.replace(`finish.html?videoUrl=${encodeURIComponent(data.new_video_url)}`);
 
-                } else {
-                    concatenationStatusDiv.textContent = `Ошибка объединения: ${data.error || 'Неизвестная ошибка'}`;
-                    concatenationStatusDiv.className = 'concatenation-status error';
-                    console.error('results.js: Ошибка объединения:', data);
-                    connectVideosCheckbox.checked = false; 
-                    updateConcatenationStatus(); 
-                }
-            } catch (error) {
-                concatenationStatusDiv.textContent = `Сетевая ошибка при объединении: ${error.message}`;
-                console.error('results.js: Сетевая ошибка при объединении:', error);
+            } else {
+                concatenationStatusDiv.textContent = `Ошибка объединения: ${data.error || 'Неизвестная ошибка'}`;
+                concatenationStatusDiv.className = 'concatenation-status error';
+                console.error('results.js: Ошибка объединения:', data);
                 connectVideosCheckbox.checked = false; 
                 updateConcatenationStatus(); 
             }
-        } else {
+        } catch (error) {
+            concatenationStatusDiv.textContent = `Сетевая ошибка при объединении: ${error.message}`;
+            console.error('results.js: Сетевая ошибка при объединении:', error);
+            connectVideosCheckbox.checked = false; 
             updateConcatenationStatus(); 
         }
+    }
+
+
+    // Обработчик для чекбокса "Объединить видео"
+    connectVideosCheckbox.addEventListener('change', () => {
+        console.log('results.js: connectVideosCheckbox changed. Checked:', connectVideosCheckbox.checked);
+        updateConcatenationStatus(); // Обновляем статус при изменении чекбокса
     });
+
+    // НОВОЕ: Обработчик клика по тексту статуса конкатенации
+    concatenationStatusDiv.addEventListener('click', () => {
+        console.log('results.js: Клик по тексту статуса конкатенации. Проверка условий...'); // Добавлен лог
+        if (connectVideosCheckbox.checked && selectedVideoPublicIds.size >= 2) {
+            console.log('results.js: Условия для конкатенации выполнены. Запуск initiateConcatenation().'); // Добавлен лог
+            initiateConcatenation(); // Запускаем конкатенацию
+        } else {
+            console.log('results.js: Условия для конкатенации не выполнены (чекбокс не выбран или < 2 видео).');
+        }
+    });
+
 
     // Инициализация при загрузке страницы
     fetchAndDisplayVideos();
