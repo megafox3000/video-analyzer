@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="css/style.css" />
     <link rel="icon" type="image/png" href="assets/favicon.png" />
     <style>
-        /* Эти стили были в предыдущей версии, я их сохранил */
         body {
             display: flex;
             justify-content: center;
@@ -25,78 +24,19 @@
         .gold-button {
             margin-top: 1rem;
         }
-
-        /* НОВЫЕ СТИЛИ ДЛЯ ВИДЕОПЛЕЕРА И СТАТУСА НА finish.html */
-        .video-player-container {
-            margin-top: 20px;
-            width: 100%;
-            max-width: 640px; /* Максимальная ширина для видео */
-            background-color: #000; /* Черный фон для плеера */
-            border-radius: 8px;
-            overflow: hidden; /* Скрывает все, что выходит за границы */
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-        }
-
-        .video-player-container video {
-            width: 100%;
-            height: auto;
-            display: block; /* Убирает лишние отступы под видео */
-        }
-
-        #finishStatusMessage {
-            margin-top: 15px;
-            font-size: 1.1em;
-            color: var(--text-color-light);
-        }
     </style>
 </head>
 <body class="fade-in">
     <div class="background">
-        <div class="content-container"> <h2>Ваша сессия завершена!</h2>
-            <p>Спасибо, что воспользовались Hife Video Analyzer. Ваши видео обрабатываются.</p>
-            <p>Вы можете закрыть эту страницу.</p>
-
-            <div class="video-player-container" style="display: none;">
-                <video id="concatenatedVideoPlayer" controls autoplay loop muted playsinline>
-                    Ваш браузер не поддерживает видео HTML5.
-                </video>
-            </div>
-            <p id="finishStatusMessage" class="status-message info"></p>
-            <button type="button" id="returnToUploadButton" class="gold-button">Начать новую сессию</button>
-        </div> </div>
+        <h2>Ваша сессия завершена!</h2>
+        <p>Спасибо, что воспользовались Hife Video Analyzer. Ваши видео обрабатываются.</p>
+        <p>Вы можете закрыть эту страницу.</p>
+        <button type="button" id="returnToUploadButton" class="gold-button">Начать новую сессию</button>
+    </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const returnToUploadButton = document.getElementById('returnToUploadButton');
-            const concatenatedVideoPlayer = document.getElementById('concatenatedVideoPlayer');
-            const videoPlayerContainer = document.querySelector('.video-player-container');
-            const finishStatusMessage = document.getElementById('finishStatusMessage');
-
-            // Получаем URL объединенного видео из параметров URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const videoUrl = urlParams.get('videoUrl');
-
-            if (videoUrl) {
-                concatenatedVideoPlayer.src = videoUrl;
-                videoPlayerContainer.style.display = 'block'; // Показываем плеер
-                finishStatusMessage.textContent = 'Объединенное видео готово к просмотру!';
-                finishStatusMessage.className = 'status-message completed';
-                concatenatedVideoPlayer.load(); // Загружаем видео
-                console.log('Displaying concatenated video:', videoUrl);
-            } else {
-                finishStatusMessage.textContent = 'Видео не было объединено. Вы можете начать новую сессию.';
-                finishStatusMessage.className = 'status-message info';
-                console.log('No video URL found for concatenation.');
-            }
-
-            returnToUploadButton.addEventListener('click', () => {
-                // Очищаем localStorage при начале новой сессии
-                localStorage.removeItem('uploadedVideos');
-                localStorage.removeItem('hifeUsername');
-                localStorage.removeItem('hifeEmail');
-                localStorage.removeItem('hifeLinkedin');
-                window.location.replace('upload.html'); // Возвращаемся к началу
-            });
+        document.getElementById('returnToUploadButton').addEventListener('click', () => {
+            window.location.replace('upload.html'); // Возвращаемся к началу
         });
     </script>
 </body>
