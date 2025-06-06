@@ -119,6 +119,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Обновляет статусное сообщение внутри конкретного пузыря предпросмотра файла
+    // Используется для установки конечного статуса после валидации или загрузки
+    function updateFileBubbleStatus(file, message, type) {
+        if (file._statusMessageBubbleElement) {
+            file._statusMessageBubbleElement.textContent = message;
+            file._statusMessageBubbleElement.className = `status-message-bubble status-${type}`;
+        }
+        if (file._bubbleImgElement) {
+            if (type === 'error') {
+                file._bubbleImgElement.src = 'assets/error_placeholder.png';
+                file._bubbleImgElement.alt = 'Processing Error';
+            } else {
+                file._bubbleImgElement.src = 'assets/video_placeholder.png'; // Возвращаем к общему плейсхолдеру
+                file._bubbleImgElement.alt = 'Video Preview';
+            }
+        }
+    }
+
     // Валидация полей ввода и управление кнопкой выбора файлов
     function validateInputs() {
         const anyFieldFilled = (instagramInput && instagramInput.value.trim() !== '') ||
@@ -130,7 +148,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (filesSelected) {
             for (const file of Array.from(videoInput.files)) {
-                if (file.size > MAX_VIDEO_SIZE_BYTES) {
+                // Проверяем флаг валидности, установленный в процессе валидации
+                if (file._isValidFlag === false) {
                     allSelectedFilesAreValid = false;
                     break;
                 }
@@ -140,6 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectFilesButton) {
             selectFilesButton.disabled = !(anyFieldFilled && (!filesSelected || allSelectedFilesAreValid));
 
+            // Логика изменения текста кнопки
             if (anyFieldFilled && filesSelected && allSelectedFilesAreValid && currentFileIndex === 0) {
                 selectFilesButton.textContent = 'Transfer your Video(s)';
             } else if (!filesSelected && anyFieldFilled) {
@@ -153,7 +173,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectFilesButton && !selectFilesButton.disabled && generalStatusMessage &&
             generalStatusMessage.style.color === 'var(--status-error-color)' &&
             !generalStatusMessage.textContent.includes('too long') && // Проверяем сообщения о длине
-            !generalStatusMessage.textContent.includes('too large')) { // Проверяем сообщения о размере
+            !generalStatusMessage.textContent.includes('too large') &&
+            !generalStatusMessage.textContent.includes('failed validation')) { // Проверяем общее сообщение о неудачной валидации
             generalStatusMessage.textContent = '';
         }
     }
@@ -218,9 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            let allFilesValid = true;
-            let filesToValidateMetadata = [];
-
             // --- Создание предпросмотров ---
             if (selectedFilesPreviewContainer) {
                 selectedFilesPreviewContainer.innerHTML = ''; // Очищаем контейнер
@@ -229,104 +247,156 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectedFilesPreviewSection.style.display = 'block'; // Показываем секцию предпросмотра
             }
 
+            let filesToValidateMetadata = [];
+            let anyFileFailedInitialCheck = false; // Флаг для определения, есть ли ошибки на ранней стадии
+
             filesToUpload.forEach(file => {
+                // Создаем элемент предпросмотра по шаблону с results.html
                 const previewBubble = document.createElement('div');
                 previewBubble.className = 'preview-bubble media-bubble';
+                previewBubble.style.cursor = 'default';
 
-                const videoElement = document.createElement('video');
-                const objectURL = URL.createObjectURL(file);
-                objectURLs.push(objectURL); // Сохраняем URL для последующего отзыва
+                const imgElement = document.createElement('img');
+                imgElement.className = 'bubble-preview-img';
+                imgElement.src = 'assets/video_placeholder.png'; // Общий плейсхолдер
+                imgElement.alt = 'Video Preview';
 
-                videoElement.src = objectURL;
-                videoElement.autoplay = true;
-                videoElement.loop = true;
-                videoElement.muted = true;
-                videoElement.playsinline = true;
-                videoElement.preload = 'metadata';
+                const textOverlay = document.createElement('div');
+                textOverlay.className = 'bubble-text-overlay';
 
-                const fileNameOverlay = document.createElement('div');
-                fileNameOverlay.className = 'file-name-overlay';
-                fileNameOverlay.textContent = file.name;
+                const titleOverlay = document.createElement('h3');
+                titleOverlay.className = 'bubble-title-overlay';
+                titleOverlay.textContent = file.name;
 
-                previewBubble.appendChild(videoElement);
-                previewBubble.appendChild(fileNameOverlay);
+                const statusMessageBubble = document.createElement('p');
+                statusMessageBubble.className = 'status-message-bubble status-info'; // Начальный статус
+                statusMessageBubble.textContent = 'Validating...'; // Всегда начинаем с "Validating..."
+
+                const bubbleActions = document.createElement('div'); // Пустой контейнер для действий
+                bubbleActions.className = 'bubble-actions';
+
+                textOverlay.appendChild(titleOverlay);
+                textOverlay.appendChild(statusMessageBubble);
+                textOverlay.appendChild(bubbleActions);
+
+                previewBubble.appendChild(imgElement);
+                previewBubble.appendChild(textOverlay);
+
                 if (selectedFilesPreviewContainer) {
                     selectedFilesPreviewContainer.appendChild(previewBubble);
+                }
+
+                // Привязываем DOM-элементы к объекту файла для удобства обновления конечного статуса
+                file._previewBubbleElement = previewBubble;
+                file._statusMessageBubbleElement = statusMessageBubble;
+                file._bubbleImgElement = imgElement;
+                file._isValidFlag = true; // Начальное состояние валидности
+
+                // Проверка размера файла сразу
+                if (file.size > MAX_VIDEO_SIZE_BYTES) {
+                    // updateFileBubbleStatus(file, `Too large. Max ${MAX_VIDEO_SIZE_MB} MB.`, 'error'); // Не обновляем пузырь сразу
+                    file._isValidFlag = false; // Отмечаем файл как невалидный
+                    anyFileFailedInitialCheck = true; // Устанавливаем флаг, что есть ошибки
+                } else {
+                    filesToValidateMetadata.push(file); // Добавляем файл в очередь на проверку метаданных
                 }
             });
             // --- Конец создания предпросмотров ---
 
-            for (const file of filesToUpload) {
-                if (file.size > MAX_VIDEO_SIZE_BYTES) {
-                    displayGeneralStatus(`Video "${file.name}" is too large. Max ${MAX_VIDEO_SIZE_MB} MB.`, 'error');
-                    if (videoInput) videoInput.value = ''; // Сброс всех выбранных файлов, если хотя бы один невалиден
-                    allFilesValid = false;
-                    break;
-                }
-                filesToValidateMetadata.push(file);
-            }
+            if (anyFileFailedInitialCheck) {
+                displayGeneralStatus(`Some videos failed initial size validation. Please select other files.`, 'error');
+                // Обновляем статусы в пузырях для тех, что не прошли проверку размера
+                filesToUpload.forEach(file => {
+                    if (file.size > MAX_VIDEO_SIZE_BYTES) {
+                        updateFileBubbleStatus(file, `Too large. Max ${MAX_VIDEO_SIZE_MB} MB.`, 'error');
+                    }
+                });
 
-            if (!allFilesValid) {
-                validateInputs();
                 if (selectFilesButton) selectFilesButton.textContent = 'Choose your Video(s)';
                 filesToUpload = []; // Очищаем очередь, так как есть невалидные файлы
-                clearPreviews(); // Очищаем предпросмотры, если валидация файлов не удалась
+                if (videoInput) videoInput.value = ''; // Сброс, если невалидно
+                validateInputs();
                 return;
             }
+
 
             let validationsCompleted = 0;
             const totalFilesForValidation = filesToValidateMetadata.length;
 
-            if (totalFilesForValidation === 0) {
-                validateInputs();
-                if (selectFilesButton) selectFilesButton.textContent = 'Choose your Video(s)';
-                clearPreviews();
-                return;
+            if (totalFilesForValidation === 0 && filesToUpload.length > 0) {
+                 // Эта ветка означает, что все выбранные файлы не прошли проверку размера
+                 // И это уже обработано выше с 'anyFileFailedInitialCheck'
+                 return;
+            } else if (filesToUpload.length === 0) { // Ничего не выбрано
+                 validateInputs();
+                 if (selectFilesButton) selectFilesButton.textContent = 'Choose your Video(s)';
+                 clearPreviews();
+                 return;
             }
 
-            displayGeneralStatus('Checking selected videos...', 'info');
+
+            displayGeneralStatus('Checking selected videos for duration...', 'info');
 
             filesToValidateMetadata.forEach((file) => {
                 const tempVideoElement = document.createElement('video');
                 tempVideoElement.preload = 'metadata';
-                tempVideoElement.src = URL.createObjectURL(file);
+                const objectURL = URL.createObjectURL(file);
+                tempVideoElement.src = objectURL;
 
                 tempVideoElement.onloadedmetadata = () => {
                     const videoDuration = tempVideoElement.duration;
-                    URL.revokeObjectURL(tempVideoElement.src); // Освобождаем память сразу после получения метаданных
+                    URL.revokeObjectURL(objectURL); // Освобождаем память сразу после получения метаданных
 
                     if (isNaN(videoDuration) || videoDuration > MAX_VIDEO_DURATION_SECONDS) {
-                        displayGeneralStatus(`Video "${file.name}" is too long. Max ${MAX_VIDEO_DURATION_SECONDS / 60} minutes.`, 'error');
-                        if (videoInput) videoInput.value = '';
-                        allFilesValid = false;
+                        file._isValidFlag = false;
                     }
 
                     validationsCompleted++;
                     if (validationsCompleted === totalFilesForValidation) {
-                        if (allFilesValid) {
+                        // После завершения всех проверок метаданных, обновляем пузыри
+                        const finalAllFilesValid = filesToUpload.every(f => f._isValidFlag);
+                        filesToUpload.forEach(f => {
+                            if (f._isValidFlag) {
+                                updateFileBubbleStatus(f, 'Ready to upload.', 'success');
+                            } else {
+                                // Если файл невалиден по длительности (или уже по размеру)
+                                // и статус в пузыре еще не "error", то обновляем
+                                if (!f._statusMessageBubbleElement.classList.contains('status-error')) {
+                                    updateFileBubbleStatus(f, `Too long. Max ${MAX_VIDEO_DURATION_SECONDS / 60} minutes.`, 'error');
+                                }
+                            }
+                        });
+
+
+                        if (finalAllFilesValid) {
                             displayGeneralStatus(`All ${filesToUpload.length} videos are ready for upload. Click "Transfer your Video(s)".`, 'completed');
                             if (selectFilesButton) selectFilesButton.textContent = 'Transfer your Video(s)';
                             validateInputs();
                         } else {
                             displayGeneralStatus(`Some videos failed validation. Please select other files.`, 'error');
-                            filesToUpload = [];
-                            if (videoInput) videoInput.value = ''; // Сброс, если невалидно
+                            filesToUpload = filesToUpload.filter(f => f._isValidFlag); // Удаляем невалидные из очереди
+                            if (videoInput) videoInput.value = ''; // Сброс, если есть невалидные
                             if (selectFilesButton) selectFilesButton.textContent = 'Choose your Video(s)';
-                            clearPreviews(); // Очищаем предпросмотры, если валидация не удалась
                             validateInputs();
                         }
                     }
                 };
                 tempVideoElement.onerror = () => {
-                    URL.revokeObjectURL(tempVideoElement.src); // Освобождаем память в случае ошибки
-                    displayGeneralStatus(`Failed to load video metadata "${file.name}". The file might be corrupted or not a video.`, 'error');
-                    if (videoInput) videoInput.value = '';
-                    allFilesValid = false;
+                    URL.revokeObjectURL(objectURL); // Освобождаем память в случае ошибки
+                    file._isValidFlag = false; // Отмечаем файл как невалидный
                     validationsCompleted++;
                     if (validationsCompleted === totalFilesForValidation) {
-                        filesToUpload = [];
+                        // После завершения всех проверок, обновляем пузыри
+                        filesToUpload.forEach(f => {
+                            if (!f._isValidFlag && !f._statusMessageBubbleElement.classList.contains('status-error')) {
+                                updateFileBubbleStatus(f, `Metadata error. File might be corrupted.`, 'error');
+                            }
+                        });
+
+                        displayGeneralStatus(`Some videos failed validation. Please select other files.`, 'error');
+                        filesToUpload = filesToUpload.filter(f => f._isValidFlag); // Удаляем невалидные из очереди
+                        if (videoInput) videoInput.value = '';
                         if (selectFilesButton) selectFilesButton.textContent = 'Choose your Video(s)';
-                        clearPreviews(); // Очищаем предпросмотры в случае ошибки метаданных
                         validateInputs();
                     }
                 };
@@ -336,15 +406,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Функция для загрузки следующего файла в очереди
     function uploadNextFile() {
-        if (currentFileIndex < filesToUpload.length) {
-            const file = filesToUpload[currentFileIndex];
+        // Фильтруем файлы, чтобы загружать только те, что прошли валидацию
+        const validFilesToUpload = filesToUpload.filter(f => f._isValidFlag);
+
+        if (currentFileIndex < validFilesToUpload.length) {
+            const file = validFilesToUpload[currentFileIndex];
             const username = instagramInput ? instagramInput.value.trim() : '';
             const email = emailInput ? emailInput.value.trim() : '';
             const linkedin = linkedinInput ? linkedinInput.value.trim() : '';
 
             uploadVideo(file, username, email, linkedin);
         } else {
-            // Все файлы загружены. Теперь перенаправляем на results.html
+            // Все валидные файлы загружены. Теперь перенаправляем на results.html
             displayGeneralStatus('All videos successfully uploaded!', 'completed');
             if (selectFilesButton) selectFilesButton.disabled = false;
             if (selectFilesButton) selectFilesButton.textContent = 'Choose your Video(s)';
@@ -385,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Функция загрузки видео на бэкенд
     function uploadVideo(file, username, email, linkedin) {
-        displayGeneralStatus(`Uploading video ${currentFileIndex + 1} of ${filesToUpload.length}: ${file.name}...`, 'info');
+        displayGeneralStatus(`Uploading video ${currentFileIndex + 1} of ${filesToUpload.filter(f => f._isValidFlag).length}: ${file.name}...`, 'info');
 
         if (progressBarContainer) progressBarContainer.style.display = 'flex';
         if (progressBar) progressBar.style.width = '0%';
@@ -411,7 +484,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const percent = (event.loaded / event.total) * 100;
                 if (progressBar) progressBar.style.width = `${percent.toFixed(0)}%`;
                 if (progressText) progressText.textContent = `${percent.toFixed(0)}%`;
-                displayGeneralStatus(`Uploading video ${currentFileIndex + 1} of ${filesToUpload.length}: ${file.name} (${percent.toFixed(0)}%)`, 'info');
+                // Обновляем только общее сообщение о статусе
+                displayGeneralStatus(`Uploading video ${currentFileIndex + 1} of ${filesToUpload.filter(f => f._isValidFlag).length}: ${file.name} (${percent.toFixed(0)}%)`, 'info');
             }
         });
 
@@ -431,12 +505,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 uploadedVideos.push(newVideoEntry);
                 localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
 
+                // Обновляем статус в индивидуальном пузыре файла на "Uploaded successfully!" после завершения
+                updateFileBubbleStatus(file, 'Uploaded successfully!', 'success');
+
                 currentFileIndex++;
                 uploadNextFile();
 
             } else {
                 const error = JSON.parse(currentUploadXhr.responseText);
-                displayGeneralStatus(`Upload error for video ${currentFileIndex + 1} of ${filesToUpload.length} ("${file.name}"): ${error.error || 'Unknown error'}`, 'error');
+                // Обновляем статус в индивидуальном пузыре файла на ошибку
+                updateFileBubbleStatus(file, `Upload failed!`, 'error'); // Краткое сообщение в пузыре
+
+                displayGeneralStatus(`Upload error for video ${currentFileIndex + 1} of ${filesToUpload.filter(f => f._isValidFlag).length} ("${file.name}"): ${error.error || 'Unknown error'}`, 'error');
                 resetProgressBar();
                 if (selectFilesButton) selectFilesButton.disabled = false;
                 if (selectFilesButton) selectFilesButton.textContent = 'Choose your Video(s)';
@@ -451,7 +531,10 @@ document.addEventListener('DOMContentLoaded', () => {
         currentUploadXhr.onerror = function() {
             if (selectFilesButton) selectFilesButton.disabled = false;
             if (selectFilesButton) selectFilesButton.textContent = 'Choose your Video(s)';
-            displayGeneralStatus(`Network error during upload for video ${currentFileIndex + 1} of ${filesToUpload.length} ("${file.name}").`, 'error');
+            // Обновляем статус в индивидуальном пузыре файла на сетевую ошибку
+            updateFileBubbleStatus(file, 'Network error!', 'error'); // Краткое сообщение в пузыре
+
+            displayGeneralStatus(`Network error during upload for video ${currentFileIndex + 1} of ${filesToUpload.filter(f => f._isValidFlag).length} ("${file.name}").`, 'error');
             resetProgressBar();
             filesToUpload = []; // Очищаем очередь при ошибке
             currentFileIndex = 0;
