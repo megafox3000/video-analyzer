@@ -480,7 +480,7 @@ h1 {
 .status-error, .status-failed {
     color: var(--status-error-color);
 }
-.status-message.info {
+.status-info { /* Изменено с .status-message.info для консистентности */
     color: var(--status-info-color);
 }
 
@@ -634,4 +634,112 @@ h1 {
 
 #finishSessionBtn:hover {
     background: linear-gradient(45deg, #FF4D4D, #CC3B3B); /* Более темный красный при наведении */
+}
+
+
+/* --- НОВЫЕ СТИЛИ ДЛЯ upload.html --- */
+
+/* Секция для предварительного просмотра выбранных файлов */
+.selected-files-preview-section {
+    width: 100%;
+    max-width: 1200px; /* Соответствует results-grid для ширины */
+    margin: 2rem auto; /* Отступы сверху/снизу и центрирование */
+    padding: 1rem;
+    text-align: center; /* Центрируем заголовок */
+}
+
+.selected-files-preview-section h2 {
+    font-size: 2rem;
+    color: #FFD700; /* Золотой цвет для заголовка */
+    margin-bottom: 1.5rem;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+}
+
+/* Контейнер для пузырей внутри секции предпросмотра */
+#selectedFilesPreviewContainer {
+    display: grid;
+    /* Используем те же настройки сетки, что и для .results-grid, для консистентности */
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    justify-content: center;
+    align-items: flex-start; /* Выравнивание элементов по верхней границе */
+    padding: 1rem 0; /* Внутренние отступы */
+}
+
+/* Стили для отдельных пузырей предпросмотра на upload.html */
+/* Они будут использовать те же стили, что и .video-bubble, но без анимации float */
+.preview-bubble {
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    overflow: hidden;
+    position: relative;
+    background-color: #3b3b3b;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    text-align: center;
+    color: var(--text-color-light);
+    max-width: 300px;
+    box-sizing: border-box;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    flex-shrink: 0;
+    border: 1px solid #4a4a4a;
+    cursor: default; /* Курсор по умолчанию, так как они не интерактивны до загрузки */
+    animation: none; /* Убираем анимацию float для превью, чтобы они просто располагались на месте */
+}
+
+/* Стили при наведении на превью-пузырь (можно оставить, если нужен легкий эффект) */
+.preview-bubble:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 12px 25px rgba(0,0,0,0.6);
+}
+
+/* Стили для внутренних элементов .preview-bubble, такие как изображение и текстовый оверлей */
+/* Они дублируют стили .video-bubble для консистентности */
+.preview-bubble .bubble-preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+.preview-bubble .bubble-text-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    box-sizing: border-box;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    text-align: center;
+    font-family: 'Segoe UI', sans-serif;
+    border-radius: 50%;
+}
+
+.preview-bubble .bubble-text-overlay h3.bubble-title-overlay {
+    margin: 0 0 5px 0;
+    font-size: 1.1em;
+    color: #FFD700;
+    word-wrap: break-word;
+    white-space: normal;
+    max-height: 50%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.preview-bubble .bubble-text-overlay .status-message-bubble {
+    margin: 0;
+    font-size: 0.9em;
+    font-weight: bold;
 }
