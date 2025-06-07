@@ -90,8 +90,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 uploadedVideosList.innerHTML = '<p>No videos uploaded yet.</p>';
             } else {
                 uploadedVideos.forEach(video => {
+                    // Используем video.id вместо video.taskId
                     const li = document.createElement('li');
-                    li.textContent = `${video.originalFilename} (ID: ${video.taskId}) - Status: ${video.status}`;
+                    li.textContent = `${video.originalFilename} (ID: ${video.id}) - Status: ${video.status}`; 
                     uploadedVideosList.appendChild(li);
                 });
             }
@@ -530,7 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const taskId = response.taskId;
 
                 const newVideoEntry = {
-                    taskId: taskId,
+                    id: taskId, // <-- ИЗМЕНЕНО: теперь используется 'id'
                     originalFilename: response.originalFilename || file.name,
                     status: 'uploaded', // Начальный статус после загрузки
                     timestamp: new Date().toISOString(),
