@@ -1,3 +1,5 @@
+# upload.html
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -46,9 +48,24 @@
             <h2>Ваши загруженные видео</h2>
             <ul id="uploadedVideosList" class="uploaded-videos-list">
             </ul>
-        </div>
+
+            <div class="process-section">
+                <h3>Обработка выбранных видео</h3>
+                <div class="connect-videos-option">
+                    <input type="checkbox" id="connectVideosCheckbox">
+                    <label for="connectVideosCheckbox">Объединить выбранные видео</label>
+                </div>
+                <button type="button" id="processSelectedVideosButton" class="gold-button" style="display: none;">
+                    Обработать выбранные видео
+                </button>
+                <p id="processStatusMessage" class="status-message"></p>
+                <div id="selectedVideosForProcessing" class="video-info-list">
+                    </div>
+            </div>
+            </div>
     </div>
 
     <script src="script/upload_validation.js"></script>
+    <script src="script/process_videos.js"></script> 
 </body>
 </html>
