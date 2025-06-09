@@ -13,7 +13,8 @@ if ((existingUsername || existingEmail || existingLinkedin) && existingUploadedV
     try {
         const parsedVideos = JSON.parse(existingUploadedVideos);
         if (parsedVideos.length > 0) {
-            window.location.replace('results.html');
+            // !!! ВРЕМЕННО ОТКЛЮЧЕНО для тестирования новой функциональности !!!
+            // window.location.replace('results.html');
         }
     } catch (e) {
         console.error("Error parsing localStorage 'uploadedVideos':", e);
@@ -39,6 +40,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Контейнеры для предварительного просмотра файлов
     const selectedFilesPreviewSection = document.querySelector('.selected-files-preview-section');
     const selectedFilesPreviewContainer = document.getElementById('selectedFilesPreviewContainer');
+
+    // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
+    const processSelectedVideosButton = document.getElementById('processSelectedVideosButton');
+    const connectVideosCheckbox = document.getElementById('connectVideosCheckbox');
+    const selectedVideosForProcessingContainer = document.getElementById('selectedVideosForProcessing');
+    const processStatusMessage = document.getElementById('processStatusMessage'); // Для сообщений обработки
+    // END НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
 
     // Константы валидации
     const MAX_VIDEO_SIZE_MB = 100;
@@ -88,16 +96,79 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadedVideosList.innerHTML = '';
             if (uploadedVideos.length === 0) {
                 uploadedVideosList.innerHTML = '<p>No videos uploaded yet.</p>';
+                // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
+                if (processSelectedVideosButton) processSelectedVideosButton.style.display = 'none'; // Скрываем кнопку, если нет видео
+                if (selectedVideosForProcessingContainer) selectedVideosForProcessingContainer.innerHTML = ''; // Очищаем список выбора
+                // END НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
             } else {
+                // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
+                if (processSelectedVideosButton) processSelectedVideosButton.style.display = 'block'; // Показываем кнопку
+                // END НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
+
                 uploadedVideos.forEach(video => {
-                    // Используем video.id вместо video.taskId
                     const li = document.createElement('li');
-                    li.textContent = `${video.originalFilename} (ID: ${video.id}) - Status: ${video.status}`; 
+                    // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `video-${video.id}`; // Уникальный ID для чекбокса
+                    checkbox.value = video.id; // Значение - ID задачи
+                    checkbox.className = 'video-select-checkbox'; // Класс для легкого поиска
+                    checkbox.dataset.filename = video.originalFilename; // Добавляем имя файла для отображения
+                    checkbox.dataset.status = video.status; // Добавляем статус
+
+                    const label = document.createElement('label');
+                    label.htmlFor = checkbox.id;
+                    label.textContent = `${video.originalFilename} (ID: ${video.id.substring(0, 8)}...) - Status: ${video.status}`;
+
+                    li.appendChild(checkbox);
+                    li.appendChild(label);
+
+                    // Добавляем обработчик изменения для чекбокса
+                    checkbox.addEventListener('change', updateSelectedVideosForProcessing);
+                    // END НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
+
                     uploadedVideosList.appendChild(li);
                 });
             }
+            // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
+            updateSelectedVideosForProcessing(); // Обновляем список выбранных для обработки при каждом обновлении списка загруженных
+            // END НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
         }
     }
+
+    // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
+    // Функция для обновления списка выбранных видео для обработки
+    function updateSelectedVideosForProcessing() {
+        if (!selectedVideosForProcessingContainer) return;
+
+        selectedVideosForProcessingContainer.innerHTML = ''; // Очищаем список
+        const selectedCheckboxes = document.querySelectorAll('.video-select-checkbox:checked');
+        
+        if (selectedCheckboxes.length === 0) {
+            selectedVideosForProcessingContainer.innerHTML = '<p>No videos selected for processing.</p>';
+            if (processSelectedVideosButton) processSelectedVideosButton.disabled = true; // Отключаем кнопку, если ничего не выбрано
+            // Скрываем чекбокс объединения, если выбрано 0 или 1 видео
+            if (connectVideosCheckbox) connectVideosCheckbox.parentElement.style.display = 'none';
+        } else {
+            selectedCheckboxes.forEach(checkbox => {
+                const p = document.createElement('p');
+                p.textContent = `${checkbox.dataset.filename} (ID: ${checkbox.value.substring(0, 8)}...) - Status: ${checkbox.dataset.status}`;
+                selectedVideosForProcessingContainer.appendChild(p);
+            });
+            if (processSelectedVideosButton) processSelectedVideosButton.disabled = false; // Включаем кнопку, если что-то выбрано
+
+            // Показываем чекбокс объединения только если выбрано 2 или более видео
+            if (connectVideosCheckbox) {
+                if (selectedCheckboxes.length >= 2) {
+                    connectVideosCheckbox.parentElement.style.display = 'block';
+                } else {
+                    connectVideosCheckbox.parentElement.style.display = 'none';
+                    connectVideosCheckbox.checked = false; // Сбрасываем чекбокс, если он стал неактуальным
+                }
+            }
+        }
+    }
+    // END НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
 
     // Проверка статуса кнопки "Finish Upload"
     function checkFinishButtonStatus() {
@@ -117,6 +188,16 @@ document.addEventListener('DOMContentLoaded', () => {
             generalStatusMessage.className = `status-message status-${type}`;
         }
     }
+
+    // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
+    // Функция для отображения статуса обработки
+    function displayProcessStatus(message, type) {
+        if (processStatusMessage) {
+            processStatusMessage.textContent = message;
+            processStatusMessage.className = `status-message status-${type}`;
+        }
+    }
+    // END НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
 
     /**
      * Обновляет статусное сообщение и изображение внутри конкретного пузыря предпросмотра файла.
@@ -443,14 +524,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             uploadVideo(file, username, email, linkedin);
         } else {
-            // Все валидные файлы загружены. Теперь перенаправляем на results.html
-            displayGeneralStatus('All videos successfully uploaded! Redirecting to results...', 'completed');
+            // Все валидные файлы загружены. Обновляем список и сообщения.
+            displayGeneralStatus('All videos successfully uploaded! You can now process them.', 'completed');
             if (selectFilesButton) selectFilesButton.disabled = false;
-            // if (selectFilesButton) selectFilesButton.textContent = 'Choose your Video(s)'; // Уберем, так как перенаправим
             if (videoInput) videoInput.value = '';
             resetProgressBar();
-            // clearPreviews(); // Очищаем предпросмотры перед перенаправлением, если это желательно
-            window.location.replace('results.html');
+            
+            // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
+            updateUploadedVideosList(); // Обновляем список, чтобы показать чекбоксы
+            // END НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
         }
     }
 
@@ -588,4 +670,80 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-});
+
+    // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
+    // Обработчик клика по кнопке "Process Selected Videos"
+    if (processSelectedVideosButton) {
+        processSelectedVideosButton.addEventListener('click', async () => {
+            const selectedTaskIds = Array.from(document.querySelectorAll('.video-select-checkbox:checked'))
+                                      .map(checkbox => checkbox.value);
+            const connectVideos = connectVideosCheckbox ? connectVideosCheckbox.checked : false;
+
+            if (selectedTaskIds.length === 0) {
+                displayProcessStatus('Please select at least one video to process.', 'error');
+                return;
+            }
+
+            // Получаем актуальные пользовательские данные
+            const username = instagramInput ? instagramInput.value.trim() : '';
+            const email = emailInput ? emailInput.value.trim() : '';
+            const linkedin = linkedinInput ? linkedinInput.value.trim() : '';
+            
+            // Проверяем заполнение пользовательских данных, если они необходимы
+            if (!username && !email && !linkedin) {
+                displayProcessStatus('Please enter Instagram ID, Email, or LinkedIn to process videos.', 'error');
+                return;
+            }
+
+
+            displayProcessStatus('Processing videos...', 'info');
+            processSelectedVideosButton.disabled = true; // Отключаем кнопку во время обработки
+
+            // Вызываем новую функцию из process_videos.js
+            // Импортируем функцию processVideosFromSelection из process_videos.js
+            // (этот импорт будет сделан на уровне HTML, а здесь мы предполагаем, что она доступна в глобальной области видимости)
+            if (typeof processVideosFromSelection === 'function') {
+                try {
+                    // Передаем также функции для обновления статусов
+                    await processVideosFromSelection(
+                        selectedTaskIds,
+                        connectVideos,
+                        username,
+                        email,
+                        linkedin,
+                        displayProcessStatus, // Передаем функцию для обновления статуса в секции обработки
+                        displayGeneralStatus // Передаем функцию для общего статуса
+                    );
+                    // После успешной обработки, перенаправляем на results.html
+                    displayProcessStatus('Videos sent for processing successfully! Redirecting to results...', 'success');
+                    // Дадим немного времени пользователю прочитать сообщение
+                    setTimeout(() => {
+                        window.location.replace('results.html');
+                    }, 2000); 
+                } catch (error) {
+                    console.error("Error initiating video processing:", error);
+                    displayProcessStatus(`Error processing videos: ${error.message || 'Unknown error'}`, 'error');
+                } finally {
+                    processSelectedVideosButton.disabled = false; // Включаем кнопку обратно
+                }
+            } else {
+                console.error("processVideosFromSelection function is not defined. Ensure process_videos.js is loaded correctly.");
+                displayProcessStatus('Internal error: Processing logic not loaded.', 'error');
+                processSelectedVideosButton.disabled = false;
+            }
+        });
+    }
+
+    // Обработчик изменения чекбокса "Connect selected videos"
+    if (connectVideosCheckbox) {
+        connectVideosCheckbox.addEventListener('change', () => {
+            // При изменении чекбокса может потребоваться обновить логику отображения
+            // статусов или выбранных файлов, если это влияет на логику UI.
+            // На данный момент достаточно просто обновить список выбранных файлов,
+            // что уже делается через updateSelectedVideosForProcessing
+            // если мы захотим как-то визуально выделить объединённые видео.
+        });
+    }
+    // END НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
+
+}); // Конец DOMContentLoaded
