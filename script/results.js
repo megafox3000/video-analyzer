@@ -1,7 +1,6 @@
 // script/results.js
 
 // --- Константы и глобальные переменные ---
-const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // Ваш URL бэкенда
 
 const DOM_ELEMENTS = {
     resultsHeader: document.getElementById('resultsHeader'),
