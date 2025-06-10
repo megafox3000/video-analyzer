@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
     const processSelectedVideosButton = document.getElementById('processSelectedVideosButton');
+    console.log("DEBUG: processSelectedVideosButton element:", processSelectedVideosButton); // ЭТА СТРОКА ДОЛЖНА БЫТЬ ЗДЕСЬ
     const connectVideosCheckbox = document.getElementById('connectVideosCheckbox');
     const selectedVideosForProcessingContainer = document.getElementById('selectedVideosForProcessing');
     const processStatusMessage = document.getElementById('processStatusMessage'); // Для сообщений обработки
@@ -253,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (generalStatusMessage && selectFilesButton && !selectFilesButton.disabled &&
             generalStatusMessage.classList.contains('status-error') &&
             !generalStatusMessage.textContent.includes('too long') &&
-            !generalStatusMessage.RtextContent.includes('too large') &&
+            !generalStatusMessage.textContent.includes('too large') &&
             !generalStatusMessage.textContent.includes('failed validation')) {
             generalStatusMessage.textContent = '';
             generalStatusMessage.className = 'status-message'; // Сброс класса
@@ -676,10 +677,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Обработчик клика по кнопке "Process Selected Videos"
     if (processSelectedVideosButton) {
         processSelectedVideosButton.addEventListener('click', async () => {
+            console.log("DEBUG: Кнопка 'Process Selected Videos' была нажата!");
             const selectedTaskIds = Array.from(document.querySelectorAll('.video-select-checkbox:checked'))
                                       .map(checkbox => checkbox.value);
             const connectVideos = connectVideosCheckbox ? connectVideosCheckbox.checked : false;
-
+            console.log("DEBUG: Checkboxes found with ':checked' selector:", document.querySelectorAll('.video-select-checkbox:checked'));
+            console.log("DEBUG: Collected selectedTaskIds:", selectedTaskIds);
             if (selectedTaskIds.length === 0) {
                 displayProcessStatus('Please select at least one video to process.', 'error');
                 return;
