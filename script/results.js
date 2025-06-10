@@ -1,4 +1,8 @@
-// script/results.js
+// В начале вашего скрипта/results.js
+console.log("DEBUG: results.js loaded and executing.");
+
+// УКАЖИТЕ ЗДЕСЬ АКТУАЛЬНЫЙ URL ВАШЕГО БЭКЕНДА НА RENDER.COM
+const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ URL
 
 // --- Константы и глобальные переменные ---
 
