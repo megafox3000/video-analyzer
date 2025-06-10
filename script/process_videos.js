@@ -1,5 +1,5 @@
 // script/process_videos.js
-
+console.log("DEBUG: process_videos.js loaded and executing.");
 /**
  * Отправляет запрос на бэкенд для обработки или объединения выбранных видео.
  * @param {string[]} videoIds Массив ID видео, которые нужно обработать.
