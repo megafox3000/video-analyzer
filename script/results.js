@@ -39,12 +39,19 @@ if (DOM_ELEMENTS.dynamicUploadStatusContainer) {
     DOM_ELEMENTS.progressText = DOM_ELEMENTS.dynamicUploadStatusContainer.querySelector('.progress-text');
 }
 
+// Глобальная переменная для хранения данных о видео.
+// Она будет инициализироваться при загрузке скрипта и обновляться функцией checkTaskStatuses.
+let uploadedVideos = []; 
+let pollingIntervalId = null; // ID интервала для опроса статусов
+let selectedVideoIds = []; // Массив для хранения ID выбранных видео-пузырьков
+
+// Добавляем глобальный лог при загрузке скрипта, чтобы убедиться, что uploadedVideos инициализируется правильно
+console.log("DEBUG: Script initialized. uploadedVideos is currently:", uploadedVideos);
+
+
 const taskBubbles = {}; // Объект для хранения ссылок на DOM-элементы "пузырей" по их taskId (теперь это будет videoGridItem)
 const CHECK_STATUS_INTERVAL_MS = 3000; // Интервал опроса статусов (3 секунды)
 
-let uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]'); // Массив для хранения данных о видео
-let pollingIntervalId = null; // ID интервала для опроса статусов
-let selectedVideoIds = []; // Массив для хранения ID выбранных видео-пузырьков
 
 // --- Вспомогательные функции ---
 
@@ -221,7 +228,11 @@ async function checkTaskStatuses() {
     console.log("DEBUG: checkTaskStatuses called.");
     let tasksStillPending = false; 
 
-    // Фильтруем только те видео, которые требуют опроса статуса
+    // Используем актуальные uploadedVideos из localStorage для polling
+    uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]');
+    console.log("DEBUG: uploadedVideos reloaded from localStorage at checkTaskStatuses start:", uploadedVideos);
+
+
     const videosToPoll = uploadedVideos.filter(v => 
         v.status !== 'completed' && v.status !== 'error' && v.status !== 'failed' && 
         v.status !== 'concatenated_completed' && v.status !== 'concatenated_failed'
@@ -263,6 +274,8 @@ async function checkTaskStatuses() {
             uploadedVideos.push(updatedTask);
             console.log(`DEBUG: New task ${taskId} added to uploadedVideos. Status: "${updatedTask.status}". Metadata exists: ${!!updatedTask.metadata && Object.keys(updatedTask.metadata).length > 0}`); // Добавлено
         }
+        // ДОБАВЛЕНО: Полный лог uploadedVideos после обработки каждой задачи
+        console.log("DEBUG: Current uploadedVideos array after processing task:", uploadedVideos);
 
         createOrUpdateBubble(taskId, uploadedVideos[index] || updatedTask); 
 
@@ -273,6 +286,7 @@ async function checkTaskStatuses() {
     }
 
     localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos)); 
+    console.log("DEBUG: localStorage 'uploadedVideos' content after checkTaskStatuses:", localStorage.getItem('uploadedVideos')); // Лог localStorage
     updateConcatenationUI(); 
 
     // Запускаем/останавливаем интервал опроса
@@ -409,6 +423,10 @@ function createOrUpdateBubble(taskId, data) {
 function handleBubbleClick(event) {
     // Получаем taskId из ID обертки
     const taskId = this.id.replace('video-item-', '');
+    // ПЕРЕЧИТЫВАЕМ uploadedVideos ПЕРЕД ИСПОЛЬЗОВАНИЕМ!
+    uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]'); 
+    console.log("DEBUG: uploadedVideos reloaded from localStorage in handleBubbleClick:", uploadedVideos);
+
     const videoData = uploadedVideos.find(v => v.id === taskId);
 
     // Если видео завершено и имеет метаданные, открываем модальное окно.
@@ -517,6 +535,11 @@ function updateConcatenationUI() {
 // --- Инициализация при загрузке DOM ---
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DEBUG: DOMContentLoaded event fired.");
+    // Инициализируем uploadedVideos из localStorage только один раз при загрузке DOM
+    uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]');
+    console.log("DEBUG: uploadedVideos after DOMContentLoaded and initial load from localStorage:", uploadedVideos);
+
+
     const username = localStorage.getItem('hifeUsername');
     const email = localStorage.getItem('hifeEmail');
     const linkedin = localStorage.getItem('hifeLinkedin');
@@ -574,8 +597,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Загружаем и отображаем уже загруженные видео при загрузке страницы
-    uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]'); // Обновим глобальную переменную
-
     if (uploadedVideos.length === 0) {
         if (DOM_ELEMENTS.bubblesContainer) {
             DOM_ELEMENTS.bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">Задач не найдено. Пожалуйста, загрузите видео со <a href="index.html" style="color: #FFD700; text-decoration: underline;">страницы загрузки</a>.</p>';
@@ -635,12 +656,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (DOM_ELEMENTS.processSelectedVideosButton) {
         DOM_ELEMENTS.processSelectedVideosButton.addEventListener('click', async () => {
             console.log("DEBUG: --- Process Selected Videos Button Click Handler STARTED ---");
+            // ДОБАВЛЕНО: Проверка disabled состояния кнопки
+            if (DOM_ELEMENTS.processSelectedVideosButton.disabled) {
+                console.log("DEBUG: Button is disabled. Skipping click handler execution.");
+                return; // Выходим, если кнопка отключена
+            }
+
+            // ПЕРЕЧИТЫВАЕМ uploadedVideos ИЗ localStorage ПЕРЕД ИСПОЛЬЗОВАНИЕМ!
+            uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]');
+            console.log("DEBUG: uploadedVideos reloaded from localStorage at handler start:", uploadedVideos);
+
+
             const username = localStorage.getItem('hifeUsername');
             const email = localStorage.getItem('hifeEmail');
             const linkedin = localStorage.getItem('hifeLinkedin');
             const shouldConnect = DOM_ELEMENTS.connectVideosCheckbox ? DOM_ELEMENTS.connectVideosCheckbox.checked : false;
 
-            console.log("DEBUG: Current uploadedVideos (before filter):", uploadedVideos);
             console.log("DEBUG: Current selectedVideoIds:", selectedVideoIds);
             console.log("DEBUG: Is 'Connect videos' checkbox checked?:", shouldConnect);
 
