@@ -448,7 +448,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 validateInputs(); // Обновляем состояние кнопки
                 return;
             }
-
             let validationsCompleted = 0;
             const totalFilesForValidation = filesToValidateMetadata.length;
 
@@ -679,16 +678,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (processSelectedVideosButton) {
         processSelectedVideosButton.addEventListener('click', async () => {
             console.log("DEBUG: Кнопка 'Process Selected Videos' была нажата!");
+            
+            // ПЕРЕМЕЩЕНО: Объявление allUploadedTaskIds ДО его первого использования в console.log
             const allUploadedTaskIds = uploadedVideos.map(video => video.id).filter(id => id); 
+
             console.log("DEBUG: Проверяем содержимое массива uploadedVideos непосредственно перед вызовом processVideosFromSelection:");
             console.log(uploadedVideos); // Выводим полный массив
             console.log("DEBUG: Количество элементов в uploadedVideos:", uploadedVideos.length);
             console.log("DEBUG: ID первого элемента в uploadedVideos (если есть):", uploadedVideos.length > 0 ? uploadedVideos[0].id : 'N/A');
             console.log("DEBUG: Task IDs, полученные из uploadedVideos на данный момент:", allUploadedTaskIds);
             // --- КОНЕЦ НОВЫХ ОТЛАДОЧНЫХ СООБЩЕНИЙ ---
-            // Собираем ID всех загруженных видео из вашего массива 'uploadedVideos'
-            // uploadedVideos - это глобальный массив, который хранит информацию обо всех загруженных видео.
-               
+                
             if (allUploadedTaskIds.length === 0) {
                 displayProcessStatus('No videos available to process. Please upload some first.', 'error');
                 return;
@@ -754,6 +754,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     */
-    // END НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
-
-}); // Конец DOMContentLoaded
+}); // Закрывающий тег для DOMContentLoaded
