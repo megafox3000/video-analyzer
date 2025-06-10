@@ -39,7 +39,7 @@ if (DOM_ELEMENTS.dynamicUploadStatusContainer) {
     DOM_ELEMENTS.progressText = DOM_ELEMENTS.dynamicUploadStatusContainer.querySelector('.progress-text');
 }
 
-const taskBubbles = {}; // Объект для хранения ссылок на DOM-элементы "пузырей" по их taskId
+const taskBubbles = {}; // Объект для хранения ссылок на DOM-элементы "пузырей" по их taskId (теперь это будет videoGridItem)
 const CHECK_STATUS_INTERVAL_MS = 3000; // Интервал опроса статусов (3 секунды)
 
 let uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]'); // Массив для хранения данных о видео
@@ -283,97 +283,98 @@ async function checkTaskStatuses() {
 
 /**
  * Создает или обновляет DOM-элемент "пузыря" для видео.
+ * Теперь создает обертку (video-grid-item) для чекбокса и видео-пузыря.
  * @param {string} taskId Идентификатор задачи.
- * @param {Object} data Объект с данными видео (id, original_filename, status, metadata и т.д.).
+ * @param {Object} data Объект с данными видео (id, original_filename, status, metadata и т.d.).
  */
 function createOrUpdateBubble(taskId, data) {
-    let bubble = taskBubbles[taskId];
-    if (!bubble) {
+    let videoGridItem = taskBubbles[taskId]; // Храним обертку здесь
+    let bubble; // Сам элемент круглого видео-пузыря
+
+    if (!videoGridItem) {
+        videoGridItem = document.createElement('div');
+        videoGridItem.className = 'video-grid-item'; // Новый класс-обертка
+        videoGridItem.id = `video-item-${taskId}`; // Уникальный ID для обертки
+
         bubble = document.createElement('div');
-        bubble.className = 'video-bubble loading'; 
-        bubble.id = `bubble-${taskId}`;
-        if (DOM_ELEMENTS.bubblesContainer) DOM_ELEMENTS.bubblesContainer.appendChild(bubble);
-        taskBubbles[taskId] = bubble;
+        bubble.className = 'video-bubble loading';
+        bubble.id = `bubble-${taskId}`; // Пузырь сохраняет свой ID
+
+        videoGridItem.appendChild(bubble); // Добавляем пузырь в новую обертку
+        if (DOM_ELEMENTS.bubblesContainer) DOM_ELEMENTS.bubblesContainer.appendChild(videoGridItem);
+        taskBubbles[taskId] = videoGridItem; // Сохраняем обертку для будущих обновлений
 
         // Удаляем стартовое сообщение "No tasks found", если оно есть
         const initialMessage = document.getElementById('statusMessage');
         if (initialMessage && initialMessage.textContent.includes('No tasks found')) {
             initialMessage.remove();
         }
+    } else {
+        // Если обертка уже существует, находим пузырь внутри нее
+        bubble = videoGridItem.querySelector('.video-bubble');
     }
 
     let filenameText = `<h3 class="bubble-title-overlay">${data.original_filename || `Задача ${taskId}`}</h3>`;
-    let previewHtml = '';
+    // let previewHtml = ''; // Закомментированная переменная previewHtml
     let statusMessageText = '';
     let actionButtonsHtml = '';
-    let checkboxHtml = '';
 
-    // Добавляем чекбокс к каждому видео-пузырьку, кроме объединенных видео
-    if (!String(taskId).startsWith('concatenated_video_')) { // Используем String() для безопасности
-        checkboxHtml = `
-            <label class="checkbox-container">
-                <input type="checkbox" class="video-select-checkbox" data-task-id="${taskId}" ${selectedVideoIds.includes(taskId) ? 'checked' : ''}>
-                <span class="checkmark"></span>
-            </label>
-        `;
-    }
-
+    // Обновляем innerHTML пузыря (круглой части) в зависимости от статуса
     switch (data.status) {
-        case 'completed': 
-            const thumbnailUrl = getCloudinaryThumbnailUrl(data.cloudinary_url);
-            previewHtml = `<img class="bubble-preview-img" src="${thumbnailUrl}" alt="Предпросмотр видео">`;
+        case 'completed':
+            // const thumbnailUrl = getCloudinaryThumbnailUrl(data.cloudinary_url); // Закомментировано, так как не используется
+            // previewHtml = `<img class="bubble-preview-img" src="${thumbnailUrl}" alt="Предпросмотр видео">`; // Закомментировано
             statusMessageText = '<p class="status-message-bubble status-completed">Нажмите для просмотра метаданных</p>';
             bubble.classList.remove('loading');
             break;
-        case 'uploaded': 
-            previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Видео загружается">`;
+        case 'uploaded':
+            // previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Видео загружается">`; // Закомментировано
             statusMessageText = `<p class="status-message-bubble status-info">Загружено, ожидание обработки...</p>`;
             bubble.classList.add('loading');
             break;
-        case 'processing': 
-        case 'shotstack_pending': 
-            previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Видео обрабатывается">`;
+        case 'processing':
+        case 'shotstack_pending':
+            // previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Видео обрабатывается">`; // Закомментировано
             statusMessageText = `<p class="status-message-bubble status-pending">Обработка видео (Shotstack)...</p>`;
             bubble.classList.add('loading');
             break;
-        case 'concatenated_pending': 
-            previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Объединенное видео обрабатывается">`;
+        case 'concatenated_pending':
+            // previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Объединенное видео обрабатывается">`; // Закомментировано
             statusMessageText = `<p class="status-message-bubble status-pending">Объединение видео...</p>`;
             bubble.classList.add('loading');
             break;
-        case 'concatenated_completed': 
+        case 'concatenated_completed':
             if (data.shotstackUrl) {
-                previewHtml = `
-                    <video class="bubble-preview-video" controls playsinline muted>
-                        <source src="${data.shotstackUrl}" type="video/mp4">
-                        Ваш браузер не поддерживает видео.
-                    </video>
-                `;
+                // previewHtml = `
+                //     <video class="bubble-preview-video" controls playsinline muted>
+                //         <source src="${data.shotstackUrl}" type="video/mp4">
+                //         Ваш браузер не поддерживает видео.
+                //     </video>
+                // `; // Закомментировано
                 statusMessageText = '<p class="status-message-bubble status-success">Объединение завершено!</p>';
                 actionButtonsHtml += `<a href="${data.shotstackUrl}" target="_blank" class="action-button view-generated-button">Посмотреть сгенерированное видео</a>`;
             } else {
-                previewHtml = `<img class="bubble-preview-img" src="assets/error_placeholder.png" alt="Ошибка: URL отсутствует">`;
+                // previewHtml = `<img class="bubble-preview-img" src="assets/error_placeholder.png" alt="Ошибка: URL отсутствует">`; // Закомментировано
                 statusMessageText = '<p class="status-message-bubble status-error">Объединение завершено, но URL отсутствует.</p>';
             }
             bubble.classList.remove('loading');
             break;
         case 'error':
         case 'failed':
-        case 'concatenated_failed': 
-            previewHtml = `<img class="bubble-preview-img" src="assets/error_placeholder.png" alt="Ошибка обработки">`;
+        case 'concatenated_failed':
+            // previewHtml = `<img class="bubble-preview-img" src="assets/error_placeholder.png" alt="Ошибка обработки">`; // Закомментировано
             statusMessageText = `<p class="status-message-bubble status-error">Ошибка: ${data.message || 'Неизвестная ошибка.'}</p>`;
             bubble.classList.remove('loading');
             break;
-        default: 
-            previewHtml = `<img class="bubble-preview-img" src="assets/video_placeholder.png" alt="Статус неизвестен">`;
+        default:
+            // previewHtml = `<img class="bubble-preview-img" src="assets/video_placeholder.png" alt="Статус неизвестен">`; // Закомментировано
             statusMessageText = '<p class="status-message-bubble status-info">Получение статуса...</p>';
             bubble.classList.add('loading');
             break;
     }
 
     bubble.innerHTML = `
-        ${checkboxHtml}
-        ${previewHtml}
+        <!-- ${previewHtml} Закомментировано: Здесь был HTML-тег превью -->
         <div class="bubble-text-overlay">
             ${filenameText}
             ${statusMessageText}
@@ -383,58 +384,61 @@ function createOrUpdateBubble(taskId, data) {
         </div>
     `;
 
-    // Устанавливаем обработчик для модального окна метаданных
-    // Только если статус "completed" и есть метаданные
-    if (data.status === 'completed' && data.metadata && Object.keys(data.metadata).length > 0) {
-        bubble.onclick = (event) => {
-            // Убеждаемся, что клик не был по чекбоксу
-            if (!event.target.closest('.checkbox-container')) { // Изменено для большей надежности
-                showMetadataModal(data.original_filename || `Задача ${taskId}`, data.metadata);
-            }
-        };
-        bubble.style.cursor = 'pointer';
-    } else {
-        bubble.onclick = null; 
-        bubble.style.cursor = 'default';
-    }
+    // Устанавливаем обработчик для модального окна метаданных на обертку (videoGridItem)
+    // и для выбора/снятия выбора
+    // Только если это не объединенное видео (т.к. они не выбираются для дальнейшей обработки)
+    if (!String(taskId).startsWith('concatenated_video_')) {
+        // Удаляем старые обработчики, чтобы избежать дублирования
+        videoGridItem.removeEventListener('click', handleBubbleClick);
+        // Удаляем dblclick слушатель, так как он больше не нужен
+        // videoGridItem.removeEventListener('dblclick', handleBubbleDoubleClick); 
 
-    // Обработчик для чекбокса выбора видео
-    const checkbox = bubble.querySelector('.video-select-checkbox');
-    if (checkbox) {
-        checkbox.addEventListener('change', (event) => {
-            event.stopPropagation(); // ОСТАНАВЛИВАЕМ ВСПЛЫТИЕ СОБЫТИЯ
-            const id = event.target.dataset.taskId;
-            if (event.target.checked) {
-                if (!selectedVideoIds.includes(id)) {
-                    selectedVideoIds.push(id);
-                }
-            } else {
-                selectedVideoIds = selectedVideoIds.filter(selectedId => selectedId !== id);
-            }
-            console.log("DEBUG: selectedVideoIds updated:", selectedVideoIds);
-            updateConcatenationUI(); // Обновляем UI после изменения выбора
-        });
-        // Добавляем обработчик click, чтобы тоже остановить всплытие
-        checkbox.addEventListener('click', (event) => {
-            event.stopPropagation(); // ОСТАНАВЛИВАЕМ ВСПЛЫТИЕ СОБЫТИЯ
-        });
-        // Также обработчик для контейнера чекбокса, чтобы быть уверенным
-        const checkboxContainer = bubble.querySelector('.checkbox-container');
-        if (checkboxContainer) {
-            checkboxContainer.addEventListener('click', (event) => {
-                event.stopPropagation(); // ОСТАНАВЛИВАЕМ ВСПЛЫТИЕ СОБЫТИЯ
-            });
+        // Добавляем новые обработчики
+        videoGridItem.addEventListener('click', handleBubbleClick);
+        // Больше не добавляем dblclick слушатель
+
+        // Обновляем визуальное состояние выбора
+        if (selectedVideoIds.includes(taskId)) {
+            videoGridItem.classList.add('selected-bubble');
+        } else {
+            videoGridItem.classList.remove('selected-bubble');
         }
+        videoGridItem.style.cursor = 'pointer'; // Указываем, что элемент кликабелен
+    } else {
+        // Для объединенных видео убираем интерактивность выбора
+        videoGridItem.removeEventListener('click', handleBubbleClick);
+        // videoGridItem.removeEventListener('dblclick', handleBubbleDoubleClick); // Удаляем dblclick и здесь
+        videoGridItem.style.cursor = 'default';
+        videoGridItem.classList.remove('selected-bubble'); // Убедимся, что не выбрано
     }
 
     // Удаляем старую кнопку "Generate with Shotstack" и ее логику
-    // Теперь обработка индивидуальных видео также идет через кнопку "Обработать выбранные видео"
-    // и эндпоинт /process_videos
     const generateButton = bubble.querySelector('.generate-button');
     if (generateButton) {
         generateButton.remove(); // Удаляем кнопку
     }
 }
+
+// Новые общие функции слушателей событий для клика/двойного клика на пузыре
+function handleBubbleClick(event) {
+    // Проверяем, что это одиночный клик (не часть двойного)
+    if (event.detail === 1) {
+        const taskId = this.id.replace('video-item-', ''); // Получаем taskId из ID обертки
+        
+        // Переключаем выбор
+        if (selectedVideoIds.includes(taskId)) {
+            selectedVideoIds = selectedVideoIds.filter(id => id !== taskId);
+            this.classList.remove('selected-bubble');
+        } else {
+            selectedVideoIds.push(taskId);
+            this.classList.add('selected-bubble');
+        }
+        console.log("DEBUG: selectedVideoIds updated:", selectedVideoIds);
+        updateConcatenationUI(); // Обновляем UI после изменения выбора
+    }
+}
+
+// УДАЛЕНО: Функция handleBubbleDoubleClick больше не нужна
 
 /**
  * Обновляет состояние кнопки "Обработать выбранные видео" и статус сообщений.
@@ -472,7 +476,7 @@ function updateConcatenationUI() {
     }
 
     // Отключаем/включаем чекбокс объединения, если нет 2+ видео или они не "completed"
-    const completedVideosCount = uploadedVideos.filter(v => v.status === 'completed' && !String(v.id).startsWith('concatenated_video_')).length; // Добавлено String()
+    const completedVideosCount = uploadedVideos.filter(v => v.status === 'completed' && !String(v.id).startsWith('concatenated_video_')).length;
     if (DOM_ELEMENTS.connectVideosCheckbox) {
         if (completedVideosCount < 2) {
             DOM_ELEMENTS.connectVideosCheckbox.disabled = true;
@@ -505,7 +509,7 @@ function updateConcatenationUI() {
 document.addEventListener('DOMContentLoaded', () => {
     const username = localStorage.getItem('hifeUsername');
     const email = localStorage.getItem('hifeEmail');
-    const linkedin = localStorage.getItem('hifeLinkedin'); 
+    const linkedin = localStorage.getItem('hifeLinkedin');
 
     let headerText = 'Ваши Видео';
     if (username) {
@@ -514,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (email) {
         headerText = `Ваши Видео для ${email}`;
         if (DOM_ELEMENTS.usernameDisplay) DOM_ELEMENTS.usernameDisplay.textContent = `Для: ${email}`;
-    } else if (linkedin) { 
+    } else if (linkedin) {
         headerText = `Ваши Видео для ${linkedin}`;
         if (DOM_ELEMENTS.usernameDisplay) DOM_ELEMENTS.usernameDisplay.textContent = `Для: ${linkedin}`;
     } else {
@@ -528,7 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (DOM_ELEMENTS.uploadNewBtn) DOM_ELEMENTS.uploadNewBtn.textContent = 'Загрузить новое видео';
         updateUploadStatusDisplay('Готов к новой загрузке.', 'info');
         if (DOM_ELEMENTS.dynamicUploadStatusContainer) DOM_ELEMENTS.dynamicUploadStatusContainer.classList.remove('hidden');
-        resetProgressBar(); 
+        resetProgressBar();
     } else {
         if (DOM_ELEMENTS.uploadNewBtn) DOM_ELEMENTS.uploadNewBtn.disabled = true;
         if (DOM_ELEMENTS.uploadNewBtn) DOM_ELEMENTS.uploadNewBtn.textContent = 'Загрузить (сначала войдите)';
@@ -551,7 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedFile = event.target.files[0];
             if (selectedFile) {
                 uploadVideoFromResults(selectedFile);
-                DOM_ELEMENTS.videoFileInput.value = ''; 
+                DOM_ELEMENTS.videoFileInput.value = '';
             } else {
                 updateUploadStatusDisplay('Выбор файла отменен.', 'info');
                 resetProgressBar();
@@ -567,12 +571,12 @@ document.addEventListener('DOMContentLoaded', () => {
             DOM_ELEMENTS.bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">Задач не найдено. Пожалуйста, загрузите видео со <a href="index.html" style="color: #FFD700; text-decoration: underline;">страницы загрузки</a>.</p>';
         }
     } else {
-        if (DOM_ELEMENTS.bubblesContainer) DOM_ELEMENTS.bubblesContainer.innerHTML = ''; 
+        if (DOM_ELEMENTS.bubblesContainer) DOM_ELEMENTS.bubblesContainer.innerHTML = '';
         uploadedVideos.forEach(video => {
             createOrUpdateBubble(video.id, video);
         });
         // Начинаем опрос статусов для всех видео
-        checkTaskStatuses(); 
+        checkTaskStatuses();
     }
 
     // Обработчик закрытия модального окна по кнопке
@@ -600,10 +604,10 @@ document.addEventListener('DOMContentLoaded', () => {
         DOM_ELEMENTS.finishSessionBtn.addEventListener('click', () => {
             localStorage.removeItem('hifeUsername');
             localStorage.removeItem('hifeEmail');
-            localStorage.removeItem('hifeLinkedin'); 
+            localStorage.removeItem('hifeLinkedin');
             localStorage.removeItem('uploadedVideos');
             console.log("Сессия завершена. Локальное хранилище очищено.");
-            window.location.replace('index.html'); 
+            window.location.replace('index.html');
         });
     }
 
@@ -623,10 +627,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const shouldConnect = DOM_ELEMENTS.connectVideosCheckbox ? DOM_ELEMENTS.connectVideosCheckbox.checked : false;
 
             // Отфильтровываем только те видео, которые выбраны и имеют статус 'completed'
-            const videosToProcess = uploadedVideos.filter(video => 
+            const videosToProcess = uploadedVideos.filter(video =>
                 selectedVideoIds.includes(video.id) && video.status === 'completed'
             );
-            
+
             const taskIdsToProcess = videosToProcess.map(video => video.id);
 
             if (taskIdsToProcess.length === 0) {
@@ -649,10 +653,10 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 // Вызываем функцию из process_videos.js, передавая RENDER_BACKEND_URL
                 const result = await processVideosFromSelection(
-                    taskIdsToProcess, 
-                    shouldConnect, 
-                    username, 
-                    email, 
+                    taskIdsToProcess,
+                    shouldConnect,
+                    username,
+                    email,
                     linkedin,
                     displayGeneralStatus, // Функция для обновления статуса внутри process_videos.js
                     displayGeneralStatus, // Функция для обновления общего статуса
@@ -664,16 +668,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (shouldConnect && result.concatenated_task_id) {
                         const newConcatenatedVideo = {
                             id: result.concatenated_task_id,
-                            original_filename: 'Объединенное Видео', 
-                            status: 'concatenated_pending', 
+                            original_filename: 'Объединенное Видео',
+                            status: 'concatenated_pending',
                             timestamp: new Date().toISOString(),
-                            cloudinary_url: null, 
+                            cloudinary_url: null,
                             shotstackRenderId: result.shotstackRenderId || null,
-                            shotstackUrl: result.shotstackUrl || null 
+                            shotstackUrl: result.shotstackUrl || null
                         };
                         uploadedVideos.push(newConcatenatedVideo);
                         localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
-                        createOrUpdateBubble(newConcatenatedVideo.id, newConcatenatedVideo); 
+                        createOrUpdateBubble(newConcatenatedVideo.id, newConcatenatedVideo);
                     } else {
                         // Для индивидуальной обработки просто обновляем статусы существующих видео
                         // Если бэкенд возвращает список "initiated_tasks", используем его
@@ -700,14 +704,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             // Если бэкенд не вернул initiated_tasks для множества, просто обновляем выбранные на 'shotstack_pending'
                             uploadedVideos = uploadedVideos.map(video => {
                                 if (taskIdsToProcess.includes(video.id)) {
-                                    return { ...video, status: 'shotstack_pending' }; 
+                                    return { ...video, status: 'shotstack_pending' };
                                 }
                                 return video;
                             });
                         }
                         localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
                     }
-                    checkTaskStatuses(); 
+                    checkTaskStatuses();
                 } else {
                     // Если processVideosFromSelection вернул null, значит была внутренняя ошибка,
                     // сообщение о которой уже выведено
@@ -716,7 +720,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Ошибка уже обработана внутри processVideosFromSelection и displayGeneralStatus
                 console.error('Ошибка в обработчике processSelectedVideosButton:', error);
             } finally {
-                updateConcatenationUI(); 
+                updateConcatenationUI();
             }
         });
     }
