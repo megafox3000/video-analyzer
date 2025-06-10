@@ -208,7 +208,7 @@ async function uploadVideoFromResults(file) {
  */
 async function getTaskStatus(taskId) {
     try {
-        const response = await await fetch(`${RENDER_BACKEND_URL}/task-status/${taskId}`);
+        const response = await fetch(`${RENDER_BACKEND_URL}/task-status/${taskId}`);
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorData.error}`);
@@ -625,8 +625,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('click', (event) => {
         if (DOM_ELEMENTS.metadataModal && event.target === DOM_ELEMENTS.metadataModal) {
             DOM_ELEMENTS.metadataModal.style.display = 'none';
-        });
-    }
+        }
+    });
 
     // Обработчик кнопки "Завершить сессию"
     if (DOM_ELEMENTS.finishSessionBtn) {
