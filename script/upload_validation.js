@@ -1,4 +1,5 @@
 // В начале вашего скрипта/upload_validation.js
+console.log("DEBUG: upload_validation.js loaded and executing.");
 // УКАЖИТЕ ЗДЕСЬ АКТУАЛЬНЫЙ URL ВАШЕГО БЭКЕНДА НА RENDER.COM
 const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ URL
 
