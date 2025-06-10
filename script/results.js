@@ -284,7 +284,7 @@ async function checkTaskStatuses() {
 /**
  * Создает или обновляет DOM-элемент "пузыря" для видео.
  * @param {string} taskId Идентификатор задачи.
- * @param {Object} data Объект с данными видео (id, original_filename, status, metadata и т.d.).
+ * @param {Object} data Объект с данными видео (id, original_filename, status, metadata и т.д.).
  */
 function createOrUpdateBubble(taskId, data) {
     let bubble = taskBubbles[taskId];
@@ -303,7 +303,7 @@ function createOrUpdateBubble(taskId, data) {
     }
 
     let filenameText = `<h3 class="bubble-title-overlay">${data.original_filename || `Задача ${taskId}`}</h3>`;
-    // let previewHtml = ''; // Закомментированная переменная previewHtml
+    let previewHtml = '';
     let statusMessageText = '';
     let actionButtonsHtml = '';
     let checkboxHtml = '';
@@ -320,39 +320,39 @@ function createOrUpdateBubble(taskId, data) {
 
     switch (data.status) {
         case 'completed': 
-            // const thumbnailUrl = getCloudinaryThumbnailUrl(data.cloudinary_url); // Закомментировано, так как не используется
-            // previewHtml = `<img class="bubble-preview-img" src="${thumbnailUrl}" alt="Предпросмотр видео">`; // Закомментировано
+            const thumbnailUrl = getCloudinaryThumbnailUrl(data.cloudinary_url);
+            previewHtml = `<img class="bubble-preview-img" src="${thumbnailUrl}" alt="Предпросмотр видео">`;
             statusMessageText = '<p class="status-message-bubble status-completed">Нажмите для просмотра метаданных</p>';
             bubble.classList.remove('loading');
             break;
         case 'uploaded': 
-            // previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Видео загружается">`; // Закомментировано
+            previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Видео загружается">`;
             statusMessageText = `<p class="status-message-bubble status-info">Загружено, ожидание обработки...</p>`;
             bubble.classList.add('loading');
             break;
         case 'processing': 
         case 'shotstack_pending': 
-            // previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Видео обрабатывается">`; // Закомментировано
+            previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Видео обрабатывается">`;
             statusMessageText = `<p class="status-message-bubble status-pending">Обработка видео (Shotstack)...</p>`;
             bubble.classList.add('loading');
             break;
         case 'concatenated_pending': 
-            // previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Объединенное видео обрабатывается">`; // Закомментировано
+            previewHtml = `<img class="bubble-preview-img" src="assets/processing_placeholder.png" alt="Объединенное видео обрабатывается">`;
             statusMessageText = `<p class="status-message-bubble status-pending">Объединение видео...</p>`;
             bubble.classList.add('loading');
             break;
         case 'concatenated_completed': 
             if (data.shotstackUrl) {
-                // previewHtml = `
-                //     <video class="bubble-preview-video" controls playsinline muted>
-                //         <source src="${data.shotstackUrl}" type="video/mp4">
-                //         Ваш браузер не поддерживает видео.
-                //     </video>
-                // `; // Закомментировано
+                previewHtml = `
+                    <video class="bubble-preview-video" controls playsinline muted>
+                        <source src="${data.shotstackUrl}" type="video/mp4">
+                        Ваш браузер не поддерживает видео.
+                    </video>
+                `;
                 statusMessageText = '<p class="status-message-bubble status-success">Объединение завершено!</p>';
                 actionButtonsHtml += `<a href="${data.shotstackUrl}" target="_blank" class="action-button view-generated-button">Посмотреть сгенерированное видео</a>`;
             } else {
-                // previewHtml = `<img class="bubble-preview-img" src="assets/error_placeholder.png" alt="Ошибка: URL отсутствует">`; // Закомментировано
+                previewHtml = `<img class="bubble-preview-img" src="assets/error_placeholder.png" alt="Ошибка: URL отсутствует">`;
                 statusMessageText = '<p class="status-message-bubble status-error">Объединение завершено, но URL отсутствует.</p>';
             }
             bubble.classList.remove('loading');
@@ -360,12 +360,12 @@ function createOrUpdateBubble(taskId, data) {
         case 'error':
         case 'failed':
         case 'concatenated_failed': 
-            // previewHtml = `<img class="bubble-preview-img" src="assets/error_placeholder.png" alt="Ошибка обработки">`; // Закомментировано
+            previewHtml = `<img class="bubble-preview-img" src="assets/error_placeholder.png" alt="Ошибка обработки">`;
             statusMessageText = `<p class="status-message-bubble status-error">Ошибка: ${data.message || 'Неизвестная ошибка.'}</p>`;
             bubble.classList.remove('loading');
             break;
         default: 
-            // previewHtml = `<img class="bubble-preview-img" src="assets/video_placeholder.png" alt="Статус неизвестен">`; // Закомментировано
+            previewHtml = `<img class="bubble-preview-img" src="assets/video_placeholder.png" alt="Статус неизвестен">`;
             statusMessageText = '<p class="status-message-bubble status-info">Получение статуса...</p>';
             bubble.classList.add('loading');
             break;
@@ -373,6 +373,7 @@ function createOrUpdateBubble(taskId, data) {
 
     bubble.innerHTML = `
         ${checkboxHtml}
+        ${previewHtml}
         <div class="bubble-text-overlay">
             ${filenameText}
             ${statusMessageText}
@@ -381,15 +382,13 @@ function createOrUpdateBubble(taskId, data) {
             </div>
         </div>
     `;
-    // Закомментировано: ${previewHtml} из bubble.innerHTML // Была здесь: ${previewHtml}
-    // ПРИМЕЧАНИЕ: Если вы захотите вернуть превью, раскомментируйте переменную previewHtml и включите её обратно в bubble.innerHTML.
 
     // Устанавливаем обработчик для модального окна метаданных
     // Только если статус "completed" и есть метаданные
     if (data.status === 'completed' && data.metadata && Object.keys(data.metadata).length > 0) {
         bubble.onclick = (event) => {
-            // Убеждаемся, что клик не был по чекбоку
-            if (!event.target.closest('.checkbox-container')) { 
+            // Убеждаемся, что клик не был по чекбоксу
+            if (!event.target.closest('.checkbox-container')) { // Изменено для большей надежности
                 showMetadataModal(data.original_filename || `Задача ${taskId}`, data.metadata);
             }
         };
@@ -473,7 +472,7 @@ function updateConcatenationUI() {
     }
 
     // Отключаем/включаем чекбокс объединения, если нет 2+ видео или они не "completed"
-    const completedVideosCount = uploadedVideos.filter(v => v.status === 'completed' && !String(v.id).startsWith('concatenated_video_')).length; 
+    const completedVideosCount = uploadedVideos.filter(v => v.status === 'completed' && !String(v.id).startsWith('concatenated_video_')).length; // Добавлено String()
     if (DOM_ELEMENTS.connectVideosCheckbox) {
         if (completedVideosCount < 2) {
             DOM_ELEMENTS.connectVideosCheckbox.disabled = true;
