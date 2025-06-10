@@ -3,6 +3,9 @@ console.log("DEBUG: upload_validation.js loaded and executing.");
 // УКАЖИТЕ ЗДЕСЬ АКТУАЛЬНЫЙ URL ВАШЕГО БЭКЕНДА НА RENDER.COM
 const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ URL
 
+// Импортируем функцию загрузки из нового модуля
+import { uploadFileToCloudinary } from './cloudinary_upload.js'; // <-- НОВОЕ
+
 const existingUploadedVideos = localStorage.getItem('uploadedVideos');
 const existingUsername = localStorage.getItem('hifeUsername');
 const existingEmail = localStorage.getItem('hifeEmail');
@@ -45,8 +48,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
     const processSelectedVideosButton = document.getElementById('processSelectedVideosButton');
     console.log("DEBUG: processSelectedVideosButton element:", processSelectedVideosButton);
-    const connectVideosCheckbox = document.getElementById('connectVideosCheckbox'); // <-- РАСКОММЕНТИРОВАНО
-    const processStatusMessage = document.getElementById('processStatusMessage'); // Для сообщений обработки
+    const connectVideosCheckbox = document.getElementById('connectVideosCheckbox');
+    const processStatusMessage = document.getElementById('processStatusMessage');
     // END НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
 
     // Константы валидации
@@ -114,11 +117,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     uploadedVideosList.appendChild(li);
                 });
             }
-            updateProcessRelatedUI(); // <-- ВЫЗЫВАЕМ НОВУЮ ФУНКЦИЮ ДЛЯ ОБНОВЛЕНИЯ UI ОБРАБОТКИ
+            updateProcessRelatedUI(); // ВЫЗЫВАЕМ НОВУЮ ФУНКЦИЮ ДЛЯ ОБНОВЛЕНИЯ UI
         }
     }
 
-    // <-- НОВАЯ ФУНКЦИЯ: ОБНОВЛЕНИЕ СОСТОЯНИЯ ЧЕКБОКСА ОБЪЕДИНЕНИЯ И КНОПКИ ОБРАБОТКИ -->
+    // НОВАЯ ФУНКЦИЯ: ОБНОВЛЕНИЕ СОСТОЯНИЯ ЧЕКБОКСА ОБЪЕДИНЕНИЯ И КНОПКИ ОБРАБОТКИ
     function updateProcessRelatedUI() {
         if (!connectVideosCheckbox || !processSelectedVideosButton) return;
 
@@ -145,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
             processSelectedVideosButton.style.display = 'none';
         }
     }
-    // <-- КОНЕЦ НОВОЙ ФУНКЦИИ -->
 
     // Проверка статуса кнопки "Finish Upload"
     function checkFinishButtonStatus() {
@@ -492,7 +494,51 @@ document.addEventListener('DOMContentLoaded', () => {
             const email = emailInput ? emailInput.value.trim() : '';
             const linkedin = linkedinInput ? linkedinInput.value.trim() : '';
 
-            uploadVideo(file, username, email, linkedin);
+            // Объект с функциями обратного вызова и DOM-элементами для uploadFileToCloudinary
+            const uiCallbacks = {
+                updateFileBubbleUI: (f, msg, type) => updateFileBubbleUI(f, msg, type),
+                displayGeneralStatus: (msg, type) => displayGeneralStatus(msg, type),
+                resetProgressBar: () => resetProgressBar(),
+                selectFilesButton: selectFilesButton, // Передаем ссылку на DOM-элемент
+                progressBar: progressBar,
+                progressText: progressText,
+                progressBarContainer: progressBarContainer
+            };
+
+            // Функции, вызываемые при успехе или ошибке загрузки
+            const onUploadSuccess = (response, uploadedFile) => {
+                const taskId = response.taskId;
+                const newVideoEntry = {
+                    id: taskId,
+                    originalFilename: response.originalFilename || uploadedFile.name,
+                    status: 'uploaded', // Начальный статус после загрузки
+                    timestamp: new Date().toISOString(),
+                    cloudinary_url: response.cloudinary_url,
+                    metadata: response.metadata || {}
+                };
+                uploadedVideos.push(newVideoEntry);
+                localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
+
+                // Обновляем статус в индивидуальном пузыре файла на "Uploaded successfully!" после завершения
+                updateFileBubbleUI(uploadedFile, 'Uploaded successfully!', 'success');
+
+                currentFileIndex++;
+                uploadNextFile(); // Запускаем загрузку следующего файла
+            };
+
+            const onUploadError = (error, erroredFile) => {
+                // Обновляем статус в индивидуальном пузыре файла на ошибку
+                updateFileBubbleUI(erroredFile, `Upload failed!`, 'error'); // Краткое сообщение в пузыре
+
+                displayGeneralStatus(`Upload error for video "${erroredFile.name}": ${error.error || 'Unknown error'}. Please try again.`, 'error');
+                // Не очищаем filesToUpload здесь, чтобы пузыри оставались
+                currentFileIndex = 0; // Сбрасываем индекс для новой попытки
+                validateInputs(); // Обновляем состояние кнопки "Transfer"
+            };
+
+            // Вызываем перенесенную функцию загрузки
+            uploadFileToCloudinary(file, username, email, linkedin, uiCallbacks, onUploadSuccess, onUploadError);
+
         } else {
             // Все валидные файлы загружены. Обновляем список и сообщения.
             displayGeneralStatus('All videos successfully uploaded! You can now process them.', 'completed');
@@ -500,9 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (videoInput) videoInput.value = '';
             resetProgressBar();
             
-            // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
             updateUploadedVideosList(); // Обновляем список, чтобы показать загруженные видео
-            // END НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
         }
     }
 
@@ -538,90 +582,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (selectFilesButton) selectFilesButton.disabled = true; // Отключаем кнопку во время загрузки
             uploadNextFile();
         });
-    }
-
-    // Функция загрузки видео на бэкенд
-    function uploadVideo(file, username, email, linkedin) {
-        // Обновляем UI для текущего файла, показывая "Uploading..."
-        updateFileBubbleUI(file, 'Uploading...', 'info');
-        displayGeneralStatus(`Uploading video ${currentFileIndex + 1} of ${filesToUpload.filter(f => f._isValidFlag).length}: ${file.name}...`, 'info');
-
-        if (progressBarContainer) progressBarContainer.style.display = 'flex';
-        if (progressBar) progressBar.style.width = '0%';
-        if (progressText) progressText.textContent = '0%';
-
-        const formData = new FormData();
-        formData.append('video', file);
-        if (username) {
-            formData.append('instagram_username', username);
-        }
-        if (email) {
-            formData.append('email', email);
-        }
-        if (linkedin) {
-            formData.append('linkedin_profile', linkedin);
-        }
-
-        currentUploadXhr = new XMLHttpRequest();
-        currentUploadXhr.open('POST', `${RENDER_BACKEND_URL}/upload_video`, true);
-
-        currentUploadXhr.upload.addEventListener('progress', (event) => {
-            if (event.lengthComputable) {
-                const percent = (event.loaded / event.total) * 100;
-                if (progressBar) progressBar.style.width = `${percent.toFixed(0)}%`;
-                if (progressText) progressText.textContent = `${percent.toFixed(0)}%`;
-                // Обновляем только общее сообщение о статусе
-                displayGeneralStatus(`Uploading video ${currentFileIndex + 1} of ${filesToUpload.filter(f => f._isValidFlag).length}: ${file.name} (${percent.toFixed(0)}%)`, 'info');
-            }
-        });
-
-        currentUploadXhr.onload = function() {
-            if (currentUploadXhr.status >= 200 && currentUploadXhr.status < 300) {
-                const response = JSON.parse(currentUploadXhr.responseText);
-                const taskId = response.taskId;
-
-                const newVideoEntry = {
-                    id: taskId, // <-- ИЗМЕНЕНО: теперь используется 'id'
-                    originalFilename: response.originalFilename || file.name,
-                    status: 'uploaded', // Начальный статус после загрузки
-                    timestamp: new Date().toISOString(),
-                    cloudinary_url: response.cloudinary_url,
-                    metadata: response.metadata || {}
-                };
-                uploadedVideos.push(newVideoEntry);
-                localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
-
-                // Обновляем статус в индивидуальном пузыре файла на "Uploaded successfully!" после завершения
-                updateFileBubbleUI(file, 'Uploaded successfully!', 'success');
-
-                currentFileIndex++;
-                uploadNextFile();
-
-            } else {
-                const error = JSON.parse(currentUploadXhr.responseText);
-                // Обновляем статус в индивидуальном пузыре файла на ошибку
-                updateFileBubbleUI(file, `Upload failed!`, 'error'); // Краткое сообщение в пузыре
-
-                displayGeneralStatus(`Upload error for video "${file.name}": ${error.error || 'Unknown error'}. Please try again.`, 'error');
-                resetProgressBar();
-                if (selectFilesButton) selectFilesButton.disabled = false;
-                currentFileIndex = 0; // Сбрасываем индекс для новой попытки
-                validateInputs();
-            }
-        };
-
-        currentUploadXhr.onerror = function() {
-            if (selectFilesButton) selectFilesButton.disabled = false;
-            // Обновляем статус в индивидуальном пузыре файла на сетевую ошибку
-            updateFileBubbleUI(file, 'Network error!', 'error'); // Краткое сообщение в пузыре
-
-            displayGeneralStatus(`Network error during upload for video "${file.name}". Please check your connection and try again.`, 'error');
-            resetProgressBar();
-            currentFileIndex = 0; // Сбрасываем индекс для новой попытки
-            validateInputs();
-        };
-
-        currentUploadXhr.send(formData);
     }
 
     // Обработчик кнопки "Finish Upload"
@@ -674,8 +634,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            displayProcessStatus('Processing videos...', 'info');
-            processSelectedVideosButton.disabled = true; // Отключаем кнопку во время обработки
+            displayProcessStatus('Sending videos for processing...', 'info');
+            processSelectedVideosButton.disabled = true; // Отключаем кнопку на время обработки
+            if (connectVideosCheckbox) connectVideosCheckbox.disabled = true; // Отключаем чекбокс
 
             // Вызываем функцию processVideosFromSelection из process_videos.js
             // Предполагаем, что processVideosFromSelection доступна в глобальной области видимости
@@ -683,7 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     await processVideosFromSelection(
                         allUploadedTaskIds,
-                        shouldConnectVideos, // <-- ТЕПЕРЬ ПЕРЕДАЕМ АКТУАЛЬНОЕ ЗНАЧЕНИЕ ИЗ ЧЕКБОКСА
+                        shouldConnectVideos, // ТЕПЕРЬ ПЕРЕДАЕМ АКТУАЛЬНОЕ ЗНАЧЕНИЕ ИЗ ЧЕКБОКСА
                         username,
                         email,
                         linkedin,
@@ -701,6 +662,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     displayProcessStatus(`Error processing videos: ${error.message || 'Unknown error'}`, 'error');
                 } finally {
                     processSelectedVideosButton.disabled = false; // Включаем кнопку обратно
+                    if (connectVideosCheckbox) connectVideosCheckbox.disabled = false; // Включаем чекбокс обратно
+                    updateProcessRelatedUI(); // Обновляем UI после завершения попытки
                 }
             } else {
                 console.error("processVideosFromSelection function is not defined. Ensure process_videos.js is loaded correctly.");
@@ -709,15 +672,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    // Обработчик изменения чекбокса "Connect selected videos"
-    // НЕ НУЖЕН, так как логика его включения/отключения теперь в updateProcessRelatedUI(),
-    // а его состояние считывается напрямую при клике на кнопку "Process Selected Videos"
-    /*
-    if (connectVideosCheckbox) {
-        connectVideosCheckbox.addEventListener('change', () => {
-             // Логика уже покрыта в updateProcessRelatedUI и при нажатии кнопки Process
-        });
-    }
-    */
 }); // Закрывающий тег для DOMContentLoaded
