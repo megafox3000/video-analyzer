@@ -9,18 +9,25 @@
 </head>
 <body class="fade-in">
     <div class="background">
-        <div class="content-container"> <div class="header-section">
+        <div class="content-container"> 
+            <div class="header-section">
                 <h1 id="resultsHeader">Ваши Видео</h1>
                 <p id="usernameDisplay"></p>
                 <button id="uploadNewBtn" class="gold-button">Загрузить новое видео</button>
                 <button id="finishSessionBtn" class="gold-button">Завершить сессию</button>
             </div>
 
-            <div class="connect-videos-container">
-                <label class="toggle-label" for="connectVideosCheckbox">
-                    Объединить выбранные видео
-                </label>
-                <input type="checkbox" id="connectVideosCheckbox" class="toggle-checkbox" />
+            <div class="concatenation-controls">
+                <div class="toggle-container">
+                    <label class="toggle-label" for="connectVideosCheckbox">
+                        Объединить выбранные видео
+                    </label>
+                    <input type="checkbox" id="connectVideosCheckbox" class="toggle-checkbox" />
+                </div>
+                <!-- Добавлена кнопка для запуска обработки/объединения видео -->
+                <button id="processSelectedVideosButton" class="gold-button" style="display: none;">
+                    Обработать выбранные видео
+                </button>
             </div>
             <div id="concatenationStatusDiv" class="concatenation-status info">
                 Выберите 2 или более видео для объединения.
@@ -45,7 +52,8 @@
                     <pre id="modalMetadata"></pre>
                 </div>
             </div>
-        </div> </div>
+        </div> 
+    </div>
 
     <script type="module" src="script/cloudinary_upload.js"></script>
     <script type="module" src="script/results.js"></script>
