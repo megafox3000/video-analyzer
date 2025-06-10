@@ -309,7 +309,7 @@ function createOrUpdateBubble(taskId, data) {
     let checkboxHtml = '';
 
     // Добавляем чекбокс к каждому видео-пузырьку, кроме объединенных видео
-    if (!taskId.startsWith('concatenated_video_')) { 
+    if (!String(taskId).startsWith('concatenated_video_')) { // Используем String() для безопасности
         checkboxHtml = `
             <label class="checkbox-container">
                 <input type="checkbox" class="video-select-checkbox" data-task-id="${taskId}" ${selectedVideoIds.includes(taskId) ? 'checked' : ''}>
@@ -387,8 +387,8 @@ function createOrUpdateBubble(taskId, data) {
     // Только если статус "completed" и есть метаданные
     if (data.status === 'completed' && data.metadata && Object.keys(data.metadata).length > 0) {
         bubble.onclick = (event) => {
-            // Убеждаемся, что клик не был по чекбоку
-            if (!event.target.classList.contains('video-select-checkbox')) {
+            // Убеждаемся, что клик не был по чекбоксу
+            if (!event.target.closest('.checkbox-container')) { // Изменено для большей надежности
                 showMetadataModal(data.original_filename || `Задача ${taskId}`, data.metadata);
             }
         };
@@ -402,6 +402,7 @@ function createOrUpdateBubble(taskId, data) {
     const checkbox = bubble.querySelector('.video-select-checkbox');
     if (checkbox) {
         checkbox.addEventListener('change', (event) => {
+            event.stopPropagation(); // ОСТАНАВЛИВАЕМ ВСПЛЫТИЕ СОБЫТИЯ
             const id = event.target.dataset.taskId;
             if (event.target.checked) {
                 if (!selectedVideoIds.includes(id)) {
@@ -413,6 +414,17 @@ function createOrUpdateBubble(taskId, data) {
             console.log("DEBUG: selectedVideoIds updated:", selectedVideoIds);
             updateConcatenationUI(); // Обновляем UI после изменения выбора
         });
+        // Добавляем обработчик click, чтобы тоже остановить всплытие
+        checkbox.addEventListener('click', (event) => {
+            event.stopPropagation(); // ОСТАНАВЛИВАЕМ ВСПЛЫТИЕ СОБЫТИЯ
+        });
+        // Также обработчик для контейнера чекбокса, чтобы быть уверенным
+        const checkboxContainer = bubble.querySelector('.checkbox-container');
+        if (checkboxContainer) {
+            checkboxContainer.addEventListener('click', (event) => {
+                event.stopPropagation(); // ОСТАНАВЛИВАЕМ ВСПЛЫТИЕ СОБЫТИЯ
+            });
+        }
     }
 
     // Удаляем старую кнопку "Generate with Shotstack" и ее логику
@@ -460,7 +472,7 @@ function updateConcatenationUI() {
     }
 
     // Отключаем/включаем чекбокс объединения, если нет 2+ видео или они не "completed"
-    const completedVideosCount = uploadedVideos.filter(v => v.status === 'completed' && !v.id.startsWith('concatenated_video_')).length;
+    const completedVideosCount = uploadedVideos.filter(v => v.status === 'completed' && !String(v.id).startsWith('concatenated_video_')).length; // Добавлено String()
     if (DOM_ELEMENTS.connectVideosCheckbox) {
         if (completedVideosCount < 2) {
             DOM_ELEMENTS.connectVideosCheckbox.disabled = true;
