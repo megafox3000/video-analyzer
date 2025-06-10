@@ -170,7 +170,8 @@ async function uploadVideoFromResults(file) {
             resetProgressBar();
 
             let newVideoEntry = {
-                id: taskId,
+                id: response.id, // Используем id из ответа (DB id)
+                taskId: taskId, // Используем taskId из ответа (уникальный строковый ID)
                 original_filename: response.originalFilename || uploadedFile.name,
                 status: 'uploaded', 
                 timestamp: new Date().toISOString(),
@@ -216,7 +217,7 @@ async function getTaskStatus(taskId) {
         return data;
     } catch (error) {
         console.error(`[FRONTEND] Network error checking status for task ${taskId}:`, error);
-        return { id: taskId, status: 'failed', error: error.message || 'Network/Server error' };
+        return { taskId: taskId, status: 'failed', error: error.message || 'Network/Server error' }; // Убедимся, что возвращаем taskId
     }
 }
 
@@ -257,14 +258,15 @@ async function checkTaskStatuses() {
     }
 
     for (const video of videosToPoll) {
-        const taskId = video.id;
+        const taskId = video.taskId; // ИСПОЛЬЗУЕМ taskId ДЛЯ ЗАПРОСА
         const currentLocalStatus = video.status; // Текущий статус в локальном хранилище
         const updatedTask = await getTaskStatus(taskId);
         const newRemoteStatus = updatedTask.status; // Новый статус от бэкенда
 
         console.log(`DEBUG: Polling task ${taskId}. Local status: "${currentLocalStatus}". Remote status: "${newRemoteStatus}".`); // Добавлено
 
-        const index = uploadedVideos.findIndex(v => v.id === taskId);
+        // ИСПОЛЬЗУЕМ taskId ДЛЯ ПОИСКА ИНДЕКСА
+        const index = uploadedVideos.findIndex(v => v.taskId === taskId);
         if (index !== -1) {
             // Обновляем существующий элемент
             uploadedVideos[index] = { ...uploadedVideos[index], ...updatedTask };
@@ -427,7 +429,8 @@ function handleBubbleClick(event) {
     uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]'); 
     console.log("DEBUG: uploadedVideos reloaded from localStorage in handleBubbleClick:", uploadedVideos);
 
-    const videoData = uploadedVideos.find(v => v.id === taskId);
+    // ИСПОЛЬЗУЕМ taskId ДЛЯ ПОИСКА
+    const videoData = uploadedVideos.find(v => v.taskId === taskId);
 
     // Если видео завершено и имеет метаданные, открываем модальное окно.
     // Иначе, это клик для выбора/снятия выбора.
@@ -500,7 +503,7 @@ function updateConcatenationUI() {
     }
 
     // Отключаем/включаем чекбокс объединения, если нет 2+ видео или они не "completed"
-    const completedVideosCount = uploadedVideos.filter(v => v.status === 'completed' && !String(v.id).startsWith('concatenated_video_')).length;
+    const completedVideosCount = uploadedVideos.filter(v => v.status === 'completed' && !String(v.taskId).startsWith('concatenated_video_')).length; // ИСПОЛЬЗУЕМ taskId
     if (DOM_ELEMENTS.connectVideosCheckbox) {
         if (completedVideosCount < 2) {
             DOM_ELEMENTS.connectVideosCheckbox.disabled = true;
@@ -604,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         if (DOM_ELEMENTS.bubblesContainer) DOM_ELEMENTS.bubblesContainer.innerHTML = '';
         uploadedVideos.forEach(video => {
-            createOrUpdateBubble(video.id, video);
+            createOrUpdateBubble(video.taskId, video); // ИСПОЛЬЗУЕМ taskId ДЛЯ BUBBLE ID
         });
         // Начинаем опрос статусов для всех видео
         checkTaskStatuses();
@@ -678,17 +681,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // ДОБАВЛЕНО: Логирование статусов выбранных видео перед фильтрацией
             console.log("DEBUG: Statuses of selected videos in uploadedVideos:");
             selectedVideoIds.forEach(id => {
-                const video = uploadedVideos.find(v => v.id === id);
+                const video = uploadedVideos.find(v => v.taskId === id); // ИСПОЛЬЗУЕМ taskId ДЛЯ ПОИСКА
                 console.log(`DEBUG:   Task ID: ${id}, Status: ${video ? video.status : 'NOT FOUND'}, Metadata exists: ${video ? (!!video.metadata && Object.keys(video.metadata).length > 0) : 'N/A'}`);
             });
 
 
             // Отфильтровываем только те видео, которые выбраны и имеют статус 'completed'
             const videosToProcess = uploadedVideos.filter(video =>
-                selectedVideoIds.includes(video.id) && video.status === 'completed'
+                selectedVideoIds.includes(video.taskId) && video.status === 'completed' // ИСПОЛЬЗУЕМ taskId ДЛЯ ФИЛЬТРАЦИИ
             );
 
-            const taskIdsToProcess = videosToProcess.map(video => video.id);
+            const taskIdsToProcess = videosToProcess.map(video => video.taskId); // ИСПОЛЬЗУЕМ taskId
 
             console.log("DEBUG: Videos to process (filtered by 'completed' status and selection):", videosToProcess);
             console.log("DEBUG: Task IDs to process:", taskIdsToProcess);
@@ -732,7 +735,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Если это объединение, бэкенд должен вернуть новый taskId для объединенного видео
                     if (shouldConnect && result.concatenated_task_id) {
                         const newConcatenatedVideo = {
-                            id: result.concatenated_task_id,
+                            id: result.id, // Добавлено, если бэкенд возвращает id из БД
+                            taskId: result.concatenated_task_id, // Используем новый taskId
                             original_filename: 'Объединенное Видео',
                             status: 'concatenated_pending',
                             timestamp: new Date().toISOString(),
@@ -742,37 +746,37 @@ document.addEventListener('DOMContentLoaded', () => {
                         };
                         uploadedVideos.push(newConcatenatedVideo);
                         localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
-                        createOrUpdateBubble(newConcatenatedVideo.id, newConcatenatedVideo);
+                        createOrUpdateBubble(newConcatenatedVideo.taskId, newConcatenatedVideo); // ИСПОЛЬЗУЕМ taskId ДЛЯ BUBBLE ID
                         console.log("DEBUG: New concatenated video added:", newConcatenatedVideo);
                     } else {
                         // Для индивидуальной обработки просто обновляем статусы существующих видео
                         // Если бэкенд возвращает список "initiated_tasks", используем его
                         if (result.initiated_tasks && Array.isArray(result.initiated_tasks)) {
                             result.initiated_tasks.forEach(initiatedTask => {
-                                const index = uploadedVideos.findIndex(v => v.id === initiatedTask.taskId);
+                                const index = uploadedVideos.findIndex(v => v.taskId === initiatedTask.taskId); // ИСПОЛЬЗУЕМ taskId
                                 if (index !== -1) {
                                     uploadedVideos[index].status = initiatedTask.status || 'shotstack_pending';
                                     uploadedVideos[index].shotstackRenderId = initiatedTask.shotstackRenderId || null;
                                     uploadedVideos[index].message = initiatedTask.message || '';
-                                    createOrUpdateBubble(uploadedVideos[index].id, uploadedVideos[index]);
+                                    createOrUpdateBubble(uploadedVideos[index].taskId, uploadedVideos[index]); // ИСПОЛЬЗУЕМ taskId
                                 }
                             });
                             console.log("DEBUG: Updated statuses for individual tasks:", result.initiated_tasks);
                         } else if (result.shotstackRenderId && taskIdsToProcess.length === 1) { // Если один видео, и бэкенд возвращает RenderId
-                            const index = uploadedVideos.findIndex(v => v.id === taskIdsToProcess[0]);
+                            const index = uploadedVideos.findIndex(v => v.taskId === taskIdsToProcess[0]); // ИСПОЛЬЗУЕМ taskId
                             if (index !== -1) {
                                 uploadedVideos[index].status = 'shotstack_pending';
                                 uploadedVideos[index].shotstackRenderId = result.shotstackRenderId;
                                 uploadedVideos[index].message = result.message || '';
-                                createOrUpdateBubble(uploadedVideos[index].id, uploadedVideos[index]);
+                                createOrUpdateBubble(uploadedVideos[index].taskId, uploadedVideos[index]); // ИСПОЛЬЗУЕМ taskId
                                 console.log("DEBUG: Updated status for single task with Shotstack Render ID.");
                             }
                         }
                         else {
                             // Если бэкенд не вернул initiated_tasks для множества, просто обновляем выбранные на 'shotstack_pending'
                             uploadedVideos = uploadedVideos.map(video => {
-                                if (taskIdsToProcess.includes(video.id)) {
-                                    console.log(`DEBUG: Forcing status 'shotstack_pending' for task ${video.id}`);
+                                if (taskIdsToProcess.includes(video.taskId)) { // ИСПОЛЬЗУЕМ taskId
+                                    console.log(`DEBUG: Forcing status 'shotstack_pending' for task ${video.taskId}`);
                                     return { ...video, status: 'shotstack_pending' };
                                 }
                                 return video;
