@@ -679,7 +679,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (processSelectedVideosButton) {
         processSelectedVideosButton.addEventListener('click', async () => {
             console.log("DEBUG: Кнопка 'Process Selected Videos' была нажата!");
-            // --- ДОБАВЬТЕ ЭТИ НОВЫЕ ОТЛАДОЧНЫЕ СООБЩЕНИЯ ---
+            const allUploadedTaskIds = uploadedVideos.map(video => video.id).filter(id => id); 
             console.log("DEBUG: Проверяем содержимое массива uploadedVideos непосредственно перед вызовом processVideosFromSelection:");
             console.log(uploadedVideos); // Выводим полный массив
             console.log("DEBUG: Количество элементов в uploadedVideos:", uploadedVideos.length);
