@@ -373,8 +373,8 @@ function createOrUpdateBubble(taskId, data) {
             break;
     }
 
+    // ВАЖНО: Удален полностью закомментированный тег ${previewHtml}, который вызывал ошибку
     bubble.innerHTML = `
-        <!-- ${previewHtml} Закомментировано: Здесь был HTML-тег превью -->
         <div class="bubble-text-overlay">
             ${filenameText}
             ${statusMessageText}
@@ -390,12 +390,9 @@ function createOrUpdateBubble(taskId, data) {
     if (!String(taskId).startsWith('concatenated_video_')) {
         // Удаляем старые обработчики, чтобы избежать дублирования
         videoGridItem.removeEventListener('click', handleBubbleClick);
-        // Удаляем dblclick слушатель, так как он больше не нужен
-        // videoGridItem.removeEventListener('dblclick', handleBubbleDoubleClick); 
 
-        // Добавляем новые обработчики
+        // Добавляем новый обработчик для выбора по одиночному клику
         videoGridItem.addEventListener('click', handleBubbleClick);
-        // Больше не добавляем dblclick слушатель
 
         // Обновляем визуальное состояние выбора
         if (selectedVideoIds.includes(taskId)) {
@@ -407,7 +404,6 @@ function createOrUpdateBubble(taskId, data) {
     } else {
         // Для объединенных видео убираем интерактивность выбора
         videoGridItem.removeEventListener('click', handleBubbleClick);
-        // videoGridItem.removeEventListener('dblclick', handleBubbleDoubleClick); // Удаляем dblclick и здесь
         videoGridItem.style.cursor = 'default';
         videoGridItem.classList.remove('selected-bubble'); // Убедимся, что не выбрано
     }
@@ -419,12 +415,17 @@ function createOrUpdateBubble(taskId, data) {
     }
 }
 
-// Новые общие функции слушателей событий для клика/двойного клика на пузыре
+// Новая общая функция слушателей событий для клика на пузыре
 function handleBubbleClick(event) {
-    // Проверяем, что это одиночный клик (не часть двойного)
-    if (event.detail === 1) {
-        const taskId = this.id.replace('video-item-', ''); // Получаем taskId из ID обертки
-        
+    // Получаем taskId из ID обертки
+    const taskId = this.id.replace('video-item-', ''); 
+    const videoData = uploadedVideos.find(v => v.id === taskId);
+
+    // Если видео завершено и имеет метаданные, открываем модальное окно.
+    // Иначе, это клик для выбора/снятия выбора.
+    if (videoData && videoData.status === 'completed' && videoData.metadata && Object.keys(videoData.metadata).length > 0) {
+        showMetadataModal(videoData.original_filename || `Задача ${taskId}`, videoData.metadata);
+    } else {
         // Переключаем выбор
         if (selectedVideoIds.includes(taskId)) {
             selectedVideoIds = selectedVideoIds.filter(id => id !== taskId);
@@ -438,7 +439,6 @@ function handleBubbleClick(event) {
     }
 }
 
-// УДАЛЕНО: Функция handleBubbleDoubleClick больше не нужна
 
 /**
  * Обновляет состояние кнопки "Обработать выбранные видео" и статус сообщений.
