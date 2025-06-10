@@ -4,7 +4,7 @@ console.log("DEBUG: upload_validation.js loaded and executing.");
 const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ URL
 
 // Импортируем функцию загрузки из нового модуля
-import { uploadFileToCloudinary } from './cloudinary_upload.js'; // <-- НОВОЕ
+import { uploadFileToCloudinary } from './cloudinary_upload.js';
 
 const existingUploadedVideos = localStorage.getItem('uploadedVideos');
 const existingUsername = localStorage.getItem('hifeUsername');
@@ -17,8 +17,12 @@ if ((existingUsername || existingEmail || existingLinkedin) && existingUploadedV
     try {
         const parsedVideos = JSON.parse(existingUploadedVideos);
         if (parsedVideos.length > 0) {
-            // !!! ВРЕМЕННО ОТКЛЮЧЕНО для тестирования новой функциональности !!!
-            // window.location.replace('results.html');
+            // АВТОМАТИЧЕСКОЕ ПЕРЕНАПРАВЛЕНИЕ, если есть сохраненные загрузки
+            console.log("DEBUG: Existing uploads found, redirecting to results.html on initial load.");
+            // Добавляем небольшую задержку для видимости лога перед редиректом
+            setTimeout(() => {
+                window.location.replace('results.html'); 
+            }, 500); 
         }
     } catch (e) {
         console.error("Error parsing localStorage 'uploadedVideos':", e);
@@ -35,7 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectFilesButton = document.getElementById('selectFilesButton');
     const finishUploadButton = document.getElementById('finishUploadButton');
     const generalStatusMessage = document.getElementById('generalStatusMessage');
-    const uploadedVideosList = document.getElementById('uploadedVideosList');
 
     const progressBarContainer = document.querySelector('.progress-bar-container');
     const progressBar = document.getElementById('progressBar');
@@ -45,19 +48,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedFilesPreviewSection = document.querySelector('.selected-files-preview-section');
     const selectedFilesPreviewContainer = document.getElementById('selectedFilesPreviewContainer');
 
-    // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
-    const processSelectedVideosButton = document.getElementById('processSelectedVideosButton');
-    console.log("DEBUG: processSelectedVideosButton element:", processSelectedVideosButton);
-    const connectVideosCheckbox = document.getElementById('connectVideosCheckbox');
-    const processStatusMessage = document.getElementById('processStatusMessage');
-    // END НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
+    // ЭЛЕМЕНТЫ ДЛЯ ОБРАБОТКИ ВИДЕО УДАЛЕНЫ С ЭТОЙ СТРАНИЦЫ
+    // const processSelectedVideosButton = document.getElementById('processSelectedVideosButton');
+    // const connectVideosCheckbox = document.getElementById('connectVideosCheckbox');
+    // const processStatusMessage = document.getElementById('processStatusMessage');
 
     // Константы валидации
     const MAX_VIDEO_SIZE_MB = 100;
     const MAX_VIDEO_DURATION_SECONDS = 600; // 10 минут
     const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
 
-    let currentUploadXhr = null; // Для отслеживания текущего запроса XMLHttpRequest
     let filesToUpload = []; // Массив для хранения файлов, ожидающих загрузки (включая невалидные для отображения в превью)
     let currentFileIndex = 0; // Индекс текущего загружаемого файла (среди валидных)
     let objectURLs = []; // Массив для хранения Object URLs для последующего освобождения памяти
@@ -94,61 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (progressText) progressText.textContent = '0%';
     }
 
-    // Обновление списка загруженных видео на странице
-    function updateUploadedVideosList() {
-        if (uploadedVideosList) {
-            uploadedVideosList.innerHTML = '';
-            if (uploadedVideos.length === 0) {
-                uploadedVideosList.innerHTML = '<p>No videos uploaded yet.</p>';
-                // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
-                if (processSelectedVideosButton) processSelectedVideosButton.style.display = 'none'; // Скрываем кнопку, если нет видео
-            } else {
-                // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
-                if (processSelectedVideosButton) processSelectedVideosButton.style.display = 'block'; // Показываем кнопку
-
-                uploadedVideos.forEach(video => {
-                    const li = document.createElement('li');
-                    
-                    // Теперь это просто отображение информации, без чекбоксов для выбора отдельных видео
-                    const label = document.createElement('label');
-                    label.textContent = `${video.originalFilename} (ID: ${video.id ? video.id.substring(0, 8) : 'N/A'}...) - Status: ${video.status}`;
-
-                    li.appendChild(label);
-                    uploadedVideosList.appendChild(li);
-                });
-            }
-            updateProcessRelatedUI(); // ВЫЗЫВАЕМ НОВУЮ ФУНКЦИЮ ДЛЯ ОБНОВЛЕНИЯ UI
-        }
-    }
-
-    // НОВАЯ ФУНКЦИЯ: ОБНОВЛЕНИЕ СОСТОЯНИЯ ЧЕКБОКСА ОБЪЕДИНЕНИЯ И КНОПКИ ОБРАБОТКИ
-    function updateProcessRelatedUI() {
-        if (!connectVideosCheckbox || !processSelectedVideosButton) return;
-
-        // Отключаем чекбокс объединения, если загружено менее 2 видео
-        if (uploadedVideos.length < 2) {
-            connectVideosCheckbox.checked = false; // Сбрасываем, если неактуально
-            connectVideosCheckbox.disabled = true;
-            if (connectVideosCheckbox.parentElement) {
-                connectVideosCheckbox.parentElement.style.opacity = '0.5'; // Визуально отключаем
-                connectVideosCheckbox.parentElement.style.cursor = 'not-allowed';
-            }
-        } else {
-            connectVideosCheckbox.disabled = false;
-            if (connectVideosCheckbox.parentElement) {
-                connectVideosCheckbox.parentElement.style.opacity = '1';
-                connectVideosCheckbox.parentElement.style.cursor = 'pointer';
-            }
-        }
-
-        // Кнопка обработки активна, если есть хотя бы одно загруженное видео
-        if (uploadedVideos.length > 0) {
-            processSelectedVideosButton.style.display = 'block';
-        } else {
-            processSelectedVideosButton.style.display = 'none';
-        }
-    }
-
     // Проверка статуса кнопки "Finish Upload"
     function checkFinishButtonStatus() {
         if (finishUploadButton) {
@@ -165,14 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (generalStatusMessage) {
             generalStatusMessage.textContent = message;
             generalStatusMessage.className = `status-message status-${type}`;
-        }
-    }
-
-    // Функция для отображения статуса обработки
-    function displayProcessStatus(message, type) {
-        if (processStatusMessage) {
-            processStatusMessage.textContent = message;
-            processStatusMessage.className = `status-message status-${type}`;
         }
     }
 
@@ -237,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Инициализация при загрузке DOM ---
-    updateUploadedVideosList();
     checkFinishButtonStatus();
     resetProgressBar(); // Убедитесь, что прогресс-бар скрыт при загрузке страницы
     clearPreviews(); // Очищаем предпросмотр при загрузке страницы
@@ -288,6 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
             filesToUpload = Array.from(videoInput.files);
             currentFileIndex = 0; // Сброс индекса для новой очереди загрузки
 
+            console.log(`DEBUG: Selected ${filesToUpload.length} files.`); // Отладочное сообщение
             if (filesToUpload.length === 0) {
                 validateInputs();
                 clearPreviews(); // Скрываем секцию предпросмотра, если файлы отменены
@@ -487,6 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function uploadNextFile() {
         // Фильтруем файлы, чтобы загружать только те, что прошли валидацию
         const validFilesToUpload = filesToUpload.filter(f => f._isValidFlag);
+        console.log(`DEBUG: uploadNextFile called. currentFileIndex: ${currentFileIndex}, validFilesToUpload.length: ${validFilesToUpload.length}`); // Отладочное сообщение
 
         if (currentFileIndex < validFilesToUpload.length) {
             const file = validFilesToUpload[currentFileIndex];
@@ -507,6 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Функции, вызываемые при успехе или ошибке загрузки
             const onUploadSuccess = (response, uploadedFile) => {
+                console.log(`DEBUG: onUploadSuccess for file: ${uploadedFile.name}, taskId: ${response.taskId}`); // Отладочное сообщение
                 const taskId = response.taskId;
                 const newVideoEntry = {
                     id: taskId,
@@ -518,15 +457,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 uploadedVideos.push(newVideoEntry);
                 localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
+                console.log(`DEBUG: LocalStorage updated. Total uploadedVideos: ${uploadedVideos.length}`); // Отладочное сообщение
+
 
                 // Обновляем статус в индивидуальном пузыре файла на "Uploaded successfully!" после завершения
                 updateFileBubbleUI(uploadedFile, 'Uploaded successfully!', 'success');
 
                 currentFileIndex++;
+                console.log(`DEBUG: currentFileIndex incremented to: ${currentFileIndex}`); // Отладочное сообщение
                 uploadNextFile(); // Запускаем загрузку следующего файла
             };
 
             const onUploadError = (error, erroredFile) => {
+                console.error(`DEBUG: onUploadError for file: ${erroredFile.name}. Error: ${error.error || 'Unknown error'}`); // Отладочное сообщение
                 // Обновляем статус в индивидуальном пузыре файла на ошибку
                 updateFileBubbleUI(erroredFile, `Upload failed!`, 'error'); // Краткое сообщение в пузыре
 
@@ -540,13 +483,17 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadFileToCloudinary(file, username, email, linkedin, uiCallbacks, onUploadSuccess, onUploadError);
 
         } else {
-            // Все валидные файлы загружены. Обновляем список и сообщения.
-            displayGeneralStatus('All videos successfully uploaded! You can now process them.', 'completed');
+            console.log("DEBUG: All valid files have been processed. Attempting redirect."); // Отладочное сообщение
+            displayGeneralStatus('All videos successfully uploaded! Redirecting to results page...', 'completed');
             if (selectFilesButton) selectFilesButton.disabled = false;
             if (videoInput) videoInput.value = '';
             resetProgressBar();
             
-            updateUploadedVideosList(); // Обновляем список, чтобы показать загруженные видео
+            // АВТОМАТИЧЕСКОЕ ПЕРЕНАПРАВЛЕНИЕ после успешной загрузки всех файлов
+            // Добавляем небольшую задержку для видимости лога перед редиректом
+            setTimeout(() => {
+                window.location.replace('results.html');
+            }, 500);
         }
     }
 
@@ -584,92 +531,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Обработчик кнопки "Finish Upload"
+    // Обработчик кнопки "Finish Upload" (может быть скрыта, но оставляем на случай, если ее покажут)
     if (finishUploadButton) {
         finishUploadButton.addEventListener('click', () => {
             if (localStorage.getItem('uploadedVideos') && JSON.parse(localStorage.getItem('uploadedVideos')).length > 0) {
-                window.location.replace('results.html');
+                console.log("DEBUG: Finish Upload button clicked, redirecting to results.html."); // Отладочное сообщение
+                // Добавляем небольшую задержку для видимости лога перед редиректом
+                setTimeout(() => {
+                    window.location.replace('results.html');
+                }, 500);
             } else {
                 displayGeneralStatus("No videos uploaded to show results.", 'pending');
             }
         });
     }
 
-    // НОВЫЕ ИЗМЕНЕНИЯ ДЛЯ ОБРАБОТКИ ВИДЕО
-    // Обработчик клика по кнопке "Process Selected Videos"
-    if (processSelectedVideosButton) {
-        processSelectedVideosButton.addEventListener('click', async () => {
-            console.log("DEBUG: Кнопка 'Process Selected Videos' была нажата!");
-            
-            const allUploadedTaskIds = uploadedVideos.map(video => video.id).filter(id => id); 
-
-            console.log("DEBUG: Проверяем содержимое массива uploadedVideos непосредственно перед вызовом processVideosFromSelection:");
-            console.log(uploadedVideos); // Выводим полный массив
-            console.log("DEBUG: Количество элементов в uploadedVideos:", uploadedVideos.length);
-            console.log("DEBUG: ID первого элемента в uploadedVideos (если есть):", uploadedVideos.length > 0 ? uploadedVideos[0].id : 'N/A');
-            console.log("DEBUG: Task IDs, полученные из uploadedVideos на данный момент:", allUploadedTaskIds);
-            // --- КОНЕЦ НОВЫХ ОТЛАДОЧНЫХ СООБЩЕНИЙ ---
-                
-            if (allUploadedTaskIds.length === 0) {
-                displayProcessStatus('No videos available to process. Please upload some first.', 'error');
-                return;
-            }
-
-            // Получаем актуальные пользовательские данные
-            const username = instagramInput ? instagramInput.value.trim() : '';
-            const email = emailInput ? emailInput.value.trim() : '';
-            const linkedin = linkedinInput ? linkedinInput.value.trim() : '';
-            
-            // Проверяем заполнение пользовательских данных, если они необходимы
-            if (!username && !email && !linkedin) {
-                displayProcessStatus('Please enter Instagram ID, Email, or LinkedIn to process videos.', 'error');
-                return;
-            }
-
-            // Проверяем состояние чекбокса объединения
-            const shouldConnectVideos = connectVideosCheckbox ? connectVideosCheckbox.checked : false;
-
-            if (shouldConnectVideos && allUploadedTaskIds.length < 2) {
-                displayProcessStatus('Please select 2 or more videos to connect them.', 'error');
-                return;
-            }
-
-            displayProcessStatus('Sending videos for processing...', 'info');
-            processSelectedVideosButton.disabled = true; // Отключаем кнопку на время обработки
-            if (connectVideosCheckbox) connectVideosCheckbox.disabled = true; // Отключаем чекбокс
-
-            // Вызываем функцию processVideosFromSelection из process_videos.js
-            // Предполагаем, что processVideosFromSelection доступна в глобальной области видимости
-            if (typeof processVideosFromSelection === 'function') {
-                try {
-                    await processVideosFromSelection(
-                        allUploadedTaskIds,
-                        shouldConnectVideos, // ТЕПЕРЬ ПЕРЕДАЕМ АКТУАЛЬНОЕ ЗНАЧЕНИЕ ИЗ ЧЕКБОКСА
-                        username,
-                        email,
-                        linkedin,
-                        displayProcessStatus, // Передаем функцию для обновления статуса в секции обработки
-                        displayGeneralStatus // Передаем функцию для общего статуса
-                    );
-                    // После успешной обработки, перенаправляем на results.html
-                    displayProcessStatus('Videos sent for processing successfully! Redirecting to results...', 'success');
-                    // Дадим немного времени пользователю прочитать сообщение
-                    setTimeout(() => {
-                        window.location.replace('results.html');
-                    }, 2000);   
-                } catch (error) {
-                    console.error("Error initiating video processing:", error);
-                    displayProcessStatus(`Error processing videos: ${error.message || 'Unknown error'}`, 'error');
-                } finally {
-                    processSelectedVideosButton.disabled = false; // Включаем кнопку обратно
-                    if (connectVideosCheckbox) connectVideosCheckbox.disabled = false; // Включаем чекбокс обратно
-                    updateProcessRelatedUI(); // Обновляем UI после завершения попытки
-                }
-            } else {
-                console.error("processVideosFromSelection function is not defined. Ensure process_videos.js is loaded correctly.");
-                displayProcessStatus('Internal error: Processing logic not loaded.', 'error');
-                processSelectedVideosButton.disabled = false;
-            }
-        });
-    }
 }); // Закрывающий тег для DOMContentLoaded
