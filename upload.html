@@ -65,8 +65,8 @@
             </div>
     </div>
 
-    <script src="script/process_videos.js"></script> 
-    <script src="script/upload_validation.js"></script>
-    
+    <script type="module" src="script/cloudinary_upload.js"></script>
+    <script src="script/process_videos.js"></script> <!-- process_videos.js не импортирует, поэтому может быть обычным -->
+    <script type="module" src="script/upload_validation.js"></script>
 </body>
 </html>
