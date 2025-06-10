@@ -1,5 +1,6 @@
 // script/process_videos.js
 console.log("DEBUG: process_videos.js loaded and executing.");
+
 /**
  * Отправляет запрос на бэкенд для обработки или объединения выбранных видео.
  * @param {string[]} videoIds Массив ID видео, которые нужно обработать.
@@ -7,8 +8,9 @@ console.log("DEBUG: process_videos.js loaded and executing.");
  * @param {string} instagramUsername Имя пользователя Instagram.
  * @param {string} email Email пользователя.
  * @param {string} linkedinProfile URL профиля LinkedIn пользователя.
- * @param {function(string, string): void} displayProcessStatus Функция для отображения статуса в секции обработки.
- * @param {function(string, string): void} displayGeneralStatus Функция для отображения общего статуса.
+ * @param {function(string, string): void} displayProcessStatus Функция для отображения статуса (используется для внутреннего статуса в этом файле).
+ * @param {function(string, string): void} displayGeneralStatus Функция для отображения общего статуса (передаётся для использования в results.js).
+ * @returns {Promise<Object|null>} Результат от бэкенда или null в случае ошибки.
  */
 async function processVideosFromSelection(
     videoIds,
@@ -16,26 +18,30 @@ async function processVideosFromSelection(
     instagramUsername,
     email,
     linkedinProfile,
-    displayProcessStatus,
+    displayProcessStatus, // Это будет отображаться в results.js
     displayGeneralStatus
 ) {
-    if (!videoIds || videoIds.length === 0) {
-        displayProcessStatus('No videos selected for processing.', 'error');
-        return;
-    }
+    // Внутреннее отображение статуса в этом модуле, если нужно
+    displayProcessStatus('Инициируем обработку видео...', 'info');
+    displayGeneralStatus('Отправляем запрос на сервер...', 'info'); // Используем переданную функцию
 
-    displayProcessStatus('Initiating video processing...', 'info');
-    displayGeneralStatus('Sending request to server...', 'info');
+    if (!videoIds || videoIds.length === 0) {
+        displayProcessStatus('Не выбрано видео для обработки.', 'error');
+        displayGeneralStatus('Обработка не инициирована: нет выбранных видео.', 'error');
+        return null; // Возвращаем null на случай ошибки для лучшей обработки в results.js
+    }
 
     try {
         const payload = {
-            video_ids: videoIds,
+            task_ids: videoIds, // Изменено с video_ids на task_ids, чтобы соответствовать бэкенду
             connect_videos: connectVideos,
             instagram_username: instagramUsername,
             email: email,
             linkedin_profile: linkedinProfile
         };
 
+        // RENDER_BACKEND_URL должен быть доступен глобально или передан
+        // Предполагаем, что он доступен из результатов.js, который его инициирует
         const response = await fetch(`${RENDER_BACKEND_URL}/process_videos`, {
             method: 'POST',
             headers: {
@@ -46,37 +52,26 @@ async function processVideosFromSelection(
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `Server error: ${response.status}`);
+            throw new Error(errorData.error || `Ошибка сервера: ${response.status}`);
         }
 
         const result = await response.json();
         
-        displayProcessStatus(`Processing initiated for video(s)! Task ID: ${result.process_task_id || 'N/A'}`, 'success');
-        displayGeneralStatus('Processing request sent. Redirecting to results in 3 seconds...', 'completed');
+        displayProcessStatus(`Обработка инициирована для видео! ID задачи: ${result.concatenated_task_id || result.message}`, 'success');
+        displayGeneralStatus('Запрос на обработку отправлен. Статусы скоро обновятся.', 'completed'); // Обновленное сообщение
 
-        // Очищаем localStorage после успешной отправки запроса на обработку,
-        // чтобы результаты на results.html были актуальными для нового запроса.
-        // Это спорный момент, и его можно настроить.
-        // Если вы хотите, чтобы results.html показывал *только* результаты последней обработки,
-        // то очистите localStorage.
-        // Если вы хотите, чтобы results.html отображал все когда-либо загруженные видео,
-        // то не очищайте.
-        // Для данной логики, когда мы отправляем *новый* запрос на обработку,
-        // лучше очистить, чтобы результаты на results.html соответствовали этому запросу.
-        localStorage.removeItem('uploadedVideos');
-        // Возможно, стоит сохранить process_task_id в localStorage, чтобы results.html мог его использовать.
-        localStorage.setItem('lastProcessTaskId', result.process_task_id);
+        // Логика управления localStorage (удаление/установка lastProcessTaskId)
+        // Теперь находится в results.js, который вызывает эту функцию.
+        // Здесь мы просто возвращаем результат для обработки в results.js.
 
-        // В `upload_validation.js` мы уже добавили `setTimeout` для перенаправления.
-        // Поэтому здесь явное перенаправление не нужно, но можно оставить для отладки.
-        // setTimeout(() => {
-        //     window.location.replace('results.html');
-        // }, 3000);
-
+        return result; // Возвращаем результат от бэкенда для results.js, чтобы тот обновил localStorage
     } catch (error) {
-        console.error('Error in processVideosFromSelection:', error);
-        displayProcessStatus(`Failed to initiate processing: ${error.message}`, 'error');
-        displayGeneralStatus(`Processing failed. Please check the console for details.`, 'error');
-        throw error; // Перебрасываем ошибку, чтобы её можно было поймать в вызывающей функции
+        console.error('Ошибка в processVideosFromSelection:', error);
+        displayProcessStatus(`Не удалось инициировать обработку: ${error.message}`, 'error');
+        displayGeneralStatus(`Обработка не удалась. Пожалуйста, проверьте консоль для деталей.`, 'error');
+        throw error; // Перебрасываем ошибку, чтобы results.js мог её перехватить и обновить UI
     }
 }
+
+// Экспортируем функцию, чтобы её могли импортировать другие модули
+export { processVideosFromSelection };
