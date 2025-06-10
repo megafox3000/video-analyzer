@@ -247,15 +247,21 @@ async function checkTaskStatuses() {
 
     for (const video of videosToPoll) {
         const taskId = video.id;
+        const currentLocalStatus = video.status; // Текущий статус в локальном хранилище
         const updatedTask = await getTaskStatus(taskId);
+        const newRemoteStatus = updatedTask.status; // Новый статус от бэкенда
+
+        console.log(`DEBUG: Polling task ${taskId}. Local status: "${currentLocalStatus}". Remote status: "${newRemoteStatus}".`); // Добавлено
 
         const index = uploadedVideos.findIndex(v => v.id === taskId);
         if (index !== -1) {
             // Обновляем существующий элемент
             uploadedVideos[index] = { ...uploadedVideos[index], ...updatedTask };
+            console.log(`DEBUG: Task ${taskId} updated in uploadedVideos. New local object status: "${uploadedVideos[index].status}". Metadata exists: ${!!uploadedVideos[index].metadata && Object.keys(uploadedVideos[index].metadata).length > 0}`); // Добавлено
         } else {
             // Это новый элемент (например, объединенное видео), добавляем его
             uploadedVideos.push(updatedTask);
+            console.log(`DEBUG: New task ${taskId} added to uploadedVideos. Status: "${updatedTask.status}". Metadata exists: ${!!updatedTask.metadata && Object.keys(updatedTask.metadata).length > 0}`); // Добавлено
         }
 
         createOrUpdateBubble(taskId, uploadedVideos[index] || updatedTask); 
@@ -402,23 +408,25 @@ function createOrUpdateBubble(taskId, data) {
 // Новая общая функция слушателей событий для клика на пузыре
 function handleBubbleClick(event) {
     // Получаем taskId из ID обертки
-    const taskId = this.id.replace('video-item-', ''); 
+    const taskId = this.id.replace('video-item-', '');
     const videoData = uploadedVideos.find(v => v.id === taskId);
 
     // Если видео завершено и имеет метаданные, открываем модальное окно.
     // Иначе, это клик для выбора/снятия выбора.
     if (videoData && videoData.status === 'completed' && videoData.metadata && Object.keys(videoData.metadata).length > 0) {
+        console.log(`DEBUG: Opening metadata modal for task ${taskId} (status: ${videoData.status})`);
         showMetadataModal(videoData.original_filename || `Задача ${taskId}`, videoData.metadata);
     } else {
         // Переключаем выбор
         if (selectedVideoIds.includes(taskId)) {
             selectedVideoIds = selectedVideoIds.filter(id => id !== taskId);
             this.classList.remove('selected-bubble');
+            console.log(`DEBUG: Deselected task ${taskId}. New selectedVideoIds:`, selectedVideoIds);
         } else {
             selectedVideoIds.push(taskId);
             this.classList.add('selected-bubble');
+            console.log(`DEBUG: Selected task ${taskId}. New selectedVideoIds:`, selectedVideoIds);
         }
-        console.log("DEBUG: selectedVideoIds updated:", selectedVideoIds);
         updateConcatenationUI(); // Обновляем UI после изменения выбора
     }
 }
@@ -508,7 +516,7 @@ function updateConcatenationUI() {
 
 // --- Инициализация при загрузке DOM ---
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("DEBUG: DOMContentLoaded event fired."); // Добавлено
+    console.log("DEBUG: DOMContentLoaded event fired.");
     const username = localStorage.getItem('hifeUsername');
     const email = localStorage.getItem('hifeEmail');
     const linkedin = localStorage.getItem('hifeLinkedin');
@@ -618,15 +626,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Обработчик изменения чекбокса "Объединить выбранные видео"
     if (DOM_ELEMENTS.connectVideosCheckbox) {
         DOM_ELEMENTS.connectVideosCheckbox.addEventListener('change', updateConcatenationUI);
-        console.log("DEBUG: Connect videos checkbox event listener attached."); // Добавлено
+        console.log("DEBUG: Connect videos checkbox event listener attached.");
     } else {
-        console.log("DEBUG: Connect videos checkbox element NOT found! Please ensure your HTML has an element with id 'connectVideosCheckbox'."); // Добавлено
+        console.log("DEBUG: Connect videos checkbox element NOT found! Please ensure your HTML has an element with id 'connectVideosCheckbox'.");
     }
 
     // Обработчик кнопки "Обработать/Объединить выбранные видео"
     if (DOM_ELEMENTS.processSelectedVideosButton) {
         DOM_ELEMENTS.processSelectedVideosButton.addEventListener('click', async () => {
-            console.log("DEBUG: --- Process Selected Videos Button Click Handler STARTED ---"); // Добавлено
+            console.log("DEBUG: --- Process Selected Videos Button Click Handler STARTED ---");
             const username = localStorage.getItem('hifeUsername');
             const email = localStorage.getItem('hifeEmail');
             const linkedin = localStorage.getItem('hifeLinkedin');
@@ -635,6 +643,14 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("DEBUG: Current uploadedVideos (before filter):", uploadedVideos);
             console.log("DEBUG: Current selectedVideoIds:", selectedVideoIds);
             console.log("DEBUG: Is 'Connect videos' checkbox checked?:", shouldConnect);
+
+            // ДОБАВЛЕНО: Логирование статусов выбранных видео перед фильтрацией
+            console.log("DEBUG: Statuses of selected videos in uploadedVideos:");
+            selectedVideoIds.forEach(id => {
+                const video = uploadedVideos.find(v => v.id === id);
+                console.log(`DEBUG:   Task ID: ${id}, Status: ${video ? video.status : 'NOT FOUND'}, Metadata exists: ${video ? (!!video.metadata && Object.keys(video.metadata).length > 0) : 'N/A'}`);
+            });
+
 
             // Отфильтровываем только те видео, которые выбраны и имеют статус 'completed'
             const videosToProcess = uploadedVideos.filter(video =>
@@ -743,13 +759,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Ошибка в обработчике processSelectedVideosButton:', error);
                 displayGeneralStatus(`Произошла неожиданная ошибка: ${error.message || 'Неизвестная ошибка'}`, 'error');
             } finally {
-                console.log("DEBUG: --- Process Selected Videos Button Click Handler FINISHED ---"); // Добавлено
+                console.log("DEBUG: --- Process Selected Videos Button Click Handler FINISHED ---");
                 updateConcatenationUI();
             }
         });
-        console.log("DEBUG: Process Selected Videos Button event listener attached."); // Добавлено
+        console.log("DEBUG: Process Selected Videos Button event listener attached.");
     } else {
-        console.log("DEBUG: Process Selected Videos Button element NOT found! Please ensure your HTML has an element with id 'processSelectedVideosButton'."); // Добавлено
+        console.log("DEBUG: Process Selected Videos Button element NOT found! Please ensure your HTML has an element with id 'processSelectedVideosButton'.");
     }
 
 
