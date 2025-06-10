@@ -19,7 +19,8 @@ async function processVideosFromSelection(
     email,
     linkedinProfile,
     displayProcessStatus, // Это будет отображаться в results.js
-    displayGeneralStatus
+    displayGeneralStatus,
+    RENDER_BACKEND_URL
 ) {
     // Внутреннее отображение статуса в этом модуле, если нужно
     displayProcessStatus('Инициируем обработку видео...', 'info');
