@@ -679,13 +679,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (processSelectedVideosButton) {
         processSelectedVideosButton.addEventListener('click', async () => {
             console.log("DEBUG: Кнопка 'Process Selected Videos' была нажата!");
-            
+            // --- ДОБАВЬТЕ ЭТИ НОВЫЕ ОТЛАДОЧНЫЕ СООБЩЕНИЯ ---
+            console.log("DEBUG: Проверяем содержимое массива uploadedVideos непосредственно перед вызовом processVideosFromSelection:");
+            console.log(uploadedVideos); // Выводим полный массив
+            console.log("DEBUG: Количество элементов в uploadedVideos:", uploadedVideos.length);
+            console.log("DEBUG: ID первого элемента в uploadedVideos (если есть):", uploadedVideos.length > 0 ? uploadedVideos[0].id : 'N/A');
+            console.log("DEBUG: Task IDs, полученные из uploadedVideos на данный момент:", allUploadedTaskIds);
+            // --- КОНЕЦ НОВЫХ ОТЛАДОЧНЫХ СООБЩЕНИЙ ---
             // Собираем ID всех загруженных видео из вашего массива 'uploadedVideos'
             // uploadedVideos - это глобальный массив, который хранит информацию обо всех загруженных видео.
-            const allUploadedTaskIds = uploadedVideos.map(video => video.id).filter(id => id); // Filter out any null/undefined IDs
-
-            console.log("DEBUG: Collected allUploadedTaskIds:", allUploadedTaskIds);
-            
+               
             if (allUploadedTaskIds.length === 0) {
                 displayProcessStatus('No videos available to process. Please upload some first.', 'error');
                 return;
