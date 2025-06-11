@@ -219,7 +219,12 @@ async function getTaskStatus(taskId) {
             throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorData.error}`);
         }
         const data = await response.json();
-        return data;
+        // Убедимся, что возвращаемый ID всегда является строковым ID задачи,
+        // который мы использовали для запроса, даже если бэкенд возвращает другие ID.
+        // Это КЛЮЧЕВОЕ ИЗМЕНЕНИЕ для сохранения консистентности.
+        // Backend now returns 'taskId' (string Cloudinary ID) AND 'id' (numeric DB ID)
+        // We use taskId from the response if available, otherwise fallback to the requested taskId
+        return { ...data, id: data.taskId || taskId }; 
     } catch (error) {
         console.error(`[FRONTEND] Network error checking status for task ${taskId}:`, error);
         // Важно: возвращаем taskId в поле 'id', чтобы фронтенд мог идентифицировать задачу, даже если она провалилась
@@ -236,6 +241,7 @@ async function checkTaskStatuses() {
     let tasksStillPending = false; 
 
     // Используем актуальные uploadedVideos из localStorage для polling
+    // ВСЕГДА перечитываем uploadedVideos, чтобы быть уверенными, что работаем с последней версией
     uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]');
     console.log("DEBUG: uploadedVideos reloaded from localStorage at checkTaskStatuses start:", uploadedVideos);
 
@@ -265,8 +271,18 @@ async function checkTaskStatuses() {
         return;
     }
 
-    for (const video of videosToPoll) {
+    // Создаем копию массива, чтобы избежать проблем с изменением во время итерации
+    const currentUploadedVideos = [...uploadedVideos]; 
+
+    for (const video of currentUploadedVideos) {
         const videoId = video.id; // ИСПОЛЬЗУЕМ video.id (строковый Cloudinary ID) ДЛЯ ЗАПРОСА СТАТУСА
+        
+        // Проверяем, что videoId корректен перед отправкой запроса
+        if (!videoId || typeof videoId !== 'string') {
+            console.warn(`[FRONTEND] Skipping polling for invalid videoId: ${videoId}. Video object:`, video);
+            continue; // Пропускаем эту итерацию, если ID недействителен
+        }
+
         const currentLocalStatus = video.status; // Текущий статус в локальном хранилище
         const updatedTask = await getTaskStatus(videoId); // updatedTask теперь содержит {id: string (Cloudinary ID) , status: ..., ...}
         const newRemoteStatus = updatedTask.status; // Новый статус от бэкенда
@@ -286,32 +302,43 @@ async function checkTaskStatuses() {
             uploadedVideos[index].message = updatedTask.message || uploadedVideos[index].message;
             uploadedVideos[index].shotstackRenderId = updatedTask.shotstackRenderId || uploadedVideos[index].shotstackRenderId;
             uploadedVideos[index].shotstackUrl = updatedTask.shotstackUrl || uploadedVideos[index].shotstackUrl;
-            // Поле `id` (строковый Cloudinary ID) НЕ ТРОГАЕМ
+            // Поле `id` (строковый Cloudinary ID) НЕ ТРОГАЕМ, оно уже установлено корректно.
             console.log(`DEBUG: Task ${videoId} updated in uploadedVideos. New local object status: "${uploadedVideos[index].status}". Metadata exists: ${!!uploadedVideos[index].metadata && Object.keys(uploadedVideos[index].metadata).length > 0}. Current object ID (should be string): ${uploadedVideos[index].id}`); // Добавлено
         } else {
-            // ЭТО БЛОК ДЛЯ ДОБАВЛЕНИЯ НОВЫХ ЗАДАЧ (например, объединенное видео).
+            // ЭТО БЛОК ДЛЯ ДОБАВЛЕНИЯ НОВЫХ ЗАДАЧ (например, объединенное видео), которых еще нет в списке uploadedVideos.
             // Убеждаемся, что id нового элемента - это строковый Cloudinary ID, который нам нужен.
             // updatedTask.id от getTaskStatus, когда ошибка, уже строковый.
-            // Для Shotstack-задач бэкенд возвращает `concatenated_task_id`.
-            const newEntryId = updatedTask.id || updatedTask.taskId || videoId; 
-            uploadedVideos.push({
-                id: newEntryId, // Это строковый Cloudinary ID или ID объединенного видео
-                original_filename: updatedTask.originalFilename || `Задача ${newEntryId}`,
-                status: updatedTask.status,
-                timestamp: updatedTask.timestamp,
-                cloudinary_url: updatedTask.cloudinary_url,
-                metadata: updatedTask.metadata,
-                message: updatedTask.message,
-                shotstackRenderId: updatedTask.shotstackRenderId,
-                shotstackUrl: updatedTask.shotstackUrl
-            });
-            console.log(`DEBUG: New task ${newEntryId} added to uploadedVideos. Status: "${updatedTask.status}". Metadata exists: ${!!updatedTask.metadata && Object.keys(updatedTask.metadata).length > 0}. New object ID (should be string): ${newEntryId}`); // Добавлено
+            // Для Shotstack-задач бэкенд возвращает `concatenated_task_id` в ответе на изначальный запрос объединения,
+            // но `getTaskStatus` должен возвращать его как `id`.
+            const newEntryId = updatedTask.id || updatedTask.taskId; 
+            if (newEntryId && typeof newEntryId === 'string') { // Только если ID корректен
+                uploadedVideos.push({
+                    id: newEntryId, // Это строковый Cloudinary ID или ID объединенного видео
+                    original_filename: updatedTask.originalFilename || `Задача ${newEntryId}`,
+                    status: updatedTask.status,
+                    timestamp: updatedTask.timestamp,
+                    cloudinary_url: updatedTask.cloudinary_url,
+                    metadata: updatedTask.metadata,
+                    message: updatedTask.message,
+                    shotstackRenderId: updatedTask.shotstackRenderId,
+                    shotstackUrl: updatedTask.shotstackUrl
+                });
+                console.log(`DEBUG: New task ${newEntryId} added to uploadedVideos. Status: "${updatedTask.status}". Metadata exists: ${!!updatedTask.metadata && Object.keys(updatedTask.metadata).length > 0}. New object ID (should be string): ${newEntryId}`); // Добавлено
+            } else {
+                console.warn(`DEBUG: Could not add new task from polling result due to invalid ID:`, updatedTask);
+            }
         }
         // ДОБАВЛЕНО: Полный лог uploadedVideos после обработки каждой задачи
         console.log("DEBUG: Current uploadedVideos array after processing task:", uploadedVideos);
 
         // Используем videoId (строковый) для bubble ID
-        createOrUpdateBubble(videoId, uploadedVideos.find(v => v.id === videoId) || updatedTask); 
+        // Находим актуальный объект видео после потенциальных обновлений, чтобы передать его в createOrUpdateBubble
+        const videoToRender = uploadedVideos.find(v => v.id === videoId);
+        if (videoToRender) {
+             createOrUpdateBubble(videoId, videoToRender); 
+        } else {
+            console.warn(`DEBUG: Could not find video ${videoId} in uploadedVideos to render bubble. It might have been filtered out or is invalid.`);
+        }
 
         // Проверяем, есть ли еще незавершенные задачи
         if (uploadedVideos.find(v => v.id === videoId) && uploadedVideos.find(v => v.id === videoId).status !== 'completed' && uploadedVideos.find(v => v.id === videoId).status !== 'error' && uploadedVideos.find(v => v.id === videoId).status !== 'failed' && uploadedVideos.find(v => v.id === videoId).status !== 'concatenated_completed' && uploadedVideos.find(v => v.id === videoId).status !== 'concatenated_failed') {
@@ -346,6 +373,7 @@ function createOrUpdateBubble(videoId, data) {
     let bubble; // Сам элемент круглого видео-пузыря
 
     if (!videoGridItem) {
+        // Пузырек не существует, создаем его
         videoGridItem = document.createElement('div');
         videoGridItem.className = 'video-grid-item'; // Новый класс-обертка
         videoGridItem.id = `video-item-${videoId}`; // Уникальный ID для обертки (на основе Cloudinary ID)
@@ -364,10 +392,11 @@ function createOrUpdateBubble(videoId, data) {
             initialMessage.remove();
         }
     } else {
-        // Если обертка уже существует, находим пузырь внутри нее
+        // Пузырек существует, находим его дочерний элемент 'video-bubble'
         bubble = videoGridItem.querySelector('.video-bubble');
     }
 
+    // Теперь обновляем содержимое пузырька, независимо от того, был ли он создан или найден
     let filenameText = `<h3 class="bubble-title-overlay">${data.original_filename || `Задача ${videoId}`}</h3>`;
     let statusMessageText = '';
     let actionButtonsHtml = '';
@@ -426,13 +455,11 @@ function createOrUpdateBubble(videoId, data) {
     `;
 
     // --- ИЗМЕНЕНИЕ: Убираем обработку клика по пузырьку и показ модального окна ---
-    // Убираем все обработчики кликов с videoGridItem.
-    // Если нужно открывать метаданные, это должно быть отдельной кнопкой или через другое UI.
-    videoGridItem.removeEventListener('click', handleBubbleClick); // Удаляем, чтобы не было дублирования
-    videoGridItem.style.cursor = 'default'; // Курсор по умолчанию, т.к. пузырьки не кликабельны напрямую для выбора
+    // Убедимся, что нет никаких обработчиков кликов, и курсор по умолчанию.
+    videoGridItem.style.cursor = 'default'; 
     videoGridItem.classList.remove('selected-bubble'); // Убираем любой класс "выбрано"
 
-    // Удаляем старую кнопку "Generate with Shotstack" и ее логику
+    // Удаляем старую кнопку "Generate with Shotstack" и ее логику, если она присутствует
     const generateButton = bubble.querySelector('.generate-button');
     if (generateButton) {
         generateButton.remove(); // Удаляем кнопку
@@ -791,5 +818,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // Начальное обновление UI объединения при загрузке страницы
-    updateConcatenationUI(); // Эта строка уже вызывается в DOMContentLoaded, но дублирование не навредит.
+    updateConcatenationUI(); 
 });
