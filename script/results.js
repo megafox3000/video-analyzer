@@ -43,13 +43,13 @@ if (DOM_ELEMENTS.dynamicUploadStatusContainer) {
 // Она будет инициализироваться при загрузке скрипта и обновляться функцией checkTaskStatuses.
 let uploadedVideos = []; 
 let pollingIntervalId = null; // ID интервала для опроса статусов
-let selectedVideoIds = []; // Массив для хранения ID выбранных видео-пузырьков
+let selectedVideoIds = []; // Больше не используется для объединения/выбора, оставлен на случай будущих нужд
 
 // Добавляем глобальный лог при загрузке скрипта, чтобы убедиться, что uploadedVideos инициализируется правильно
 console.log("DEBUG: Script initialized. uploadedVideos is currently:", uploadedVideos);
 
 
-const taskBubbles = {}; // Объект для хранения ссылок на DOM-элементы "пузырей" по их taskId (теперь это будет videoGridItem)
+const taskBubbles = {}; // Объект для хранения ссылок на DOM-элементы "пузырей" по их videoId (Cloudinary ID)
 const CHECK_STATUS_INTERVAL_MS = 3000; // Интервал опроса статусов (3 секунды)
 
 
@@ -159,7 +159,8 @@ async function uploadVideoFromResults(file) {
             updateFileBubbleUI: (f, msg, type) => updateUploadStatusDisplay(msg, type), 
             displayGeneralStatus: displayGeneralStatus,
             resetProgressBar: resetProgressBar,
-            selectFilesButton: DOM_ELEMENTS.uploadNewBtn, // Передаем DOM_ELEMENTS.uploadNewBtn
+            selectFilesButton: DOM_ELEMENTS.uploadNewBtn, // Передаем DOM_ELEMENTS.uploadNewBtn (не используется в этом контексте)
+            uploadNewBtn: DOM_ELEMENTS.uploadNewBtn, // Передаем кнопку для results.js
             progressBar: DOM_ELEMENTS.progressBar,
             progressText: DOM_ELEMENTS.progressText,
             progressBarContainer: DOM_ELEMENTS.progressBarContainer
@@ -207,6 +208,10 @@ async function uploadVideoFromResults(file) {
  * @returns {Promise<Object>} Объект с обновленным статусом задачи.
  */
 async function getTaskStatus(taskId) {
+    if (!taskId || typeof taskId !== 'string') {
+        console.warn(`[FRONTEND] Invalid taskId provided to getTaskStatus: ${taskId}. Skipping network request.`);
+        return { id: taskId, status: 'failed', error: 'Invalid taskId provided.' };
+    }
     try {
         const response = await fetch(`${RENDER_BACKEND_URL}/task-status/${taskId}`);
         if (!response.ok) {
@@ -236,6 +241,8 @@ async function checkTaskStatuses() {
 
 
     const videosToPoll = uploadedVideos.filter(v => 
+        // Добавляем проверку, что v.id существует и является строкой перед polling'ом
+        v.id && typeof v.id === 'string' &&
         v.status !== 'completed' && v.status !== 'error' && v.status !== 'failed' && 
         v.status !== 'concatenated_completed' && v.status !== 'concatenated_failed'
     );
@@ -261,7 +268,7 @@ async function checkTaskStatuses() {
     for (const video of videosToPoll) {
         const videoId = video.id; // ИСПОЛЬЗУЕМ video.id (строковый Cloudinary ID) ДЛЯ ЗАПРОСА СТАТУСА
         const currentLocalStatus = video.status; // Текущий статус в локальном хранилище
-        const updatedTask = await getTaskStatus(videoId); // updatedTask теперь содержит {id: string/int, taskId: string, ...}
+        const updatedTask = await getTaskStatus(videoId); // updatedTask теперь содержит {id: string (Cloudinary ID) , status: ..., ...}
         const newRemoteStatus = updatedTask.status; // Новый статус от бэкенда
 
         console.log(`DEBUG: Polling task ${videoId}. Local status: "${currentLocalStatus}". Remote status: "${newRemoteStatus}".`); // Добавлено
@@ -289,7 +296,7 @@ async function checkTaskStatuses() {
             const newEntryId = updatedTask.id || updatedTask.taskId || videoId; 
             uploadedVideos.push({
                 id: newEntryId, // Это строковый Cloudinary ID или ID объединенного видео
-                original_filename: updatedTask.originalFilename,
+                original_filename: updatedTask.originalFilename || `Задача ${newEntryId}`,
                 status: updatedTask.status,
                 timestamp: updatedTask.timestamp,
                 cloudinary_url: updatedTask.cloudinary_url,
@@ -330,7 +337,7 @@ async function checkTaskStatuses() {
 
 /**
  * Создает или обновляет DOM-элемент "пузыря" для видео.
- * Теперь создает обертку (video-grid-item) для чекбокса и видео-пузыря.
+ * Теперь создает обертку (video-grid-item) для превью.
  * @param {string} videoId Идентификатор видео (строковый Cloudinary ID).
  * @param {Object} data Объект с данными видео (id, original_filename, status, metadata и т.д.).
  */
@@ -364,6 +371,7 @@ function createOrUpdateBubble(videoId, data) {
     let filenameText = `<h3 class="bubble-title-overlay">${data.original_filename || `Задача ${videoId}`}</h3>`;
     let statusMessageText = '';
     let actionButtonsHtml = '';
+    let thumbnailUrl = getCloudinaryThumbnailUrl(data.cloudinary_url); // Получаем URL миниатюры
 
     // Обновляем innerHTML пузыря (круглой части) в зависимости от статуса
     switch (data.status) {
@@ -405,7 +413,9 @@ function createOrUpdateBubble(videoId, data) {
             break;
     }
 
+    // Добавляем изображение миниатюры
     bubble.innerHTML = `
+        <img src="${thumbnailUrl}" alt="Видео превью" class="video-thumbnail">
         <div class="bubble-text-overlay">
             ${filenameText}
             ${statusMessageText}
@@ -415,29 +425,12 @@ function createOrUpdateBubble(videoId, data) {
         </div>
     `;
 
-    // Устанавливаем обработчик для модального окна метаданных на обертку (videoGridItem)
-    // и для выбора/снятия выбора
-    // Только если это не объединенное видео (т.к. они не выбираются для дальнейшей обработки)
-    if (!String(videoId).startsWith('concatenated_video_')) {
-        // Удаляем старые обработчики, чтобы избежать дублирования
-        videoGridItem.removeEventListener('click', handleBubbleClick);
-
-        // Добавляем новый обработчик для выбора по одиночному клику
-        videoGridItem.addEventListener('click', handleBubbleClick);
-
-        // Обновляем визуальное состояние выбора
-        if (selectedVideoIds.includes(videoId)) {
-            videoGridItem.classList.add('selected-bubble');
-        } else {
-            videoGridItem.classList.remove('selected-bubble');
-        }
-        videoGridItem.style.cursor = 'pointer'; // Указываем, что элемент кликабелен
-    } else {
-        // Для объединенных видео убираем интерактивность выбора
-        videoGridItem.removeEventListener('click', handleBubbleClick);
-        videoGridItem.style.cursor = 'default';
-        videoGridItem.classList.remove('selected-bubble'); // Убедимся, что не выбрано
-    }
+    // --- ИЗМЕНЕНИЕ: Убираем обработку клика по пузырьку и показ модального окна ---
+    // Убираем все обработчики кликов с videoGridItem.
+    // Если нужно открывать метаданные, это должно быть отдельной кнопкой или через другое UI.
+    videoGridItem.removeEventListener('click', handleBubbleClick); // Удаляем, чтобы не было дублирования
+    videoGridItem.style.cursor = 'default'; // Курсор по умолчанию, т.к. пузырьки не кликабельны напрямую для выбора
+    videoGridItem.classList.remove('selected-bubble'); // Убираем любой класс "выбрано"
 
     // Удаляем старую кнопку "Generate with Shotstack" и ее логику
     const generateButton = bubble.querySelector('.generate-button');
@@ -446,48 +439,23 @@ function createOrUpdateBubble(videoId, data) {
     }
 }
 
-// Новая общая функция слушателей событий для клика на пузыре
-function handleBubbleClick(event) {
-    // Получаем videoId из ID обертки
-    const videoId = this.id.replace('video-item-', ''); // Это будет строковый Cloudinary ID
-    // ПЕРЕЧИТЫВАЕМ uploadedVideos ПЕРЕД ИСПОЛЬЗОВАНИЕМ!
-    uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]'); 
-    console.log("DEBUG: uploadedVideos reloaded from localStorage in handleBubbleClick:", uploadedVideos);
-
-    // ИСПОЛЬЗУЕМ video.id (строковый) ДЛЯ ПОИСКА
-    const videoData = uploadedVideos.find(v => v.id === videoId);
-
-    // Если видео завершено и имеет метаданные, открываем модальное окно.
-    // Иначе, это клик для выбора/снятия выбора.
-    if (videoData && videoData.status === 'completed' && videoData.metadata && Object.keys(videoData.metadata).length > 0) {
-        console.log(`DEBUG: Opening metadata modal for task ${videoId} (status: ${videoData.status})`);
-        showMetadataModal(videoData.original_filename || `Задача ${videoId}`, videoData.metadata);
-    } else {
-        // Переключаем выбор
-        if (selectedVideoIds.includes(videoId)) {
-            selectedVideoIds = selectedVideoIds.filter(id => id !== videoId);
-            this.classList.remove('selected-bubble');
-            console.log(`DEBUG: Deselected task ${videoId}. New selectedVideoIds:`, selectedVideoIds);
-        } else {
-            selectedVideoIds.push(videoId);
-            this.classList.add('selected-bubble');
-            console.log(`DEBUG: Selected task ${videoId}. New selectedVideoIds:`, selectedVideoIds);
-        }
-        updateConcatenationUI(); // Обновляем UI после изменения выбора
-    }
-}
-
+// --- ИЗМЕНЕНИЕ: Функция handleBubbleClick удалена, так как она больше не нужна ---
+// Клик по пузырьку теперь не вызывает модальное окно.
 
 /**
  * Обновляет состояние кнопки "Обработать выбранные видео" и статус сообщений.
+ * Теперь состояние чекбокса "Объединить видео" учитывается.
  */
 function updateConcatenationUI() {
-    const numSelected = selectedVideoIds.length;
-    const shouldConnect = DOM_ELEMENTS.connectVideosCheckbox ? DOM_ELEMENTS.connectVideosCheckbox.checked : false;
+    const completedVideos = uploadedVideos.filter(v => v.status === 'completed' && !String(v.id).startsWith('concatenated_video_'));
+    const numCompletedVideos = completedVideos.length;
 
     console.log("DEBUG: updateConcatenationUI called.");
-    console.log("DEBUG: numSelected:", numSelected);
-    console.log("DEBUG: shouldConnect (Connect videos checkbox):", shouldConnect);
+    console.log("DEBUG: numCompletedVideos:", numCompletedVideos);
+    // Получаем фактическое состояние чекбокса "Объединить видео"
+    const shouldConnect = DOM_ELEMENTS.connectVideosCheckbox ? DOM_ELEMENTS.connectVideosCheckbox.checked : false; 
+    console.log("DEBUG: shouldConnect (actual checkbox state):", shouldConnect);
+
     if (DOM_ELEMENTS.processSelectedVideosButton) {
         console.log("DEBUG: processSelectedVideosButton found. Current disabled state:", DOM_ELEMENTS.processSelectedVideosButton.disabled);
     } else {
@@ -497,47 +465,16 @@ function updateConcatenationUI() {
 
     if (!DOM_ELEMENTS.processSelectedVideosButton || !DOM_ELEMENTS.concatenationStatusDiv) return;
 
-    if (numSelected === 0) {
-        DOM_ELEMENTS.processSelectedVideosButton.style.display = 'none';
-        DOM_ELEMENTS.concatenationStatusDiv.textContent = 'Выберите видео для обработки или объединения.';
-        DOM_ELEMENTS.concatenationStatusDiv.className = 'concatenation-status info';
-        console.log("DEBUG: No videos selected. Button hidden.");
-    } else {
-        DOM_ELEMENTS.processSelectedVideosButton.style.display = 'inline-block';
-        if (shouldConnect) {
-            if (numSelected < 2) {
-                DOM_ELEMENTS.processSelectedVideosButton.disabled = true;
-                DOM_ELEMENTS.processSelectedVideosButton.textContent = 'Объединить видео';
-                DOM_ELEMENTS.concatenationStatusDiv.textContent = 'Выберите 2 или более видео для объединения.';
-                DOM_ELEMENTS.concatenationStatusDiv.className = 'concatenation-status info';
-                console.log("DEBUG: Connect option checked, but less than 2 selected. Button disabled.");
-            } else {
-                DOM_ELEMENTS.processSelectedVideosButton.disabled = false;
-                DOM_ELEMENTS.processSelectedVideosButton.textContent = `Объединить ${numSelected} видео`;
-                DOM_ELEMENTS.concatenationStatusDiv.textContent = `Готово к объединению ${numSelected} видео.`;
-                DOM_ELEMENTS.concatenationStatusDiv.className = 'concatenation-status success';
-                console.log("DEBUG: Ready to connect. Button enabled.");
-            }
-        } else { // Обработка без объединения
-            DOM_ELEMENTS.processSelectedVideosButton.disabled = false;
-            DOM_ELEMENTS.processSelectedVideosButton.textContent = `Обработать ${numSelected} видео`;
-            DOM_ELEMENTS.concatenationStatusDiv.textContent = `Готово к обработке ${numSelected} видео.`;
-            DOM_ELEMENTS.concatenationStatusDiv.className = 'concatenation-status info';
-            console.log("DEBUG: Ready for individual processing. Button enabled.");
-        }
-    }
-
-    // Отключаем/включаем чекбокс объединения, если нет 2+ видео или они не "completed"
-    // Используем uploadedVideos, который уже должен быть актуализирован из localStorage
-    const completedVideosCount = uploadedVideos.filter(v => v.status === 'completed' && !String(v.id).startsWith('concatenated_video_')).length; 
+    // Чекбокс "Connect videos" теперь будет доступен, если есть 2+ завершенных видео.
+    // Его состояние (checked/unchecked) контролируется пользователем, не сбрасывается автоматически.
     if (DOM_ELEMENTS.connectVideosCheckbox) {
-        if (completedVideosCount < 2) {
+        if (numCompletedVideos < 2) {
             DOM_ELEMENTS.connectVideosCheckbox.disabled = true;
             if (DOM_ELEMENTS.connectVideosCheckbox.parentElement) {
                 DOM_ELEMENTS.connectVideosCheckbox.parentElement.style.opacity = '0.5';
                 DOM_ELEMENTS.connectVideosCheckbox.parentElement.style.cursor = 'not-allowed';
             }
-            DOM_ELEMENTS.connectVideosCheckbox.checked = false; // Сбрасываем, если неактуально
+            // Состояние checked НЕ СБРАСЫВАЕМ автоматически
             console.log("DEBUG: Connect checkbox disabled (less than 2 completed videos).");
         } else {
             DOM_ELEMENTS.connectVideosCheckbox.disabled = false;
@@ -545,9 +482,41 @@ function updateConcatenationUI() {
                 DOM_ELEMENTS.connectVideosCheckbox.parentElement.style.opacity = '1';
                 DOM_ELEMENTS.connectVideosCheckbox.parentElement.style.cursor = 'pointer';
             }
-            console.log("DEBUG: Connect checkbox enabled.");
+            console.log("DEBUG: Connect checkbox enabled (2+ completed videos).");
         }
     }
+
+
+    if (numCompletedVideos === 0) {
+        DOM_ELEMENTS.processSelectedVideosButton.style.display = 'none';
+        DOM_ELEMENTS.concatenationStatusDiv.textContent = 'Нет готовых видео для обработки или объединения. Загрузите видео.';
+        DOM_ELEMENTS.concatenationStatusDiv.className = 'concatenation-status info';
+        console.log("DEBUG: No completed videos. Button hidden.");
+    } else {
+        DOM_ELEMENTS.processSelectedVideosButton.style.display = 'inline-block';
+        if (shouldConnect) { // Если чекбокс "Объединить" включен
+            if (numCompletedVideos < 2) {
+                DOM_ELEMENTS.processSelectedVideosButton.disabled = true;
+                DOM_ELEMENTS.processSelectedVideosButton.textContent = 'Объединить видео';
+                DOM_ELEMENTS.concatenationStatusDiv.textContent = 'Для объединения необходимо 2 или более завершенных видео.';
+                DOM_ELEMENTS.concatenationStatusDiv.className = 'concatenation-status info';
+                console.log("DEBUG: Connect option checked, but less than 2 completed. Button disabled.");
+            } else {
+                DOM_ELEMENTS.processSelectedVideosButton.disabled = false;
+                DOM_ELEMENTS.processSelectedVideosButton.textContent = `Объединить все ${numCompletedVideos} видео`;
+                DOM_ELEMENTS.concatenationStatusDiv.textContent = `Готово к объединению всех ${numCompletedVideos} завершенных видео.`;
+                DOM_ELEMENTS.concatenationStatusDiv.className = 'concatenation-status success';
+                console.log("DEBUG: Ready to concatenate all completed videos. Button enabled.");
+            }
+        } else { // Если чекбокс "Объединить" выключен (т.е. индивидуальная обработка)
+            DOM_ELEMENTS.processSelectedVideosButton.disabled = false;
+            DOM_ELEMENTS.processSelectedVideosButton.textContent = `Обработать все ${numCompletedVideos} видео`;
+            DOM_ELEMENTS.concatenationStatusDiv.textContent = `Готово к индивидуальной обработке всех ${numCompletedVideos} видео.`;
+            DOM_ELEMENTS.concatenationStatusDiv.className = 'concatenation-status info';
+            console.log("DEBUG: Ready for individual processing of all completed videos. Button enabled.");
+        }
+    }
+
 
     // Если есть активные задачи обработки/объединения, отключить кнопки
     const anyVideoProcessing = uploadedVideos.some(v => v.status === 'processing' || v.status === 'shotstack_pending' || v.status === 'concatenated_pending');
@@ -673,7 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Обработчики для логики объединения видео ---
 
-    // Обработчик изменения чекбокса "Объединить выбранные видео"
+    // Обработчик изменения чекбокса "Объединить видео"
     if (DOM_ELEMENTS.connectVideosCheckbox) {
         DOM_ELEMENTS.connectVideosCheckbox.addEventListener('change', updateConcatenationUI);
         console.log("DEBUG: Connect videos checkbox event listener attached.");
@@ -699,39 +668,31 @@ document.addEventListener('DOMContentLoaded', () => {
             const username = localStorage.getItem('hifeUsername');
             const email = localStorage.getItem('hifeEmail');
             const linkedin = localStorage.getItem('hifeLinkedin');
-            const shouldConnect = DOM_ELEMENTS.connectVideosCheckbox ? DOM_ELEMENTS.connectVideosCheckbox.checked : false;
+            // Получаем фактическое состояние чекбокса "Объединить видео"
+            const shouldConnect = DOM_ELEMENTS.connectVideosCheckbox ? DOM_ELEMENTS.connectVideosCheckbox.checked : false; 
 
-            console.log("DEBUG: Current selectedVideoIds:", selectedVideoIds);
-            console.log("DEBUG: Is 'Connect videos' checkbox checked?:", shouldConnect);
+            console.log("DEBUG: Is 'Connect videos' checkbox checked (actual checkbox state)?:", shouldConnect);
 
-            // ДОБАВЛЕНО: Логирование статусов выбранных видео перед фильтрацией
-            console.log("DEBUG: Statuses of selected videos in uploadedVideos:");
-            selectedVideoIds.forEach(id => {
-                const video = uploadedVideos.find(v => v.id === id); // ИСПОЛЬЗУЕМ video.id (строковый) ДЛЯ ПОИСКА
-                console.log(`DEBUG:   Task ID: ${id}, Status: ${video ? video.status : 'NOT FOUND'}, Metadata exists: ${video ? (!!video.metadata && Object.keys(video.metadata).length > 0) : 'N/A'}`);
-            });
-
-
-            // Отфильтровываем только те видео, которые выбраны и имеют статус 'completed'
+            // Отфильтровываем ВСЕ видео, которые имеют статус 'completed' и не являются объединенными видео
             const videosToProcess = uploadedVideos.filter(video =>
-                selectedVideoIds.includes(video.id) && video.status === 'completed' // ИСПОЛЬЗУЕМ video.id (строковый) ДЛЯ ФИЛЬТРАЦИИ
+                video.status === 'completed' && !String(video.id).startsWith('concatenated_video_')
             );
 
-            const taskIdsToProcess = videosToProcess.map(video => video.id); // ИСПОЛЬЗУЕМ video.id (строковый)
+            const taskIdsToProcess = videosToProcess.map(video => video.id); // Используем video.id (строковый Cloudinary ID)
 
-            console.log("DEBUG: Videos to process (filtered by 'completed' status and selection):", videosToProcess);
-            console.log("DEBUG: Task IDs to process:", taskIdsToProcess);
+            console.log("DEBUG: Videos to process (filtered by 'completed' status for ALL):", videosToProcess);
+            console.log("DEBUG: Task IDs to process (for ALL completed):", taskIdsToProcess);
 
 
             if (taskIdsToProcess.length === 0) {
-                displayGeneralStatus('Пожалуйста, выберите хотя бы одно завершенное видео для обработки.', 'error');
-                console.log("DEBUG: No completed videos selected for processing. Returning.");
+                displayGeneralStatus('Нет завершенных видео для обработки или объединения. Загрузите видео.', 'error');
+                console.log("DEBUG: No completed videos found for processing. Returning.");
                 return;
             }
 
             if (shouldConnect && taskIdsToProcess.length < 2) {
-                displayGeneralStatus('Для объединения выберите 2 или более видео.', 'error');
-                console.log("DEBUG: Connect option checked, but less than 2 completed videos selected. Returning.");
+                displayGeneralStatus('Для объединения необходимо 2 или более завершенных видео.', 'error');
+                console.log("DEBUG: Connect option enabled, but less than 2 completed videos found. Returning.");
                 return;
             }
 
@@ -746,8 +707,8 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 console.log("DEBUG: Calling processVideosFromSelection...");
                 const result = await processVideosFromSelection(
-                    taskIdsToProcess,
-                    shouldConnect,
+                    taskIdsToProcess, // Передаем все готовые видео
+                    shouldConnect, // Передаем фактическое состояние чекбокса
                     username,
                     email,
                     linkedin,
@@ -775,7 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.log("DEBUG: New concatenated video added:", newConcatenatedVideo);
                     } else {
                         // Для индивидуальной обработки просто обновляем статусы существующих видео
-                        // Если бэкенд возвращает список "initiated_tasks", используем его
+                        // (хотя эта ветка теперь менее актуальна из-за новой логики "объединять все")
                         if (result.initiated_tasks && Array.isArray(result.initiated_tasks)) {
                             result.initiated_tasks.forEach(initiatedTask => {
                                 const index = uploadedVideos.findIndex(v => v.id === initiatedTask.taskId); // ИСПОЛЬЗУЕМ v.id (строковый)
@@ -830,5 +791,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // Начальное обновление UI объединения при загрузке страницы
-    updateConcatenationUI();
+    updateConcatenationUI(); // Эта строка уже вызывается в DOMContentLoaded, но дублирование не навредит.
 });
