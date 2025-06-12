@@ -335,6 +335,7 @@ async function checkTaskStatuses() {
         // Находим актуальный объект видео после потенциальных обновлений, чтобы передать его в createOrUpdateBubble
         const videoToRender = uploadedVideos.find(v => v.id === videoId);
         if (videoToRender) {
+             console.log(`DEBUG: Calling createOrUpdateBubble for task ${videoId}. Passed posterUrl:`, videoToRender.posterUrl);
              createOrUpdateBubble(videoId, videoToRender); 
         } else {
             console.warn(`DEBUG: Could not find video ${videoId} in uploadedVideos to render bubble. It might have been filtered out or is invalid.`);
