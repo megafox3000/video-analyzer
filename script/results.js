@@ -9,6 +9,56 @@ import { uploadFileToCloudinary } from './cloudinary_upload.js';
 // Импортируем новую функцию для обработки видео из process_videos.js
 import { processVideosFromSelection } from './process_videos.js';
 
+
+// Глобальные переменные для таймера неактивности
+let inactivityTimeout;
+const INACTIVITY_THRESHOLD = 90 * 1000; // 90 секунд в миллисекундах
+
+/**
+ * Сбрасывает таймер неактивности.
+ * Вызывается при любой активности пользователя.
+ */
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimeout); // Очищаем существующий таймер
+    inactivityTimeout = setTimeout(handleInactivity, INACTIVITY_THRESHOLD); // Устанавливаем новый
+    console.log("Таймер неактивности сброшен.");
+}
+
+/**
+ * Обрабатывает неактивность пользователя: закрывает сессию.
+ * Вызывается, когда таймер неактивности истекает.
+ */
+function handleInactivity() {
+    console.log("Пользователь неактивен в течение 90 секунд. Закрытие сессии.");
+
+    // В реальном приложении здесь обычно показывается кастомное модальное окно
+    // с предупреждением или сообщением о выходе из системы,
+    // так как использование alert() и confirm() запрещено в Canvas.
+    // showCustomInactivityModal("Вы были неактивны и ваша сессия будет перезагружена.");
+
+    // Для целей этой реализации, напрямую перезагружаем страницу после небольшой задержки.
+    setTimeout(() => {
+        // Очищаем локальное хранилище (localStorage), если там хранятся пользовательские данные
+        // Это важно для полного сброса состояния сессии.
+        localStorage.clear(); 
+        // Очищаем хранилище сессии (sessionStorage)
+        sessionStorage.clear();
+        // Перезагружаем страницу, чтобы полностью сбросить состояние приложения.
+        window.location.reload(); 
+    }, 100); // Небольшая задержка, чтобы сообщение в консоли успело появиться
+}
+
+// Добавляем слушатели событий к документу для отслеживания активности пользователя
+// При каждом из этих событий таймер неактивности будет сбрасываться.
+document.addEventListener('mousemove', resetInactivityTimer); // Движение мыши
+document.addEventListener('keypress', resetInactivityTimer); // Нажатие клавиши
+document.addEventListener('click', resetInactivityTimer);    // Клик мышью
+document.addEventListener('scroll', resetInactivityTimer);   // Прокрутка страницы
+
+// Инициализируем таймер при загрузке скрипта
+// Это запускает отсчет с самого начала
+resetInactivityTimer();
+
 // --- Константы и глобальные переменные ---
 
 const DOM_ELEMENTS = {
