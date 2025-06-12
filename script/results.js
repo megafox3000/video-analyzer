@@ -174,7 +174,7 @@ async function uploadVideoFromResults(file) {
                 // Используем taskId (строковый) как основной 'id' для фронтенда
                 id: taskId, 
                 original_filename: response.originalFilename || uploadedFile.name,
-                status: 'uploaded', 
+                status: 'uploaded', // Начальный статус после загрузки
                 timestamp: new Date().toISOString(),
                 cloudinary_url: response.cloudinary_url || null,
                 metadata: response.metadata || {},
@@ -302,6 +302,7 @@ async function checkTaskStatuses() {
             uploadedVideos[index].message = updatedTask.message || uploadedVideos[index].message;
             uploadedVideos[index].shotstackRenderId = updatedTask.shotstackRenderId || uploadedVideos[index].shotstackRenderId;
             uploadedVideos[index].shotstackUrl = updatedTask.shotstackUrl || uploadedVideos[index].shotstackUrl;
+            uploadedVideos[index].posterUrl = updatedTask.posterUrl || uploadedVideos[index].posterUrl; // <--- ДОБАВЛЕНО: Обновление posterUrl
             // Поле `id` (строковый Cloudinary ID) НЕ ТРОГАЕМ, оно уже установлено корректно.
             console.log(`DEBUG: Task ${videoId} updated in uploadedVideos. New local object status: "${uploadedVideos[index].status}". Metadata exists: ${!!uploadedVideos[index].metadata && Object.keys(uploadedVideos[index].metadata).length > 0}. Current object ID (should be string): ${uploadedVideos[index].id}`); // Добавлено
         } else {
@@ -321,7 +322,8 @@ async function checkTaskStatuses() {
                     metadata: updatedTask.metadata,
                     message: updatedTask.message,
                     shotstackRenderId: updatedTask.shotstackRenderId,
-                    shotstackUrl: updatedTask.shotstackUrl
+                    shotstackUrl: updatedTask.shotstackUrl,
+                    posterUrl: updatedTask.posterUrl // <--- ДОБАВЛЕНО: Инициализация posterUrl
                 });
                 console.log(`DEBUG: New task ${newEntryId} added to uploadedVideos. Status: "${updatedTask.status}". Metadata exists: ${!!updatedTask.metadata && Object.keys(updatedTask.metadata).length > 0}. New object ID (should be string): ${newEntryId}`); // Добавлено
             } else {
@@ -335,7 +337,8 @@ async function checkTaskStatuses() {
         // Находим актуальный объект видео после потенциальных обновлений, чтобы передать его в createOrUpdateBubble
         const videoToRender = uploadedVideos.find(v => v.id === videoId);
         if (videoToRender) {
-             console.log(`DEBUG: Calling createOrUpdateBubble for task ${videoId}. Passed posterUrl:`, videoToRender.posterUrl);
+            // ДОБАВЛЕНО: Отладочный лог перед вызовом createOrUpdateBubble
+            console.log(`DEBUG: Calling createOrUpdateBubble for task ${videoId}. Passed data:`, videoToRender);
              createOrUpdateBubble(videoId, videoToRender); 
         } else {
             console.warn(`DEBUG: Could not find video ${videoId} in uploadedVideos to render bubble. It might have been filtered out or is invalid.`);
@@ -397,11 +400,25 @@ function createOrUpdateBubble(videoId, data) {
         bubble = videoGridItem.querySelector('.video-bubble');
     }
 
-    // Теперь обновляем содержимое пузырька, независимо от того, был ли он создан или найден
     let filenameText = `<h3 class="bubble-title-overlay">${data.original_filename || `Задача ${videoId}`}</h3>`;
     let statusMessageText = '';
     let actionButtonsHtml = '';
-    let thumbnailUrl = getCloudinaryThumbnailUrl(data.cloudinary_url); // Получаем URL миниатюры
+    let thumbnailUrl; // Определяем здесь
+
+    // LOGIC TO DETERMINE THUMBNAIL URL
+    if (String(videoId).startsWith('concatenated_video_') && data.posterUrl) {
+        // Если это объединенное видео И у нас есть posterUrl, используем его
+        thumbnailUrl = data.posterUrl;
+        console.log(`DEBUG: Using Shotstack poster URL for concatenated video ${videoId}: ${thumbnailUrl}`);
+    } else if (data.cloudinary_url) {
+        // В противном случае, если есть Cloudinary URL, используем его для миниатюры
+        thumbnailUrl = getCloudinaryThumbnailUrl(data.cloudinary_url);
+        console.log(`DEBUG: Using Cloudinary thumbnail URL for original video ${videoId}: ${thumbnailUrl}`);
+    } else {
+        // Возвращаемся к плейсхолдеру, если нет специфичного URL
+        thumbnailUrl = 'assets/video_placeholder.png';
+        console.log(`DEBUG: Using placeholder for video ${videoId} (no specific URL available).`);
+    }
 
     // Обновляем innerHTML пузыря (круглой части) в зависимости от статуса
     switch (data.status) {
@@ -756,14 +773,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             timestamp: new Date().toISOString(),
                             cloudinary_url: null,
                             shotstackRenderId: result.shotstackRenderId || null,
-                            shotstackUrl: result.shotstackUrl || null,
-                            posterUrl: null // <--- ДОБАВЬТЕ ЭТУ СТРОКУ: Инициализируем posterUrl как null
+                            shotstackUrl: result.shotstackUrl || null
                         };
                         uploadedVideos.push(newConcatenatedVideo);
                         localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
                         createOrUpdateBubble(newConcatenatedVideo.id, newConcatenatedVideo); // ИСПОЛЬЗУЕМ id (строковый) ДЛЯ BUBBLE ID
                         console.log("DEBUG: New concatenated video added:", newConcatenatedVideo);
-                } else {
+                    } else {
                         // Для индивидуальной обработки просто обновляем статусы существующих видео
                         // (хотя эта ветка теперь менее актуальна из-за новой логики "объединять все")
                         if (result.initiated_tasks && Array.isArray(result.initiated_tasks)) {
