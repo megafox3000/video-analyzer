@@ -755,13 +755,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             timestamp: new Date().toISOString(),
                             cloudinary_url: null,
                             shotstackRenderId: result.shotstackRenderId || null,
-                            shotstackUrl: result.shotstackUrl || null
+                            shotstackUrl: result.shotstackUrl || null,
+                            posterUrl: null // <--- ДОБАВЬТЕ ЭТУ СТРОКУ: Инициализируем posterUrl как null
                         };
                         uploadedVideos.push(newConcatenatedVideo);
                         localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
                         createOrUpdateBubble(newConcatenatedVideo.id, newConcatenatedVideo); // ИСПОЛЬЗУЕМ id (строковый) ДЛЯ BUBBLE ID
                         console.log("DEBUG: New concatenated video added:", newConcatenatedVideo);
-                    } else {
+                } else {
                         // Для индивидуальной обработки просто обновляем статусы существующих видео
                         // (хотя эта ветка теперь менее актуальна из-за новой логики "объединять все")
                         if (result.initiated_tasks && Array.isArray(result.initiated_tasks)) {
