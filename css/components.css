@@ -1,0 +1,535 @@
+/* Стили для "золотой" кнопки (общие компоненты) */
+.gold-button {
+    background: var(--gold-gradient);
+    color: var(--text-color-dark);
+    border: none;
+    padding: 0.9rem 2rem;
+    border-radius: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    margin: 1rem;
+    animation: pulse 2s infinite;
+    font-size: 1.2rem;
+    text-decoration: none;
+    display: inline-block;
+    min-width: 200px;
+}
+
+/* Эффект при наведении на кнопку */
+.gold-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 18px var(--shadow-dark);
+}
+
+/* Анимация пульсации для кнопки */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Стиль для отключенной кнопки */
+.gold-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #555;
+    box-shadow: none;
+    animation: none;
+}
+
+.gold-button:disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Круглая кнопка "Start" (компонент) */
+.start-button-circle {
+    width: 150px;
+    height: 150px;
+    border-radius: 50% !important;
+    padding: 0;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.8rem;
+    text-decoration: none;
+    margin: 0;
+}
+
+/* Прогресс-бар (компонент) */
+.progress-bar-container {
+    width: 100%;
+    background-color: #444;
+    border-radius: 5px;
+    margin-top: 1rem;
+    height: 20px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--gold-gradient);
+    width: 0%;
+    border-radius: 5px;
+    transition: width 0.1s ease-out;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.progress-text {
+    position: relative;
+    color: var(--text-color-dark);
+    font-weight: bold;
+    font-size: 0.9rem;
+    z-index: 1;
+}
+
+/* Контейнер для "пузырей" - сетка карточек (компонент, используется на results.html и upload.html для превью) */
+.results-grid { 
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 2rem;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Обертка для каждого элемента сетки (video-grid-item) и для превью-пузырей на upload.html */
+.video-grid-item, .preview-bubble {
+    position: relative; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start; 
+    width: 280px; 
+    height: 280px; 
+    max-width: 300px;
+    box-sizing: border-box;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border 0.3s ease; 
+    border: 1px solid #4a4a4a; 
+    border-radius: 50%; 
+    overflow: hidden; 
+    background-color: #3b3b3b; 
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5); 
+    cursor: pointer; 
+}
+
+/* Анимация плавания для карточек на results.html */
+.video-grid-item {
+    animation: float 3s ease-in-out infinite; 
+}
+
+/* Убираем анимацию плавания для превью на upload.html */
+.preview-bubble {
+    animation: none;
+}
+
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+}
+
+/* Эффект при наведении на обертку */
+.video-grid-item:hover, .preview-bubble:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 12px 25px rgba(0,0,0,0.6);
+    animation-play-state: paused; /* Останавливает анимацию при наведении */
+}
+
+/* Стиль для ВЫБРАННОГО пузыря */
+.video-grid-item.selected-bubble {
+    border: 4px solid #FFD700; 
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.8); 
+}
+
+/* Стили для отдельной круглой части видео-пузыря */
+.video-bubble {
+    width: 100%; 
+    height: 100%; 
+    border-radius: 50%; 
+    overflow: hidden;
+    position: relative; 
+    background-color: transparent; 
+    box-shadow: none; 
+    border: none; 
+    text-align: center;
+    color: var(--text-color-light);
+    box-sizing: border-box;
+    flex-shrink: 0;
+    margin-top: 0;
+    cursor: default; 
+    animation: none; 
+}
+
+/* Стили для изображения превью в пузыре */
+.bubble-preview-img {
+    width: 100%;
+    height: 100%; 
+    object-fit: cover;
+    border-radius: 50%; 
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1; 
+}
+
+/* Контейнер для текста, который будет поверх превью */
+.bubble-text-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2; 
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    box-sizing: border-box;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    text-align: center;
+    font-family: 'Segoe UI', sans-serif;
+    border-radius: 50%;
+}
+
+/* Стили для заголовка файла (название задачи/видео) */
+.bubble-text-overlay h3.bubble-title-overlay {
+    margin: 0 0 5px 0;
+    font-size: 1.1em;
+    color: #FFD700;
+    word-wrap: break-word;
+    white-space: normal;
+    max-height: 50%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+/* Стили для сообщения о статусе */
+.bubble-text-overlay .status-message-bubble {
+    margin: 0;
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+/* Общий статус для текстовых сообщений */
+.status-message { 
+    margin-top: 1rem;
+    font-size: 1rem;
+    color: #c0c0c0;
+    text-align: center;
+}
+
+/* Классы для цветов статусов */
+.status-pending, .status-processing {
+    color: var(--status-pending-color);
+}
+.status-completed, .status-success {
+    color: var(--status-completed-color);
+}
+.status-error, .status-failed {
+    color: var(--status-error-color);
+}
+.status-info { 
+    color: var(--status-info-color);
+}
+
+/* Индикатор загрузки для карточек (поверх содержимого) */
+.video-bubble.loading::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid #ffd700;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    z-index: 10; 
+}
+
+.video-bubble.loading .bubble-text-overlay {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* Анимация вращения для спиннера */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* --- Стили для модального окна (компонент) --- */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.8);
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    animation: fadeInModal 0.3s ease-out;
+}
+
+.modal.visible {
+    display: flex;
+}
+
+@keyframes fadeInModal {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background-color: #222;
+    margin: auto;
+    padding: 2rem;
+    border: 1px solid #444;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 700px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+    position: relative;
+    color: #f0f0f0;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideInModal 0.4s ease-out;
+}
+
+@keyframes slideInModal {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-content h4 {
+    color: var(--gold-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    text-shadow: 1px 1px 4px var(--shadow-dark);
+}
+
+.modal-content pre {
+    background-color: #1a1a1a;
+    padding: 1rem;
+    border-radius: 5px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: #b0b0b0;
+    border: 1px solid #333;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 2.5rem;
+    font-weight: bold;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: #FFD700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Стиль для кнопки Finish Session (специфичный красный градиент) */
+#finishSessionBtn {
+    background: linear-gradient(45deg, #FF6B6B, #EE4D4D); 
+}
+
+#finishSessionBtn:hover {
+    background: linear-gradient(45deg, #FF4D4D, #CC3B3B); 
+}
+
+/* --- Стили для чекбокса "Объединить видео" на results.html --- */
+.toggle-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.toggle-label {
+    color: #f0f0f0;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+/* Скрываем нативный чекбокс */
+.toggle-checkbox {
+    display: none;
+}
+
+/* Создаем кастомный переключатель */
+.toggle-checkbox + .toggle-label::before {
+    content: '';
+    display: inline-block;
+    width: 40px; 
+    height: 20px; 
+    background-color: #555; 
+    border-radius: 10px; 
+    position: relative;
+    vertical-align: middle;
+    margin-right: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.toggle-checkbox + .toggle-label::after {
+    content: '';
+    position: absolute;
+    display: inline-block;
+    width: 18px; 
+    height: 18px;
+    background-color: #f0f0f0; 
+    border-radius: 50%;
+    top: 50%;
+    left: 11px; 
+    transform: translateY(-50%) translateX(-18px); 
+    transition: transform 0.3s ease, background-color 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Стиль, когда чекбокс отмечен */
+.toggle-checkbox:checked + .checkmark {
+    background: var(--gold-gradient); /* Золотой фон из градиента при выборе */
+    border-color: #FFD700; /* Соответствующий цвет рамки */
+}
+
+/* Визуальная "галочка" внутри checkmark при выборе */
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none; /* Скрыта по умолчанию */
+    left: 6px;    /* Позиция галочки */
+    top: 2px;
+    width: 6px;
+    height: 12px;
+    border: solid white; /* Цвет галочки */
+    border-width: 0 3px 3px 0; /* Только нижняя и правая границы */
+    -webkit-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+/* Показываем галочку, когда input выбран */
+.toggle-checkbox:checked + .checkmark:after {
+    display: block;
+}
+
+/* Стиль для отключенного чекбокса */
+.toggle-checkbox:disabled + .toggle-label {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.toggle-checkbox:disabled + .toggle-label::before {
+    background-color: #333; 
+}
+
+.toggle-checkbox:disabled + .toggle-label::after {
+    background-color: #888; 
+}
+
+/* --- Стили для чекбокса в пузыре на results.html (для выбора видео) --- */
+
+/* Контейнер для чекбокса, чтобы он был ВИДИМЫМ и НАД ВСЕМИ ЭЛЕМЕНТАМИ */
+/* Позиционируем относительно .video-grid-item */
+.checkbox-container {
+    position: absolute;
+    top: 10px;          /* Отступ сверху */
+    left: 10px;         /* Отступ слева */
+    z-index: 20;        /* ОЧЕНЬ ВАЖНО: Помещает чекбокс поверх превью (z-index:1) и текста (z-index:2) */
+    background-color: rgba(0, 0, 0, 0.7); /* Полупрозрачный темный фон для видимости */
+    padding: 6px 10px;
+    border-radius: 8px;
+    display: flex;      /* Для выравнивания галочки и текста (если есть) */
+    align-items: center;
+    cursor: pointer;    /* Изменение курсора для индикации кликабельности */
+    border: 1px solid rgba(255, 255, 255, 0.3); /* Легкая рамка */
+}
+
+/* Скрываем НАСТОЯЩИЙ input чекбокс визуально */
+.video-select-checkbox {
+    position: absolute; /* Делаем его абсолютно позиционированным */
+    opacity: 0;         /* Полностью скрываем */
+    cursor: pointer;    /* Сохраняем курсор для доступности */
+    height: 100%;       /* Растягиваем на весь контейнер, чтобы было легко нажать */
+    width: 100%;
+    top: 0;
+    left: 0;
+    margin: 0;
+    padding: 0;
+    z-index: 21; /* На один выше, чем у контейнера, для обработки кликов */
+}
+
+/* Стили для кастомного визуального элемента чекбокса (checkmark) */
+.checkmark {
+    height: 20px;       /* Размер видимого квадрата */
+    width: 20px;
+    background-color: #eee; /* Цвет по умолчанию (невыбранный) */
+    border-radius: 4px; /* Скругленные углы */
+    border: 2px solid var(--gold-gradient); /* Золотая рамка из градиента */
+    display: block; /* Важно, чтобы span мог принимать размеры */
+    position: relative; /* Для псевдо-элемента галочки */
+    transition: background-color 0.2s, border-color 0.2s; /* Плавный переход */
+}
+
+/* Когда input выбран, изменяем фон checkmark */
+.video-select-checkbox:checked + .checkmark {
+    background: var(--gold-gradient); /* Золотой фон из градиента при выборе */
+    border-color: #FFD700; /* Соответствующий цвет рамки */
+}
+
+/* Визуальная "галочка" внутри checkmark при выборе */
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none; /* Скрыта по умолчанию */
+    left: 6px;    /* Позиция галочки */
+    top: 2px;
+    width: 6px;
+    height: 12px;
+    border: solid white; /* Цвет галочки */
+    border-width: 0 3px 3px 0; /* Только нижняя и правая границы */
+    -webkit-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+/* Показываем галочку, когда input выбран */
+.video-select-checkbox:checked + .checkmark:after {
+    display: block;
+}
