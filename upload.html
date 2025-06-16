@@ -4,61 +4,115 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Upload Video - Hife Video Analyzer</title>
-    <link rel="stylesheet" href="css/style.css" />
     <link rel="icon" type="image/png" href="assets/favicon.png" />
+    
+    <!-- Подключаем основной файл стилей с базовыми определениями и макетом -->
+    <link rel="stylesheet" href="css/style.css" />
+    <!-- Подключаем стили компонентов -->
+    <link rel="stylesheet" href="css/components.css" />
+    <!-- Подключаем стили QR-сканера (только для этой страницы) -->
+    <link rel="stylesheet" href="css/qr_scanner.css" />
+    <!-- Tailwind CSS CDN - Добавьте, если используете Tailwind классы в HTML -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="fade-in">
-    <div class="background">
-        <h3>Connect Your Socials and upload your video(s)</h3>
-        <form class="social-form">
-            <label for="instagramInput" class="sr-only">Instagram Username</label>
-            <input type="text" id="instagramInput" placeholder="Instagram (обязательно)" name="instagram"/>
+<body class="fade-in bg-gray-900 text-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="background bg-gray-800 p-8 rounded-lg shadow-lg max-w-2xl w-full">
+        <h3 class="text-3xl font-bold text-center text-yellow-400 mb-6">Connect Your Socials and Upload/Scan Video(s)</h3>
 
-            <label for="linkedinInput" class="sr-only">LinkedIn Profile URL</label>
-            <input type="text" id="linkedinInput" placeholder="LinkedIn" name="linkedin"/>
-
-            <label for="emailInput" class="sr-only">Email Address</label>
-            <input type="email" id="emailInput" placeholder="Email" name="email"/>
-        </form>
-
-        <div class="button-center-group">
-            <input type="file" id="videoFileInput" accept="video/*" multiple hidden />
-            <button type="button" id="selectFilesButton" class="gold-button">Upload Video(s)</button>
-            <button type="button" id="finishUploadButton" class="gold-button" style="display: none;">Finish</button>
-        </div>
-        <p id="generalStatusMessage" class="status-message"></p>
-
-        <div class="progress-bar-container" style="display: none;">
-            <div class="progress-bar" id="progressBar"></div>
-            <div class="progress-text" id="progressText">0%</div>
+        <div class="flex justify-center mb-6 space-x-4">
+            <button id="showUploadFormBtn" class="gold-button w-1/2">Загрузить видео</button>
+            <button id="showQrScannerBtn" class="gold-button w-1/2">Сканировать QR / Ввести код</button>
         </div>
 
-        <div class="selected-files-preview-section" style="display: none;"> 
-            <h2>Selected Video(s) for Upload</h2>
-            <div id="selectedFilesPreviewContainer"> 
+        <!-- Section for Socials and Video Upload -->
+        <div id="uploadFormSection">
+            <form class="social-form mb-6">
+                <label for="instagramInput" class="sr-only">Instagram Username</label>
+                <input type="text" id="instagramInput" placeholder="Instagram (обязательно)" name="instagram"
+                       class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-600 rounded-full">
+
+                <label for="linkedinInput" class="sr-only">LinkedIn Profile URL</label>
+                <input type="text" id="linkedinInput" placeholder="LinkedIn" name="linkedin"
+                       class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-600 rounded-full">
+
+                <label for="emailInput" class="sr-only">Email Address</label>
+                <input type="email" id="emailInput" placeholder="Email" name="email"
+                       class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-600 rounded-full">
+            </form>
+
+            <div class="button-center-group mb-8">
+                <input type="file" id="videoFileInput" accept="video/*" multiple hidden />
+                <button type="button" id="selectFilesButton" class="gold-button">Upload Video(s)</button>
+                <button type="button" id="finishUploadButton" class="gold-button" style="display: none;">Finish</button>
+            </div>
+            <p id="generalStatusMessage" class="status-message text-center"></p>
+
+            <div class="progress-bar-container hidden w-full bg-gray-700 rounded-full h-4 relative mb-4">
+                <div class="progress-bar bg-yellow-500 h-4 rounded-full" id="progressBar" style="width: 0%;"></div>
+                <div class="progress-text absolute inset-0 flex items-center justify-center text-xs font-semibold text-gray-900" id="progressText">0%</div>
+            </div>
+
+            <div class="selected-files-preview-section hidden p-4 bg-gray-700 rounded-lg shadow-inner"> 
+                <h2 class="text-xl font-semibold text-yellow-400 mb-4">Selected Video(s) for Upload</h2>
+                <div id="selectedFilesPreviewContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"> 
                 </div>
+            </div>
         </div>
-        <!-- Удаленные элементы, которые больше не нужны на странице загрузки: -->
-        <!-- <div id="fileValidationStatusList" class="video-info-list"></div> -->
-        <!-- <div id="videoUploadProgressList" class="video-info-list"></div> -->
-        <!-- <div class="upload-section"> -->
-        <!-- <h2>Ваши загруженные видео</h2> -->
-        <!-- <ul id="uploadedVideosList" class="uploaded-videos-list"></ul> -->
-        <!-- <div class="process-section"> -->
-        <!-- <h3>Обработка выбранных видео</h3> -->
-        <!-- <div class="connect-videos-option"> -->
-        <!-- <input type="checkbox" id="connectVideosCheckbox"> -->
-        <!-- <label for="connectVideosCheckbox">Объединить выбранные видео</label> -->
-        <!-- </div> -->
-        <!-- <button type="button" id="processSelectedVideosButton" class="gold-button" style="display: none;"> -->
-        <!-- Обработать выбранные видео -->
-        <!-- </button> -->
-        <!-- <p id="processStatusMessage" class="status-message"></p> -->
-        <!-- <div id="selectedVideosForProcessing" class="video-info-list"></div> -->
-        <!-- </div> -->
-        <!-- </div> -->
+
+        <!-- НОВАЯ СЕКЦИЯ ДЛЯ QR-СКАНЕРА И СПЕЦИАЛЬНОГО КОДА -->
+        <div id="qrCodeScannerSection" class="hidden mt-8 p-6 bg-gray-700 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold text-center text-yellow-400 mb-4">Scan QR Code or Enter Special Code</h2>
+            <p class="text-center text-gray-300 mb-6">
+                Используйте камеру для сканирования QR-кода или введите уникальный код, чтобы получить доступ к видео.
+            </p>
+
+            <!-- QR Scanner elements -->
+            <div class="flex justify-center items-center flex-col space-y-4 mb-8">
+                <div id="loadingMessage" class="text-lg text-gray-300 hidden">
+                    🎥 Доступ к камере...
+                </div>
+                <div id="output" class="hidden">
+                    <video id="video" class="w-full max-w-sm rounded-lg shadow-md border-2 border-yellow-500"></video>
+                    <canvas id="qrCanvas" class="hidden"></canvas>
+                </div>
+                <div id="outputMessage" class="text-lg text-red-400 text-center hidden">
+                </div>
+                <div id="outputData" class="text-yellow-300 text-center text-sm break-all hidden">
+                </div>
+
+                <button id="startScanButton"
+                        class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-full transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:shadow-outline w-full sm:w-auto">
+                    Начать сканирование QR-кода
+                </button>
+                <button id="stopScanButton"
+                        class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:shadow-outline w-full sm:w-auto hidden">
+                    Остановить сканирование
+                </button>
+            </div>
+
+            <!-- Special Code Input -->
+            <div class="mt-8 pt-4 border-t border-gray-600">
+                <label for="specialCodeInput" class="block text-gray-300 text-sm font-bold mb-2 text-center">
+                    Или введите специальный код:
+                </label>
+                <input type="text" id="specialCodeInput" placeholder="Введите ваш код"
+                       class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-600 border-gray-500 rounded-full mb-4">
+                <button id="submitSpecialCodeBtn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:shadow-outline w-full sm:w-auto">
+                    Отправить код
+                </button>
+                <p id="specialCodeStatus" class="text-center text-sm mt-4"></p>
+            </div>
+        </div>
+        <!-- КОНЕЦ НОВОЙ СЕКЦИИ -->
+
     </div>
 
+    <!-- Подключаем jsQR библиотеку -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <!-- Подключаем наш скрипт QR-сканера (модуль) -->
+    <script type="module" src="script/qr_scanner.js"></script>
+    <!-- Подключаем основные скрипты страницы -->
     <script type="module" src="script/cloudinary_upload.js"></script>
     <script type="module" src="script/upload_validation.js"></script>
 </body>
