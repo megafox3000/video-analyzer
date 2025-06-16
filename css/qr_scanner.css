@@ -1,0 +1,80 @@
+/* Стили для QR-сканера (специфичные для секции) */
+.qr-scanner-section { 
+    padding: 1.5rem;
+    background-color: #2d3748; /* Аналог Tailwind bg-gray-700 */
+    border-radius: 0.5rem; /* Аналог Tailwind rounded-lg */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Аналог Tailwind shadow-lg */
+    text-align: center;
+    margin-top: 2rem; /* Аналог Tailwind mt-8 */
+}
+
+.qr-scanner-section h2 {
+    color: #f6e05e; /* Аналог Tailwind text-yellow-400 */
+    font-size: 1.875rem; /* Аналог Tailwind text-2xl */
+    font-weight: bold;
+    margin-bottom: 1rem; /* Аналог Tailwind mb-4 */
+}
+
+.qr-scanner-section p {
+    color: #d1d5db; /* Аналог Tailwind text-gray-300 */
+    margin-bottom: 1.5rem; /* Аналог Tailwind mb-6 */
+}
+
+/* Стили для элементов видео и канваса в QR-сканере */
+#video, #qrCanvas {
+    display: block; 
+    margin: 0 auto; 
+    border: 2px solid #f6ad55; /* Аналог Tailwind border-2 border-yellow-500 */
+    border-radius: 0.5rem; /* Аналог Tailwind rounded-lg */
+    max-width: 384px; /* Аналог Tailwind max-w-sm */
+    width: 100%;
+    height: auto; /* Сохраняет соотношение сторон */
+}
+
+/* Стиль для поля ввода специального кода в секции QR-сканера */
+#specialCodeInput {
+    background-color: #4a5568; /* Аналог Tailwind bg-gray-600 */
+    border-color: #718096; /* Аналог Tailwind border-gray-500 */
+    color: #e2e8f0; /* Аналог Tailwind text-gray-200 */
+    border-width: 1px;
+    padding: 0.75rem 1rem; 
+    border-radius: 9999px; /* Аналог Tailwind rounded-full */
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+#specialCodeInput:focus {
+    border-color: #ecc94b; /* Аналог Tailwind focus:border-yellow-500 */
+    box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.5); /* Аналог Tailwind focus:shadow-outline */
+}
+
+/* Сообщение о статусе для специального кода */
+#specialCodeStatus {
+    margin-top: 1rem;
+    font-weight: bold;
+}
+
+/* --- Медиа-запросы для адаптивности QR-сканера --- */
+@media (max-width: 640px) { /* Tailwind 'sm' breakpoint */
+    .qr-scanner-section {
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+    .qr-scanner-section h2 {
+        font-size: 1.5rem; /* text-xl equivalent */
+    }
+    .qr-scanner-section p {
+        font-size: 0.9rem;
+    }
+    #specialCodeInput {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    #video {
+        max-width: 250px; /* Уменьшаем размер видео на очень маленьких экранах */
+    }
+}
