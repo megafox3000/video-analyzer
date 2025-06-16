@@ -3,9 +3,6 @@ console.log("DEBUG: upload_validation.js loaded and executing.");
 // УКАЖИТЕ ЗДЕСЬ АКТУАЛЬНЫЙ URL ВАШЕГО БЭКЕНДА НА RENDER.COM
 const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ URL
 
-// Импортируем функцию загрузки из нового модуля
-import { uploadFileToCloudinary } from './cloudinary_upload.js';
-
 // Глобальные переменные для таймера неактивности
 let inactivityTimeout;
 const INACTIVITY_THRESHOLD = 90 * 1000; // 90 секунд в миллисекундах
