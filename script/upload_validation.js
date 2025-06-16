@@ -1,4 +1,4 @@
-// script/upload_validation.js
+// script/upload_validation.js -
 
 console.log("DEBUG: upload_validation.js loaded and executing.");
 
