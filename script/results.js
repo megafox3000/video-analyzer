@@ -31,10 +31,10 @@ function handleInactivity() {
     console.log("[Inactivity Timer] Пользователь неактивен в течение 90 секунд на results.js. Закрытие сессии и перенаправление на index.html.");
 
     setTimeout(() => {
-        localStorage.clear(); 
+        localStorage.clear();
         sessionStorage.clear();
         window.location.replace('index.html'); // Перенаправляем на index.html
-    }, 100); 
+    }, 100);
 }
 
 // Добавляем слушатели событий к документу для отслеживания активности пользователя
@@ -80,7 +80,7 @@ if (DOM_ELEMENTS.dynamicUploadStatusContainer) {
 
 // Глобальная переменная для хранения данных о видео.
 // Она будет инициализироваться при загрузке скрипта и обновляться функцией checkTaskStatuses.
-let uploadedVideos = []; 
+let uploadedVideos = [];
 let pollingIntervalId = null; // ID интервала для опроса статусов
 let selectedVideoIds = []; // Больше не используется для объединения/выбора, оставлен на случай будущих нужд
 
@@ -93,6 +93,17 @@ const CHECK_STATUS_INTERVAL_MS = 3000; // Интервал опроса стат
 
 
 // --- Вспомогательные функции ---
+
+/**
+ * Sanitizes a string for display in HTML (basic escaping).
+ * @param {string} str The string to sanitize.
+ * @returns {string} The sanitized string.
+ */
+function sanitizeHTML(str) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+}
 
 /**
  * Генерирует URL миниатюры Cloudinary из URL видео.
@@ -156,7 +167,7 @@ function resetProgressBar() {
 /**
  * Обновляет общее сообщение о статусе на странице результатов.
  * @param {string} message Сообщение для отображения.
- * @param {'info'|'success'|'error'|'pending'} type Тип сообщения для стилизации.
+ * @param {'info'|'success'|'error'|'pending'|'completed'} type Тип сообщения для стилизации.
  */
 function displayGeneralStatus(message, type) {
     if (DOM_ELEMENTS.concatenationStatusDiv) {
@@ -179,14 +190,14 @@ async function uploadVideoFromResults(file) {
         displayGeneralStatus('Данные пользователя не найдены. Пожалуйста, войдите, чтобы загрузить видео.', 'error');
         setTimeout(() => {
             window.location.replace('index.html');
-        }, 3000); 
+        }, 3000);
         return;
     }
 
     if (DOM_ELEMENTS.dynamicUploadStatusContainer) DOM_ELEMENTS.dynamicUploadStatusContainer.classList.remove('hidden');
     updateUploadStatusDisplay('Начало загрузки...', 'info');
     if (DOM_ELEMENTS.progressBarContainer) DOM_ELEMENTS.progressBarContainer.style.display = 'flex';
-    resetProgressBar(); 
+    resetProgressBar();
     if (DOM_ELEMENTS.uploadNewBtn) DOM_ELEMENTS.uploadNewBtn.disabled = true;
 
     uploadFileToCloudinary( // ИСПОЛЬЗУЕМ ИМПОРТИРОВАННУЮ ФУНКЦИЮ
@@ -194,8 +205,8 @@ async function uploadVideoFromResults(file) {
         currentUsername,
         currentEmail,
         currentLinkedin,
-        { 
-            updateFileBubbleUI: (f, msg, type) => updateUploadStatusDisplay(msg, type), 
+        {
+            updateFileBubbleUI: (f, msg, type) => updateUploadStatusDisplay(msg, type),
             displayGeneralStatus: displayGeneralStatus,
             resetProgressBar: resetProgressBar,
             selectFilesButton: DOM_ELEMENTS.uploadNewBtn, // Передаем DOM_ELEMENTS.uploadNewBtn (не используется в этом контексте)
@@ -204,14 +215,14 @@ async function uploadVideoFromResults(file) {
             progressText: DOM_ELEMENTS.progressText,
             progressBarContainer: DOM_ELEMENTS.progressBarContainer
         },
-        (response, uploadedFile) => { 
+        (response, uploadedFile) => {
             const taskId = response.taskId; // Это строковый ID Cloudinary из ответа бэкенда
             updateUploadStatusDisplay(`Видео загружено. ID задачи: ${taskId}. Ожидание обработки.`, 'pending');
             resetProgressBar();
 
             let newVideoEntry = {
                 // Используем taskId (строковый) как основной 'id' для фронтенда
-                id: taskId, 
+                id: taskId,
                 original_filename: response.originalFilename || uploadedFile.name,
                 status: 'uploaded', // Начальный статус после загрузки
                 timestamp: new Date().toISOString(),
@@ -220,20 +231,20 @@ async function uploadVideoFromResults(file) {
                 shotstackRenderId: null,
                 shotstackUrl: null
             };
-            
+
             uploadedVideos.push(newVideoEntry);
             localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
 
             createOrUpdateBubble(taskId, newVideoEntry); // Используем taskId для bubble ID
-            checkTaskStatuses(); 
-            updateConcatenationUI(); 
+            checkTaskStatuses();
+            updateConcatenationUI();
 
             setTimeout(() => {
                 if (DOM_ELEMENTS.dynamicUploadStatusContainer) DOM_ELEMENTS.dynamicUploadStatusContainer.classList.add('hidden');
                 updateUploadStatusDisplay('Готов к новой загрузке.', 'info');
             }, 5000);
         },
-        (error, erroredFile) => { 
+        (error, erroredFile) => {
             updateUploadStatusDisplay(`Ошибка загрузки для ${erroredFile.name}: ${error.error || 'Неизвестная ошибка'}`, 'error');
             resetProgressBar();
             if (DOM_ELEMENTS.uploadNewBtn) DOM_ELEMENTS.uploadNewBtn.disabled = false;
@@ -260,14 +271,13 @@ async function getTaskStatus(taskId) {
         const data = await response.json();
         // Убедимся, что возвращаемый ID всегда является строковым ID задачи,
         // который мы использовали для запроса, даже если бэкенд возвращает другие ID.
-        // Это КЛЮЧЕВОЕ ИЗМЕНЕНИЕ для сохранения консистентности.
         // Backend now returns 'taskId' (string Cloudinary ID) AND 'id' (numeric DB ID)
         // We use taskId from the response if available, otherwise fallback to the requested taskId
-        return { ...data, id: data.taskId || taskId }; 
+        return { ...data, id: data.taskId || taskId };
     } catch (error) {
         console.error(`[FRONTEND] Network error checking status for task ${taskId}:`, error);
         // Важно: возвращаем taskId в поле 'id', чтобы фронтенд мог идентифицировать задачу, даже если она провалилась
-        return { id: taskId, status: 'failed', error: error.message || 'Network/Server error' }; 
+        return { id: taskId, status: 'failed', error: error.message || 'Network/Server error' };
     }
 }
 
@@ -277,7 +287,7 @@ async function getTaskStatus(taskId) {
  */
 async function checkTaskStatuses() {
     console.log("DEBUG: checkTaskStatuses called.");
-    let tasksStillPending = false; 
+    let tasksStillPending = false;
 
     // Используем актуальные uploadedVideos из localStorage для polling
     // ВСЕГДА перечитываем uploadedVideos, чтобы быть уверенными, что работаем с последней версией
@@ -285,10 +295,10 @@ async function checkTaskStatuses() {
     console.log("DEBUG: uploadedVideos reloaded from localStorage at checkTaskStatuses start:", uploadedVideos);
 
 
-    const videosToPoll = uploadedVideos.filter(v => 
+    const videosToPoll = uploadedVideos.filter(v =>
         // Добавляем проверку, что v.id существует и является строкой перед polling'ом
         v.id && typeof v.id === 'string' &&
-        v.status !== 'completed' && v.status !== 'error' && v.status !== 'failed' && 
+        v.status !== 'completed' && v.status !== 'error' && v.status !== 'failed' &&
         v.status !== 'concatenated_completed' && v.status !== 'concatenated_failed'
     );
 
@@ -307,15 +317,25 @@ async function checkTaskStatuses() {
             clearInterval(pollingIntervalId);
             pollingIntervalId = null;
         }
+        // Ensure the initial "No tasks found" message is shown if no videos exist
+        if (DOM_ELEMENTS.bubblesContainer) {
+            DOM_ELEMENTS.bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">Задач не найдено. Пожалуйста, загрузите видео со <a href="index.html" style="color: #FFD700; text-decoration: underline;">страницы загрузки</a>.</p>';
+        }
         return;
+    } else {
+        // Remove the "No tasks found" message if videos are present
+        const initialMessage = document.getElementById('statusMessage');
+        if (initialMessage) {
+            initialMessage.remove();
+        }
     }
 
     // Создаем копию массива, чтобы избежать проблем с изменением во время итерации
-    const currentUploadedVideos = [...uploadedVideos]; 
+    const currentUploadedVideos = [...uploadedVideos];
 
     for (const video of currentUploadedVideos) {
         const videoId = video.id; // ИСПОЛЬЗУЕМ video.id (строковый Cloudinary ID) ДЛЯ ЗАПРОСА СТАТУСА
-        
+
         // Проверяем, что videoId корректен перед отправкой запроса
         if (!videoId || typeof videoId !== 'string') {
             console.warn(`[FRONTEND] Skipping polling for invalid videoId: ${videoId}. Video object:`, video);
@@ -350,7 +370,7 @@ async function checkTaskStatuses() {
             // updatedTask.id от getTaskStatus, когда ошибка, уже строковый.
             // Для Shotstack-задач бэкенд возвращает `concatenated_task_id` в ответе на изначальный запрос объединения,
             // но `getTaskStatus` должен возвращать его как `id`.
-            const newEntryId = updatedTask.id || updatedTask.taskId; 
+            const newEntryId = updatedTask.id || updatedTask.taskId;
             if (newEntryId && typeof newEntryId === 'string') { // Только если ID корректен
                 uploadedVideos.push({
                     id: newEntryId, // Это строковый Cloudinary ID или ID объединенного видео
@@ -378,7 +398,7 @@ async function checkTaskStatuses() {
         if (videoToRender) {
             // ДОБАВЛЕНО: Отладочный лог перед вызовом createOrUpdateBubble
             console.log(`DEBUG: Calling createOrUpdateBubble for task ${videoId}. Passed data:`, videoToRender);
-             createOrUpdateBubble(videoId, videoToRender); 
+            createOrUpdateBubble(videoId, videoToRender);
         } else {
             console.warn(`DEBUG: Could not find video ${videoId} in uploadedVideos to render bubble. It might have been filtered out or is invalid.`);
         }
@@ -389,9 +409,9 @@ async function checkTaskStatuses() {
         }
     }
 
-    localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos)); 
+    localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
     console.log("DEBUG: localStorage 'uploadedVideos' content after checkTaskStatuses:", localStorage.getItem('uploadedVideos')); // Лог localStorage
-    updateConcatenationUI(); 
+    updateConcatenationUI();
 
     // Запускаем/останавливаем интервал опроса
     if (tasksStillPending && !pollingIntervalId) {
@@ -431,7 +451,7 @@ function createOrUpdateBubble(videoId, data) {
 
         // Удаляем стартовое сообщение "No tasks found", если оно есть
         const initialMessage = document.getElementById('statusMessage');
-        if (initialMessage && initialMessage.textContent.includes('No tasks found')) {
+        if (initialMessage && initialMessage.textContent.includes('Задач не найдено')) {
             initialMessage.remove();
         }
     } else {
@@ -439,7 +459,7 @@ function createOrUpdateBubble(videoId, data) {
         bubble = videoGridItem.querySelector('.video-bubble');
     }
 
-    let filenameText = `<h3 class="bubble-title-overlay">${data.original_filename || `Задача ${videoId}`}</h3>`;
+    let filenameText = `<h3 class="bubble-title-overlay">${sanitizeHTML(data.original_filename || `Задача ${videoId}`)}</h3>`; // Sanitized
     let statusMessageText = '';
     let actionButtonsHtml = '';
     let thumbnailUrl; // Определяем здесь
@@ -481,7 +501,7 @@ function createOrUpdateBubble(videoId, data) {
         case 'concatenated_completed':
             if (data.shotstackUrl) {
                 statusMessageText = '<p class="status-message-bubble status-success">Объединение завершено!</p>';
-                actionButtonsHtml += `<a href="${data.shotstackUrl}" target="_blank" class="action-button view-generated-button">Посмотреть сгенерированное видео</a>`;
+                actionButtonsHtml += `<a href="${sanitizeHTML(data.shotstackUrl)}" target="_blank" class="action-button view-generated-button">Посмотреть сгенерированное видео</a>`; // Sanitized URL
             } else {
                 statusMessageText = '<p class="status-message-bubble status-error">Объединение завершено, но URL отсутствует.</p>';
             }
@@ -490,7 +510,7 @@ function createOrUpdateBubble(videoId, data) {
         case 'error':
         case 'failed':
         case 'concatenated_failed':
-            statusMessageText = `<p class="status-message-bubble status-error">Ошибка: ${data.message || 'Неизвестная ошибка.'}</p>`;
+            statusMessageText = `<p class="status-message-bubble status-error">Ошибка: ${sanitizeHTML(data.message || 'Неизвестная ошибка.')}</p>`; // Sanitized message
             bubble.classList.remove('loading');
             break;
         default:
@@ -501,7 +521,7 @@ function createOrUpdateBubble(videoId, data) {
 
     // Добавляем изображение миниатюры
     bubble.innerHTML = `
-        <img src="${thumbnailUrl}" alt="Видео превью" class="video-thumbnail">
+        <img src="${sanitizeHTML(thumbnailUrl)}" alt="Видео превью" class="video-thumbnail">
         <div class="bubble-text-overlay">
             ${filenameText}
             ${statusMessageText}
@@ -513,7 +533,7 @@ function createOrUpdateBubble(videoId, data) {
 
     // --- ИЗМЕНЕНИЕ: Убираем обработку клика по пузырьку и показ модального окна ---
     // Убедимся, что нет никаких обработчиков кликов, и курсор по умолчанию.
-    videoGridItem.style.cursor = 'default'; 
+    videoGridItem.style.cursor = 'default';
     videoGridItem.classList.remove('selected-bubble'); // Убираем любой класс "выбрано"
 
     // Удаляем старую кнопку "Generate with Shotstack" и ее логику, если она присутствует
@@ -523,8 +543,6 @@ function createOrUpdateBubble(videoId, data) {
     }
 }
 
-// --- ИЗМЕНЕНИЕ: Функция handleBubbleClick удалена, так как она больше не нужна ---
-// Клик по пузырьку теперь не вызывает модальное окно.
 
 /**
  * Обновляет состояние кнопки "Обработать выбранные видео" и статус сообщений.
@@ -537,7 +555,7 @@ function updateConcatenationUI() {
     console.log("DEBUG: updateConcatenationUI called.");
     console.log("DEBUG: numCompletedVideos:", numCompletedVideos);
     // Получаем фактическое состояние чекбокса "Объединить видео"
-    const shouldConnect = DOM_ELEMENTS.connectVideosCheckbox ? DOM_ELEMENTS.connectVideosCheckbox.checked : false; 
+    const shouldConnect = DOM_ELEMENTS.connectVideosCheckbox ? DOM_ELEMENTS.connectVideosCheckbox.checked : false;
     console.log("DEBUG: shouldConnect (actual checkbox state):", shouldConnect);
 
     if (DOM_ELEMENTS.processSelectedVideosButton) {
@@ -613,14 +631,106 @@ function updateConcatenationUI() {
     }
 }
 
+/**
+ * Fetches user videos from the backend using the provided identifier.
+ * @param {string} identifierValue The value of the identifier (e.g., Instagram username).
+ * @param {string} identifierType The type of identifier (e.g., 'instagram_username').
+ */
+async function fetchUserVideos(identifierValue, identifierType) {
+    displayGeneralStatus('Загрузка ваших видео...', 'info');
+    let url = `${RENDER_BACKEND_URL}/user-videos?`;
+
+    // Construct URL based on identifierType
+    if (identifierType === 'instagram_username') {
+        url += `instagram_username=${encodeURIComponent(identifierValue)}`;
+    } else if (identifierType === 'email') {
+        url += `email=${encodeURIComponent(identifierValue)}`;
+    } else if (identifierType === 'linkedin_profile') {
+        url += `linkedin_profile=${encodeURIComponent(identifierValue)}`;
+    } else {
+        console.error("Invalid identifier type for fetching user videos.");
+        displayGeneralStatus('Неверный тип идентификатора пользователя.', 'error');
+        return;
+    }
+
+    try {
+        console.log(`Fetching user videos from: ${url}`);
+        const response = await fetch(url);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Received user videos data:", data);
+
+        // Clear existing videos from local state and UI before populating with fresh data
+        uploadedVideos = [];
+        localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
+        if (DOM_ELEMENTS.bubblesContainer) {
+            DOM_ELEMENTS.bubblesContainer.innerHTML = '';
+        }
+
+        if (data.length > 0) {
+            // Add fetched videos to uploadedVideos and update UI
+            data.forEach(video => {
+                // Ensure data matches the expected structure for createOrUpdateBubble
+                createOrUpdateBubble(video.taskId, { // Use taskId as the ID for the bubble
+                    id: video.taskId, // Ensure the internal ID is also taskId
+                    original_filename: video.originalFilename,
+                    status: video.status,
+                    timestamp: video.timestamp,
+                    cloudinary_url: video.cloudinary_url,
+                    shotstackRenderId: video.shotstackRenderId,
+                    shotstackUrl: video.shotstackUrl,
+                    message: video.message,
+                    metadata: video.metadata || {}, // Ensure metadata exists
+                    posterUrl: video.posterUrl // Pass posterUrl if available
+                });
+                // Also add to the global uploadedVideos array
+                uploadedVideos.push({
+                    id: video.taskId,
+                    original_filename: video.originalFilename,
+                    status: video.status,
+                    timestamp: video.timestamp,
+                    cloudinary_url: video.cloudinary_url,
+                    shotstackRenderId: video.shotstackRenderId,
+                    shotstackUrl: video.shotstackUrl,
+                    message: video.message,
+                    metadata: video.metadata || {},
+                    posterUrl: video.posterUrl
+                });
+            });
+            localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos)); // Save updated list to localStorage
+            displayGeneralStatus(`Найдено ${data.length} видео для этого пользователя.`, 'success');
+        } else {
+            // If no videos found, ensure appropriate message is displayed
+            localStorage.setItem('uploadedVideos', JSON.stringify([])); // Clear localStorage if no videos
+            if (DOM_ELEMENTS.bubblesContainer) {
+                DOM_ELEMENTS.bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">Задач не найдено. Пожалуйста, загрузите видео со <a href="index.html" style="color: #FFD700; text-decoration: underline;">страницы загрузки</a>.</p>';
+            }
+            displayGeneralStatus('Задач не найдено. Пожалуйста, загрузите видео.', 'info');
+        }
+        updateConcatenationUI(); // Refresh UI based on new video list
+
+    } catch (error) {
+        console.error('Error fetching user videos:', error);
+        displayGeneralStatus(`Ошибка при получении видео: ${sanitizeHTML(error.message)}. Пожалуйста, попробуйте позже.`, 'error'); // Sanitized message
+        uploadedVideos = []; // Clear on error
+        localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
+        if (DOM_ELEMENTS.bubblesContainer) {
+            DOM_ELEMENTS.bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message error">Не удалось загрузить видео. Пожалуйста, проверьте подключение и попробуйте снова.</p>';
+        }
+        updateConcatenationUI();
+    }
+}
+
 
 // --- Инициализация при загрузке DOM ---
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log("DEBUG: DOMContentLoaded event fired.");
-    // Инициализируем uploadedVideos из localStorage только один раз при загрузке DOM
-    uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]');
-    console.log("DEBUG: uploadedVideos after DOMContentLoaded and initial load from localStorage:", uploadedVideos);
 
+    // Инициализируем таймер неактивности
+    resetInactivityTimer();
 
     const username = localStorage.getItem('hifeUsername');
     const email = localStorage.getItem('hifeEmail');
@@ -628,14 +738,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let headerText = 'Ваши Видео';
     if (username) {
-        headerText = `Ваши Видео для @${username}`;
-        if (DOM_ELEMENTS.usernameDisplay) DOM_ELEMENTS.usernameDisplay.textContent = `Для: @${username}`;
+        headerText = `Ваши Видео для @${sanitizeHTML(username)}`; // Sanitized
+        if (DOM_ELEMENTS.usernameDisplay) DOM_ELEMENTS.usernameDisplay.textContent = `Для: @${sanitizeHTML(username)}`; // Sanitized
     } else if (email) {
-        headerText = `Ваши Видео для ${email}`;
-        if (DOM_ELEMENTS.usernameDisplay) DOM_ELEMENTS.usernameDisplay.textContent = `Для: ${email}`;
+        headerText = `Ваши Видео для ${sanitizeHTML(email)}`; // Sanitized
+        if (DOM_ELEMENTS.usernameDisplay) DOM_ELEMENTS.usernameDisplay.textContent = `Для: ${sanitizeHTML(email)}`; // Sanitized
     } else if (linkedin) {
-        headerText = `Ваши Видео для ${linkedin}`;
-        if (DOM_ELEMENTS.usernameDisplay) DOM_ELEMENTS.usernameDisplay.textContent = `Для: ${linkedin}`;
+        headerText = `Ваши Видео для ${sanitizeHTML(linkedin)}`; // Sanitized
+        if (DOM_ELEMENTS.usernameDisplay) DOM_ELEMENTS.usernameDisplay.textContent = `Для: ${sanitizeHTML(linkedin)}`; // Sanitized
     } else {
         if (DOM_ELEMENTS.usernameDisplay) DOM_ELEMENTS.usernameDisplay.textContent = 'Для: Гость';
     }
@@ -654,6 +764,34 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUploadStatusDisplay('Невозможно повторно загрузить: данные пользователя не найдены. Пожалуйста, загрузите видео со страницы загрузки.', 'error');
         if (DOM_ELEMENTS.dynamicUploadStatusContainer) DOM_ELEMENTS.dynamicUploadStatusContainer.classList.remove('hidden');
         resetProgressBar();
+    }
+
+    // --- NEW: Fetch user videos from backend when results page loads ---
+    if (username) { // Only fetch if we have a username (Instagram, Email, or LinkedIn)
+        // This will clear `uploadedVideos` and populate it from the backend.
+        await fetchUserVideos(username, 'instagram_username'); // Assuming `hifeUsername` is for Instagram
+    } else if (email) {
+        await fetchUserVideos(email, 'email');
+    } else if (linkedin) {
+        await fetchUserVideos(linkedin, 'linkedin_profile');
+    } else {
+        // If no user data, display initial message and ensure uploadedVideos is empty
+        uploadedVideos = [];
+        localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
+        if (DOM_ELEMENTS.bubblesContainer) {
+            DOM_ELEMENTS.bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">Задач не найдено. Пожалуйста, загрузите видео со <a href="index.html" style="color: #FFD700; text-decoration: underline;">страницы загрузки</a>.</p>';
+        }
+        displayGeneralStatus('Данные пользователя не найдены. Загрузите видео со страницы загрузки.', 'info');
+    }
+    // --- END NEW FETCH LOGIC ---
+
+    // The `uploadedVideos` array should now be populated (or empty if no videos found/error).
+    // Render existing videos based on the (potentially newly fetched) uploadedVideos.
+    if (uploadedVideos.length > 0) {
+        if (DOM_ELEMENTS.bubblesContainer) DOM_ELEMENTS.bubblesContainer.innerHTML = '';
+        uploadedVideos.forEach(video => {
+            createOrUpdateBubble(video.id, video); // ИСПОЛЬЗУЕМ video.id (строковый Cloudinary ID) ДЛЯ ID ЭЛЕМЕНТА DOM
+        });
     }
 
     // Обработчик клика по кнопке "Upload New Video(s)"
@@ -676,20 +814,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 resetProgressBar();
             }
         });
-    }
-
-    // Загружаем и отображаем уже загруженные видео при загрузке страницы
-    if (uploadedVideos.length === 0) {
-        if (DOM_ELEMENTS.bubblesContainer) {
-            DOM_ELEMENTS.bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">Задач не найдено. Пожалуйста, загрузите видео со <a href="index.html" style="color: #FFD700; text-decoration: underline;">страницы загрузки</a>.</p>';
-        }
-    } else {
-        if (DOM_ELEMENTS.bubblesContainer) DOM_ELEMENTS.bubblesContainer.innerHTML = '';
-        uploadedVideos.forEach(video => {
-            createOrUpdateBubble(video.id, video); // ИСПОЛЬЗУЕМ video.id (строковый Cloudinary ID) ДЛЯ ID ЭЛЕМЕНТА DOM
-        });
-        // Начинаем опрос статусов для всех видео
-        checkTaskStatuses();
     }
 
     // Обработчик закрытия модального окна по кнопке
@@ -753,7 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const email = localStorage.getItem('hifeEmail');
             const linkedin = localStorage.getItem('hifeLinkedin');
             // Получаем фактическое состояние чекбокса "Объединить видео"
-            const shouldConnect = DOM_ELEMENTS.connectVideosCheckbox ? DOM_ELEMENTS.connectVideosCheckbox.checked : false; 
+            const shouldConnect = DOM_ELEMENTS.connectVideosCheckbox ? DOM_ELEMENTS.connectVideosCheckbox.checked : false;
 
             console.log("DEBUG: Is 'Connect videos' checkbox checked (actual checkbox state)?:", shouldConnect);
 
@@ -862,7 +986,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (error) {
                 console.error('Ошибка в обработчике processSelectedVideosButton:', error);
-                displayGeneralStatus(`Произошла неожиданная ошибка: ${error.message || 'Неизвестная ошибка'}`, 'error');
+                displayGeneralStatus(`Произошла неожиданная ошибка: ${sanitizeHTML(error.message || 'Неизвестная ошибка')}`, 'error'); // Sanitized message
             } finally {
                 console.log("DEBUG: --- Process Selected Videos Button Click Handler FINISHED ---");
                 updateConcatenationUI();
@@ -873,7 +997,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("DEBUG: Process Selected Videos Button element NOT found! Please ensure your HTML has an element with id 'processSelectedVideosButton'.");
     }
 
-
     // Начальное обновление UI объединения при загрузке страницы
-    updateConcatenationUI(); 
+    updateConcatenationUI();
+    // Начинаем опрос статусов для всех видео, которые могли быть загружены через localStorage,
+    // или которые были только что получены из backend fetch.
+    checkTaskStatuses();
 });
