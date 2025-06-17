@@ -34,7 +34,7 @@ function handleInactivity() {
     setTimeout(() => {
         localStorage.clear(); 
         sessionStorage.clear();
-        window.location.reload(); 
+        window.location.href = 'index.html'; 
     }, 100); 
 }
 
