@@ -41,6 +41,10 @@ async function processVideosFromSelection(
             linkedin_profile: linkedinProfile
         };
 
+        // ДОБАВЛЕН ЛОГ: Проверяем отправляемый payload
+        console.log("DEBUG: [processVideosFromSelection] Отправляемый payload:", JSON.stringify(payload, null, 2));
+
+
         // RENDER_BACKEND_URL должен быть доступен глобально или передан
         // Предполагаем, что он доступен из результатов.js, который его инициирует
         const response = await fetch(`${RENDER_BACKEND_URL}/process_videos`, {
