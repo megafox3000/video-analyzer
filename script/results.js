@@ -175,7 +175,21 @@ function displayGeneralStatus(message, type) {
         DOM_ELEMENTS.concatenationStatusDiv.className = `concatenation-status ${type}`;
     }
 }
-
+/**
+ * Функция для отображения статуса обработки в модальном окне или другом элементе,
+ * если у вас есть отдельный UI для этого.
+ * В данном случае, мы будем использовать displayGeneralStatus, так как
+ * process_videos.js передает две функции, но у нас в results.js одна для отображения.
+ * @param {string} message Сообщение для отображения.
+ * @param {'info'|'success'|'error'|'warning'|'completed'|'pending'} type Тип сообщения для стилизации.
+ */
+function displayProcessStatus(message, type) {
+    // В данном случае, мы просто перенаправляем на displayGeneralStatus,
+    // так как в results.js у нас может быть только один общий статус.
+    // Если у вас есть отдельный элемент UI для "processStatus", используйте его здесь.
+    console.log(`DEBUG: [Process Status] ${type}: ${message}`);
+    displayGeneralStatus(message, type); // Используем основную функцию статуса
+}
 
 /**
  * Загружает выбранный файл видео на бэкенд со страницы результатов.
