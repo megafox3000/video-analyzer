@@ -1,5 +1,5 @@
 // script/results.js
-console.log("DEBUG: results.js loaded and executing.");
+console.log("DEBUG: results.js loaded and executing. Version: 1.0.2"); // ОБНОВЛЕНО ДЛЯ ОТСЛЕЖИВАНИЯ ВЕРСИИ
 
 // УКАЖИТЕ ЗДЕСЬ АКТУАЛЬНЫЙ URL ВАШЕГО БЭКЕНДА НА RENDER.COM
 const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ URL
@@ -109,7 +109,7 @@ function sanitizeHTML(str) {
 /**
  * Генерирует URL миниатюры Cloudinary из URL видео.
  * @param {string} videoUrl Оригинальный URL видео на Cloudinary.
- * @returns {string} URL миниатюры или путь к дефолтной заглушке.
+ * @returns {string} URL миниатютуры или путь к дефолтной заглушке.
  */
 function getCloudinaryThumbnailUrl(videoUrl) {
     if (!videoUrl || !videoUrl.includes('res.cloudinary.com')) {
@@ -271,7 +271,7 @@ async function uploadVideoFromResults(file) {
  */
 async function getTaskStatus(taskId) {
     if (!taskId || typeof taskId !== 'string') {
-        console.warn(`[FRONTEND] Invalid taskId provided to getTaskStatus: ${taskId}. Skipping network request.`);
+        console.warn(`DEBUG: [getTaskStatus] Invalid taskId provided to getTaskStatus: ${taskId}. Skipping network request.`);
         return { id: taskId, status: 'failed', error: 'Invalid taskId provided.' };
     }
     try {
@@ -289,8 +289,9 @@ async function getTaskStatus(taskId) {
         // Backend now returns 'taskId' (string Cloudinary ID) AND 'id' (numeric DB ID)
         // We use taskId from the response if available, otherwise fallback to the requested taskId
         return { ...data, id: data.taskId || taskId };
-    } catch (error) {
-        console.error(`[FRONTEND] Network error checking status for task ${taskId}:`, error);
+    }
+    catch (error) {
+        console.error(`DEBUG: [getTaskStatus] Network error checking status for task ${taskId}:`, error);
         // Важно: возвращаем taskId в поле 'id', чтобы фронтенд мог идентифицировать задачу, даже если она провалилась
         return { id: taskId, status: 'failed', error: error.message || 'Network/Server error' };
     }
@@ -324,7 +325,7 @@ async function checkTaskStatuses() {
             clearInterval(pollingIntervalId);
             pollingIntervalId = null;
             displayGeneralStatus('Все процессы обработки видео завершены. Ознакомьтесь с результатами ниже.', 'completed');
-            console.log("[FRONTEND] All tasks completed or errored. Polling stopped.");
+            console.log("DEBUG: [FRONTEND] All tasks completed or errored. Polling stopped.");
         }
     } else if (uploadedVideos.length === 0) {
         displayGeneralStatus('Видео еще не загружены. Перейдите на страницу загрузки.', 'info');
@@ -353,7 +354,7 @@ async function checkTaskStatuses() {
 
         // Проверяем, что videoId корректен перед отправкой запроса
         if (!videoId || typeof videoId !== 'string') {
-            console.warn(`[FRONTEND] Skipping polling for invalid videoId: ${videoId}. Video object:`, video);
+            console.warn(`DEBUG: [checkTaskStatuses] Skipping polling for invalid videoId: ${videoId}. Video object:`, video);
             continue; // Пропускаем эту итерацию, если ID недействителен
         }
 
@@ -361,7 +362,7 @@ async function checkTaskStatuses() {
         const updatedTask = await getTaskStatus(videoId); // updatedTask теперь содержит {id: string (Cloudinary ID) , status: ..., ...}
         const newRemoteStatus = updatedTask.status; // Новый статус от бэкенда
 
-        console.log(`DEBUG: Polling task ${videoId}. Local status: "${currentLocalStatus}". Remote status: "${newRemoteStatus}".`); // Добавлено
+        console.log(`DEBUG: [checkTaskStatuses] Polling task ${videoId}. Local status: "${currentLocalStatus}". Remote status: "${newRemoteStatus}".`); // Добавлено
 
         // ИСПОЛЬЗУЕМ videoId (строковый) ДЛЯ ПОИСКА ИНДЕКСА
         const index = uploadedVideos.findIndex(v => v.id === videoId);
@@ -378,7 +379,7 @@ async function checkTaskStatuses() {
             uploadedVideos[index].shotstackUrl = updatedTask.shotstackUrl || uploadedVideos[index].shotstackUrl;
             uploadedVideos[index].posterUrl = updatedTask.posterUrl || uploadedVideos[index].posterUrl; // <--- ДОБАВЛЕНО: Обновление posterUrl
             // Поле `id` (строковый Cloudinary ID) НЕ ТРОГАЕМ, оно уже установлено корректно.
-            console.log(`DEBUG: Task ${videoId} updated in uploadedVideos. New local object status: "${uploadedVideos[index].status}". Metadata exists: ${!!uploadedVideos[index].metadata && Object.keys(uploadedVideos[index].metadata).length > 0}. Current object ID (should be string): ${uploadedVideos[index].id}`); // Добавлено
+            console.log(`DEBUG: [checkTaskStatuses] Task ${videoId} updated in uploadedVideos. New local object status: "${uploadedVideos[index].status}". Metadata exists: ${!!uploadedVideos[index].metadata && Object.keys(uploadedVideos[index].metadata).length > 0}. Current object ID (should be string): ${uploadedVideos[index].id}`); // Добавлено
         } else {
             // ЭТО БЛОК ДЛЯ ДОБАВЛЕНИЯ НОВЫХ ЗАДАЧ (например, объединенное видео), которых еще нет в списке uploadedVideos.
             // Убеждаемся, что id нового элемента - это строковый Cloudinary ID, который нам нужен.
@@ -399,9 +400,9 @@ async function checkTaskStatuses() {
                     shotstackUrl: updatedTask.shotstackUrl,
                     posterUrl: updatedTask.posterUrl // <--- ДОБАВЛЕНО: Инициализация posterUrl
                 });
-                console.log(`DEBUG: New task ${newEntryId} added to uploadedVideos. Status: "${updatedTask.status}". Metadata exists: ${!!updatedTask.metadata && Object.keys(updatedTask.metadata).length > 0}. New object ID (should be string): ${newEntryId}`); // Добавлено
+                console.log(`DEBUG: [checkTaskStatuses] New task ${newEntryId} added to uploadedVideos. Status: "${updatedTask.status}". Metadata exists: ${!!updatedTask.metadata && Object.keys(updatedTask.metadata).length > 0}. New object ID (should be string): ${newEntryId}`); // Добавлено
             } else {
-                console.warn(`DEBUG: Could not add new task from polling result due to invalid ID:`, updatedTask);
+                console.warn(`DEBUG: [checkTaskStatuses] Could not add new task from polling result due to invalid ID:`, updatedTask);
             }
         }
         // ДОБАВЛЕНО: Полный лог uploadedVideos после обработки каждой задачи
@@ -412,10 +413,10 @@ async function checkTaskStatuses() {
         const videoToRender = uploadedVideos.find(v => v.id === videoId);
         if (videoToRender) {
             // ДОБАВЛЕНО: Отладочный лог перед вызовом createOrUpdateBubble
-            console.log(`DEBUG: Calling createOrUpdateBubble for task ${videoId}. Passed data:`, videoToRender);
+            console.log(`DEBUG: [checkTaskStatuses] Calling createOrUpdateBubble for task ${videoId}. Passed data:`, videoToRender);
             createOrUpdateBubble(videoId, videoToRender);
         } else {
-            console.warn(`DEBUG: Could not find video ${videoId} in uploadedVideos to render bubble. It might have been filtered out or is invalid.`);
+            console.warn(`DEBUG: [checkTaskStatuses] Could not find video ${videoId} in uploadedVideos to render bubble. It might have been filtered out or is invalid.`);
         }
 
         // Проверяем, есть ли еще незавершенные задачи
@@ -435,7 +436,7 @@ async function checkTaskStatuses() {
         clearInterval(pollingIntervalId);
         pollingIntervalId = null;
         displayGeneralStatus('Все процессы обработки видео завершены. Ознакомьтесь с результатами ниже.', 'completed');
-        console.log("[FRONTEND] All tasks completed or errored. Polling stopped.");
+        console.log("DEBUG: [FRONTEND] All tasks completed or errored. Polling stopped.");
     }
 }
 
@@ -475,16 +476,16 @@ function createOrUpdateBubble(videoId, data) {
 
     let filenameText = `<h3 class="bubble-title-overlay">${sanitizeHTML(data.original_filename || `Задача ${videoId}`)}</h3>`; // Sanitized
     let statusMessageText = '';
-    let actionButtonsHtml = '';
-    let thumbnailUrl; // Определяем здесь
+    let actionButtonsHtml = ''; // Initialize here
 
+    let thumbnailUrl; // Определяем здесь
     // LOGIC TO DETERMINE THUMBNAIL URL
     if (String(videoId).startsWith('concatenated_video_') && data.posterUrl) {
         // Если это объединенное видео И у нас есть posterUrl, используем его
         thumbnailUrl = data.posterUrl;
         console.log(`DEBUG: Using Shotstack poster URL for concatenated video ${videoId}: ${thumbnailUrl}`);
     } else if (data.cloudinary_url) {
-        // В противном случае, если есть Cloudinary URL, используем его для миниатюры
+        // В противном случае, если есть Cloudinary URL, используем его для миниатютуры
         thumbnailUrl = getCloudinaryThumbnailUrl(data.cloudinary_url);
         console.log(`DEBUG: Using Cloudinary thumbnail URL for original video ${videoId}: ${thumbnailUrl}`);
     } else {
@@ -496,11 +497,11 @@ function createOrUpdateBubble(videoId, data) {
     // Обновляем innerHTML пузыря (круглой части) в зависимости от статуса
     switch (data.status) {
         case 'completed':
-            statusMessageText = '<p class="status-message-bubble status-completed">Нажмите для просмотра метаданных</p>'; // This text is here, but click listener is removed
+            // Текст изменен для нового поведения выбора
+            statusMessageText = '<p class="status-message-bubble status-completed">Готово к выбору или обработке</p>';
             bubble.classList.remove('loading');
-            // Add a button to view metadata
-            actionButtonsHtml += `<button class="action-button view-metadata-button" onclick="showMetadataModal('${videoId}')">Показать метаданные</button>`;
             if (data.cloudinary_url) {
+                // Кнопка для просмотра видео, если есть Cloudinary URL
                 actionButtonsHtml += `<a href="${sanitizeHTML(data.cloudinary_url)}" target="_blank" class="action-button view-video-button">Посмотреть видео</a>`;
             }
             break;
@@ -550,16 +551,12 @@ function createOrUpdateBubble(videoId, data) {
         </div>
     `;
 
-    // --- ИЗМЕНЕНИЕ: Убираем обработку клика по пузырьку и показ модального окна ---
-    // Убедимся, что нет никаких обработчиков кликов, и курсор по умолчанию.
-    videoGridItem.style.cursor = 'default';
-    videoGridItem.classList.remove('selected-bubble'); // Убираем любой класс "выбрано"
-
     // Удаляем старую кнопку "Generate with Shotstack" и ее логику, если она присутствует
     const generateButton = bubble.querySelector('.generate-button');
     if (generateButton) {
         generateButton.remove(); // Удаляем кнопку
     }
+
     // Добавляем чекбокс для выбора видео
     // Сначала удалим существующий, если он есть, чтобы избежать дублирования
     let existingCheckboxContainer = bubble.querySelector('.bubble-checkbox-container');
@@ -573,24 +570,66 @@ function createOrUpdateBubble(videoId, data) {
     checkbox.type = 'checkbox';
     checkbox.className = 'bubble-checkbox';
     checkbox.value = videoId; // Значение чекбокса - taskId
+
     // Устанавливаем состояние чекбокса в соответствии с selectedVideosForConcatenation
+    // и синхронизируем визуальное состояние обертки
     checkbox.checked = selectedVideosForConcatenation.includes(videoId);
+    if (checkbox.checked) {
+        videoGridItem.classList.add('selected-bubble');
+    } else {
+        videoGridItem.classList.remove('selected-bubble');
+    }
+
     checkboxContainer.appendChild(checkbox);
     checkboxContainer.appendChild(document.createTextNode(' Выбрать'));
     bubble.appendChild(checkboxContainer); // Добавляем чекбокс в пузырек
 
+    // Удаляем предыдущие обработчики событий, чтобы избежать дублирования при обновлении
+    const oldClickListener = videoGridItem.__clickListener;
+    if (oldClickListener) {
+        videoGridItem.removeEventListener('click', oldClickListener);
+    }
+    const oldCheckboxListener = checkbox.__changeListener;
+    if (oldCheckboxListener) {
+        checkbox.removeEventListener('change', oldCheckboxListener);
+    }
+
+    // Обработчик события для клика по всей области пузырька (videoGridItem)
+    const newClickListener = (event) => {
+        // Если клик был по чекбоксу или кнопке, предотвращаем всплытие для toggle selection
+        if (event.target.closest('.bubble-checkbox-container') || event.target.closest('.action-button')) {
+            return;
+        }
+
+        const currentCheckbox = videoGridItem.querySelector('.bubble-checkbox');
+        if (currentCheckbox) {
+            currentCheckbox.checked = !currentCheckbox.checked; // Переключаем состояние чекбокса
+            // Вручную вызываем событие 'change', чтобы обновить массив selectedVideosForConcatenation
+            currentCheckbox.dispatchEvent(new Event('change'));
+            // Переключаем класс визуального выбора на обертке пузырька
+            videoGridItem.classList.toggle('selected-bubble', currentCheckbox.checked);
+        }
+    };
+    videoGridItem.addEventListener('click', newClickListener);
+    videoGridItem.__clickListener = newClickListener; // Сохраняем ссылку для последующего удаления
+
     // Обработчик события для чекбокса
-    checkbox.addEventListener('change', (event) => {
+    const newCheckboxListener = (event) => {
         if (event.target.checked) {
             if (!selectedVideosForConcatenation.includes(videoId)) {
                 selectedVideosForConcatenation.push(videoId);
             }
+            videoGridItem.classList.add('selected-bubble'); // Добавляем класс при выборе
         } else {
             selectedVideosForConcatenation = selectedVideosForConcatenation.filter(id => id !== videoId);
+            videoGridItem.classList.remove('selected-bubble'); // Удаляем класс при снятии выбора
         }
         updateConcatenationUI();
-    });
+    };
+    checkbox.addEventListener('change', newCheckboxListener);
+    checkbox.__changeListener = newCheckboxListener; // Сохраняем ссылку для последующего удаления
 
+    videoGridItem.style.cursor = 'pointer'; // Делаем курсор "указующим" для выбора
 }
 
 
