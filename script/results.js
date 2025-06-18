@@ -133,7 +133,7 @@ function showMetadataModal(videoId) {
 
     if (DOM_ELEMENTS.modalTitle) DOM_ELEMENTS.modalTitle.textContent = `Метаданные для: ${sanitizeHTML(video.original_filename || videoId)}`;
     if (DOM_ELEMENTS.modalMetadata) DOM_ELEMENTS.modalMetadata.textContent = typeof video.metadata === 'object' && video.metadata !== null ? JSON.stringify(video.metadata, null, 2) : String(video.metadata);
-    if (DOM_ELEMENTS.metadataModal) DOM_ELEMENTs.metadataModal.style.display = 'flex';
+    if (DOM_ELEMENTS.metadataModal) DOM_ELEMENTS.metadataModal.style.display = 'flex';
 }
 
 /**
@@ -363,6 +363,73 @@ async function checkTaskStatuses() {
     localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
     console.log("DEBUG: localStorage 'uploadedVideos' content after checkTaskStatuses:", localStorage.getItem('uploadedVideos'));
     updateConcatenationUI();
+}
+
+/**
+ * Извлекает все видео, связанные с текущим пользователем, с бэкенда.
+ * Обновляет uploadedVideos и отображает их в виде "пузырьков".
+ * @param {string} identifier Значение идентификатора (username, email, linkedin_profile).
+ * @param {string} identifierType Тип идентификатора ('instagram_username', 'email', 'linkedin_profile').
+ */
+async function fetchUserVideos(identifier, identifierType) {
+    if (!identifier || !identifierType) {
+        console.warn("Cannot fetch user videos: Identifier or identifier type is missing.");
+        return;
+    }
+
+    displayGeneralStatus('Загрузка ваших видео...', 'info');
+    console.log(`[FRONTEND] Fetching videos for ${identifierType}: ${identifier}`);
+
+    try {
+        const response = await fetch(`${RENDER_BACKEND_URL}/user-videos?${identifierType}=${encodeURIComponent(identifier)}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorData.error}`);
+        }
+        const data = await response.json();
+        console.log("[FRONTEND] Fetched user videos:", data.videos);
+
+        // Clear existing local videos to replace with fetched ones (or merge if preferred)
+        uploadedVideos = [];
+
+        if (data.videos && data.videos.length > 0) {
+            data.videos.forEach(video => {
+                // Ensure video.id is a string and exists
+                if (video.id) {
+                    const newVideoEntry = {
+                        id: String(video.id), // Ensure ID is string for consistency
+                        original_filename: video.original_filename || `Видео ${video.id}`,
+                        status: video.status || 'unknown',
+                        timestamp: video.timestamp || new Date().toISOString(),
+                        cloudinary_url: video.cloudinary_url || null,
+                        metadata: video.metadata || {},
+                        message: video.message || '',
+                        shotstackRenderId: video.shotstackRenderId || null,
+                        shotstackUrl: video.shotstackUrl || null,
+                        posterUrl: video.posterUrl || null
+                    };
+                    uploadedVideos.push(newVideoEntry);
+                    createOrUpdateBubble(newVideoEntry.id, newVideoEntry);
+                } else {
+                    console.warn("Fetched video missing ID:", video);
+                }
+            });
+            displayGeneralStatus('Ваши видео загружены.', 'success');
+        } else {
+            displayGeneralStatus('Видео еще не загружены. Начните, загрузив новое видео.', 'info');
+            if (DOM_ELEMENTS.bubblesContainer) {
+                DOM_ELEMENTS.bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">Задач не найдено. Пожалуйста, загрузите видео со <a href="index.html" style="color: #FFD700; text-decoration: underline;">страницы загрузки</a>.</p>';
+            }
+        }
+        localStorage.setItem('uploadedVideos', JSON.stringify(uploadedVideos));
+        console.log("[FRONTEND] uploadedVideos after fetchUserVideos:", uploadedVideos);
+    } catch (error) {
+        console.error("Error fetching user videos:", error);
+        displayGeneralStatus(`Ошибка загрузки видео: ${sanitizeHTML(error.message || 'Неизвестная ошибка')}`, 'error');
+        if (DOM_ELEMENTS.bubblesContainer) {
+            DOM_ELEMENTS.bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message error">Не удалось загрузить ваши видео. Пожалуйста, попробуйте еще раз позже или <a href="index.html" style="color: #FFD700; text-decoration: underline;">загрузите новое видео</a>.</p>';
+        }
+    }
 }
 
 
