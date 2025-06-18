@@ -817,13 +817,17 @@ async function handleProcessSelectedVideos() {
         console.debug('DEBUG: Calling processVideosFromSelection...');
 
         // Предполагаем, что processVideosFromSelection определена в process_videos.js и доступна глобально
-        const response = await processVideosFromSelection({
-            task_ids: taskIdsToProcess,
-            connect_videos: shouldConnect,
-            instagram_username: instagram_username,
-            email: email,
-            linkedin_profile: linkedin_profile
-        });
+            const response = await processVideosFromSelection(
+            taskIdsToProcess, // Передаем task_ids первым
+            shouldConnect,    // Передаем connect_videos вторым
+            instagram_username, // Имя пользователя Instagram
+            email,            // Email
+            linkedin_profile, // Профиль LinkedIn
+            displayGeneralStatus, // Передаем displayGeneralStatus (или displayProcessStatus, если она у вас есть и отличается)
+            displayGeneralStatus, // Снова displayGeneralStatus, если process_videos.js ожидает две функции обратного вызова
+            RENDER_BACKEND_URL // Передаем URL бэкенда
+        );
+
 
         console.debug('DEBUG: processVideosFromSelection returned: %o', response);
 
