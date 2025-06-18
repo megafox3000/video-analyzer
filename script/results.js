@@ -900,11 +900,3 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     updateConcatenationUI();
 });
-
-// Глобальная функция для использования в uploadFileFromResults
-function updateUploadStatusDisplay(message, type) {
-    if (DOM_ELEMENTS.uploadStatusText) {
-        DOM_ELEMENTS.uploadStatusText.textContent = message;
-        DOM_ELEMENTS.uploadStatusText.className = `status-message ${type}`;
-    }
-}
