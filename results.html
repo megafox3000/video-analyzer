@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Результаты анализа видео - Hife Video Analyzer</title>
     <link rel="icon" type="image/png" href="assets/favicon.png" />
-    
-    <!-- Подключаем основной файл стилей с базовыми определениями и макетом -->
+    
+    <!-- Подключаем основной файл стилей с базовыми определениями и макетом -->
     <link rel="stylesheet" href="css/style.css" />
-    <!-- Подключаем стили компонентов -->
-    <link rel="stylesheet" href="css/components.css" />
-    <!-- Tailwind CSS CDN - Добавьте, если используете Tailwind классы в HTML -->
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Подключаем стили компонентов -->
+    <link rel="stylesheet" href="css/components.css" />
+    <!-- Tailwind CSS CDN - Добавьте, если используете Tailwind классы в HTML -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="fade-in">
     <div class="background">
@@ -62,6 +62,7 @@
     </div>
 
     <script type="module" src="script/cloudinary_upload.js"></script>
-    <script type="module" src="script/results.js"></script>
+    <!-- ВАЖНОЕ ИЗМЕНЕНИЕ: Добавлен кэш-бастер к results.js -->
+    <script type="module" src="script/results.js?v=1.0.2"></script>
 </body>
 </html>
