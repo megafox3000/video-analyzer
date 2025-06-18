@@ -1,5 +1,5 @@
 // script/results.js
-console.log("DEBUG: results.js loaded and executing. Version: 1.0.2"); // ОБНОВЛЕНО ДЛЯ ОТСЛЕЖИВАНИЯ ВЕРСИИ
+console.log("DEBUG: results.js loaded and executing.");
 
 // УКАЖИТЕ ЗДЕСЬ АКТУАЛЬНЫЙ URL ВАШЕГО БЭКЕНДА НА RENDER.COM
 const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ URL
@@ -109,7 +109,7 @@ function sanitizeHTML(str) {
 /**
  * Генерирует URL миниатюры Cloudinary из URL видео.
  * @param {string} videoUrl Оригинальный URL видео на Cloudinary.
- * @returns {string} URL миниатютуры или путь к дефолтной заглушке.
+ * @returns {string} URL миниатюры или путь к дефолтной заглушке.
  */
 function getCloudinaryThumbnailUrl(videoUrl) {
     if (!videoUrl || !videoUrl.includes('res.cloudinary.com')) {
@@ -271,7 +271,7 @@ async function uploadVideoFromResults(file) {
  */
 async function getTaskStatus(taskId) {
     if (!taskId || typeof taskId !== 'string') {
-        console.warn(`DEBUG: [getTaskStatus] Invalid taskId provided to getTaskStatus: ${taskId}. Skipping network request.`);
+        console.warn(`[FRONTEND] Invalid taskId provided to getTaskStatus: ${taskId}. Skipping network request.`);
         return { id: taskId, status: 'failed', error: 'Invalid taskId provided.' };
     }
     try {
@@ -289,9 +289,8 @@ async function getTaskStatus(taskId) {
         // Backend now returns 'taskId' (string Cloudinary ID) AND 'id' (numeric DB ID)
         // We use taskId from the response if available, otherwise fallback to the requested taskId
         return { ...data, id: data.taskId || taskId };
-    }
-    catch (error) {
-        console.error(`DEBUG: [getTaskStatus] Network error checking status for task ${taskId}:`, error);
+    } catch (error) {
+        console.error(`[FRONTEND] Network error checking status for task ${taskId}:`, error);
         // Важно: возвращаем taskId в поле 'id', чтобы фронтенд мог идентифицировать задачу, даже если она провалилась
         return { id: taskId, status: 'failed', error: error.message || 'Network/Server error' };
     }
@@ -325,7 +324,7 @@ async function checkTaskStatuses() {
             clearInterval(pollingIntervalId);
             pollingIntervalId = null;
             displayGeneralStatus('Все процессы обработки видео завершены. Ознакомьтесь с результатами ниже.', 'completed');
-            console.log("DEBUG: [FRONTEND] All tasks completed or errored. Polling stopped.");
+            console.log("[FRONTEND] All tasks completed or errored. Polling stopped.");
         }
     } else if (uploadedVideos.length === 0) {
         displayGeneralStatus('Видео еще не загружены. Перейдите на страницу загрузки.', 'info');
@@ -354,7 +353,7 @@ async function checkTaskStatuses() {
 
         // Проверяем, что videoId корректен перед отправкой запроса
         if (!videoId || typeof videoId !== 'string') {
-            console.warn(`DEBUG: [checkTaskStatuses] Skipping polling for invalid videoId: ${videoId}. Video object:`, video);
+            console.warn(`[FRONTEND] Skipping polling for invalid videoId: ${videoId}. Video object:`, video);
             continue; // Пропускаем эту итерацию, если ID недействителен
         }
 
@@ -362,7 +361,7 @@ async function checkTaskStatuses() {
         const updatedTask = await getTaskStatus(videoId); // updatedTask теперь содержит {id: string (Cloudinary ID) , status: ..., ...}
         const newRemoteStatus = updatedTask.status; // Новый статус от бэкенда
 
-        console.log(`DEBUG: [checkTaskStatuses] Polling task ${videoId}. Local status: "${currentLocalStatus}". Remote status: "${newRemoteStatus}".`); // Добавлено
+        console.log(`DEBUG: Polling task ${videoId}. Local status: "${currentLocalStatus}". Remote status: "${newRemoteStatus}".`); // Добавлено
 
         // ИСПОЛЬЗУЕМ videoId (строковый) ДЛЯ ПОИСКА ИНДЕКСА
         const index = uploadedVideos.findIndex(v => v.id === videoId);
@@ -379,7 +378,7 @@ async function checkTaskStatuses() {
             uploadedVideos[index].shotstackUrl = updatedTask.shotstackUrl || uploadedVideos[index].shotstackUrl;
             uploadedVideos[index].posterUrl = updatedTask.posterUrl || uploadedVideos[index].posterUrl; // <--- ДОБАВЛЕНО: Обновление posterUrl
             // Поле `id` (строковый Cloudinary ID) НЕ ТРОГАЕМ, оно уже установлено корректно.
-            console.log(`DEBUG: [checkTaskStatuses] Task ${videoId} updated in uploadedVideos. New local object status: "${uploadedVideos[index].status}". Metadata exists: ${!!uploadedVideos[index].metadata && Object.keys(uploadedVideos[index].metadata).length > 0}. Current object ID (should be string): ${uploadedVideos[index].id}`); // Добавлено
+            console.log(`DEBUG: Task ${videoId} updated in uploadedVideos. New local object status: "${uploadedVideos[index].status}". Metadata exists: ${!!uploadedVideos[index].metadata && Object.keys(uploadedVideos[index].metadata).length > 0}. Current object ID (should be string): ${uploadedVideos[index].id}`); // Добавлено
         } else {
             // ЭТО БЛОК ДЛЯ ДОБАВЛЕНИЯ НОВЫХ ЗАДАЧ (например, объединенное видео), которых еще нет в списке uploadedVideos.
             // Убеждаемся, что id нового элемента - это строковый Cloudinary ID, который нам нужен.
@@ -400,9 +399,9 @@ async function checkTaskStatuses() {
                     shotstackUrl: updatedTask.shotstackUrl,
                     posterUrl: updatedTask.posterUrl // <--- ДОБАВЛЕНО: Инициализация posterUrl
                 });
-                console.log(`DEBUG: [checkTaskStatuses] New task ${newEntryId} added to uploadedVideos. Status: "${updatedTask.status}". Metadata exists: ${!!updatedTask.metadata && Object.keys(updatedTask.metadata).length > 0}. New object ID (should be string): ${newEntryId}`); // Добавлено
+                console.log(`DEBUG: New task ${newEntryId} added to uploadedVideos. Status: "${updatedTask.status}". Metadata exists: ${!!updatedTask.metadata && Object.keys(updatedTask.metadata).length > 0}. New object ID (should be string): ${newEntryId}`); // Добавлено
             } else {
-                console.warn(`DEBUG: [checkTaskStatuses] Could not add new task from polling result due to invalid ID:`, updatedTask);
+                console.warn(`DEBUG: Could not add new task from polling result due to invalid ID:`, updatedTask);
             }
         }
         // ДОБАВЛЕНО: Полный лог uploadedVideos после обработки каждой задачи
@@ -413,10 +412,10 @@ async function checkTaskStatuses() {
         const videoToRender = uploadedVideos.find(v => v.id === videoId);
         if (videoToRender) {
             // ДОБАВЛЕНО: Отладочный лог перед вызовом createOrUpdateBubble
-            console.log(`DEBUG: [checkTaskStatuses] Calling createOrUpdateBubble for task ${videoId}. Passed data:`, videoToRender);
+            console.log(`DEBUG: Calling createOrUpdateBubble for task ${videoId}. Passed data:`, videoToRender);
             createOrUpdateBubble(videoId, videoToRender);
         } else {
-            console.warn(`DEBUG: [checkTaskStatuses] Could not find video ${videoId} in uploadedVideos to render bubble. It might have been filtered out or is invalid.`);
+            console.warn(`DEBUG: Could not find video ${videoId} in uploadedVideos to render bubble. It might have been filtered out or is invalid.`);
         }
 
         // Проверяем, есть ли еще незавершенные задачи
@@ -436,7 +435,7 @@ async function checkTaskStatuses() {
         clearInterval(pollingIntervalId);
         pollingIntervalId = null;
         displayGeneralStatus('Все процессы обработки видео завершены. Ознакомьтесь с результатами ниже.', 'completed');
-        console.log("DEBUG: [FRONTEND] All tasks completed or errored. Polling stopped.");
+        console.log("[FRONTEND] All tasks completed or errored. Polling stopped.");
     }
 }
 
@@ -485,7 +484,7 @@ function createOrUpdateBubble(videoId, data) {
         thumbnailUrl = data.posterUrl;
         console.log(`DEBUG: Using Shotstack poster URL for concatenated video ${videoId}: ${thumbnailUrl}`);
     } else if (data.cloudinary_url) {
-        // В противном случае, если есть Cloudinary URL, используем его для миниатютуры
+        // В противном случае, если есть Cloudinary URL, используем его для миниатюры
         thumbnailUrl = getCloudinaryThumbnailUrl(data.cloudinary_url);
         console.log(`DEBUG: Using Cloudinary thumbnail URL for original video ${videoId}: ${thumbnailUrl}`);
     } else {
