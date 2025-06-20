@@ -874,33 +874,33 @@ async function handleProcessSelectedVideos() {
                     uploadedVideos[videoIndex].status = 'shotstack_pending';
                     uploadedVideos[videoIndex].shotstackRenderId = initiatedTask.shotstackRenderId;
                     uploadedVideos[videoIndex].message = initiatedTask.message;
-                    createOrUpdateBubble(uploadedVideos[videoIndex].id, uploadedVideos[videoIndex]); // Обновить пузырек с новым статусом
+                    createOrUpdateBubble(uploadedVideos[videoIndex].id, uploadedVideos[videoIndex]); // Обновить пузырек
                 }
             });
-            saveVideosToLocalStorage();
-            displayMessage(response.message || 'Обработка видео инициирована.', 'success');
-            console.debug('DEBUG: Updated statuses for individual tasks: %o', uploadedVideos);
+            saveVideosToLocalStorage(); // Сохраняем все изменения после цикла forEach
+            displayMessage('Индивидуальная обработка видео инициирована. Отслеживание статуса...', 'info');
         } else {
-            // Если не было ни объединения, ни инициированных задач
-            displayMessage(response.message || 'Не удалось инициировать обработку видео.', 'error');
+            displayMessage('Не удалось инициировать обработку видео. Пожалуйста, попробуйте еще раз.', 'error');
         }
 
-        // В любом случае, запустить опрос статусов
-        checkTaskStatuses();
-
+        // Запускаем опрос статусов после инициирования обработки
+        if (!pollingIntervalId) {
+            pollingIntervalId = setInterval(checkTaskStatuses, CHECK_STATUS_INTERVAL_MS);
+            console.log("DEBUG: Started polling interval after initiating tasks.");
+        }
     } catch (error) {
-        console.error('Ошибка при обработке выбранных видео:', error);
-        displayMessage('Произошла ошибка при отправке запроса на обработку видео.', 'error');
+        console.error('ERROR: Failed to process selected videos:', error);
+        displayMessage(`Ошибка при обработке видео: ${error.message}`, 'error');
     } finally {
-        if (DOM_ELEMENTS.processingMessage) DOM_ELEMENTS.processingMessage.textContent = ''; // Использовать DOM_ELEMENTS
-        if (DOM_ELEMENTS.processSelectedVideosButton) { // Использовать DOM_ELEMENTS
+        // Убедитесь, что кнопка снова активна после попытки обработки (даже если есть ошибка)
+        if (DOM_ELEMENTS.processSelectedVideosButton) {
             DOM_ELEMENTS.processSelectedVideosButton.disabled = false;
             DOM_ELEMENTS.processSelectedVideosButton.textContent = 'Обработать/Объединить видео';
         }
-        updateConcatenationUI(); // Обновить UI снова
         console.debug('DEBUG: --- Process Selected Videos Button Click Handler FINISHED ---');
     }
 }
+
 
 
 /**
