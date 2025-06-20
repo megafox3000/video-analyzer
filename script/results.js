@@ -328,70 +328,92 @@ async function checkConcatenatedVideoStatus(concatenatedTaskId) {
  */
 async function checkTaskStatuses() {
     console.log("DEBUG: checkTaskStatuses called.");
-    let tasksStillPending = false;
-    let shouldRedirectToFinish = false; // Флаг для перенаправления
-    let redirectToVideoId = null; // ID видео, к которому будет перенаправление
 
-    // Используем актуальные uploadedVideos из localStorage для polling
-    // ВСЕГДА перечитываем uploadedVideos, чтобы быть уверенными, что работаем с последней версией
+    // ВСЕГДА перезагружаем uploadedVideos из localStorage, чтобы быть уверенными, что работаем с последней версией.
     uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]');
     console.log("DEBUG: uploadedVideos reloaded from localStorage at checkTaskStatuses start:", uploadedVideos);
 
-
-    const videosToPoll = uploadedVideos.filter(v =>
-        // Добавляем проверку, что v.id существует и является строкой перед polling'ом
+    // Фильтруем видео, которые все еще находятся в ожидании.
+    const videosStillPendingForPolling = uploadedVideos.filter(v =>
         v.id && typeof v.id === 'string' &&
         v.status !== 'completed' && v.status !== 'error' && v.status !== 'failed' &&
         v.status !== 'concatenated_completed' && v.status !== 'concatenated_failed'
     );
 
-    // Только запускаем опрос, если есть активный интервал и нет ожидающих задач
-    if (videosToPoll.length === 0 && uploadedVideos.length > 0) {
-        // Все существующие задачи завершены
+    // --- Основная логика перенаправления/остановки опроса (в начале, для немедленной остановки, если ничего не ожидается) ---
+    // Если нет видео для опроса И есть какие-либо видео в целом (что означает, что все они находятся в конечном состоянии)
+    if (videosStillPendingForPolling.length === 0 && uploadedVideos.length > 0) {
         if (pollingIntervalId) {
             clearInterval(pollingIntervalId);
             pollingIntervalId = null;
-            displayGeneralStatus('Все процессы обработки видео завершены. Ознакомьтесь с результатами ниже.', 'completed');
             console.log("[FRONTEND] All tasks completed or errored. Polling stopped.");
         }
+
+        const hasSuccessfullyCompletedVideo = uploadedVideos.some(video =>
+            video.status === 'completed' || video.status === 'concatenated_completed'
+        );
+
+        console.log("DEBUG: Initial check - All videos in final state. Has successfully completed video?", hasSuccessfullyCompletedVideo);
+
+        if (hasSuccessfullyCompletedVideo) {
+            console.log('DEBUG: [FRONTEND] All tasks processed, redirecting to finish.html (initial check)');
+            const videoToDisplay = uploadedVideos.find(v => v.status === 'concatenated_completed') ||
+                                   uploadedVideos.find(v => v.status === 'completed');
+            if (videoToDisplay) {
+                localStorage.setItem('displayVideoId', videoToDisplay.id);
+            } else {
+                localStorage.removeItem('displayVideoId');
+            }
+            window.location.href = 'finish.html';
+            return; // Выходим немедленно после перенаправления
+        } else {
+            // Нет успешно завершенных видео, отображаем общий статус для ошибок/сбоев
+            displayGeneralStatus('Все процессы обработки видео завершены. Ознакомьтесь с результатами ниже.', 'completed');
+        }
     } else if (uploadedVideos.length === 0) {
+        // Вообще нет видео
         displayGeneralStatus('Видео еще не загружены. Перейдите на страницу загрузки.', 'info');
         if (pollingIntervalId) {
             clearInterval(pollingIntervalId);
             pollingIntervalId = null;
         }
-        // Ensure the initial "No tasks found" message is shown if no videos exist
         if (DOM_ELEMENTS.bubblesContainer) {
             DOM_ELEMENTS.bubblesContainer.innerHTML = '<p id="statusMessage" class="status-message info">Задач не найдено. Пожалуйста, загрузите видео со <a href="index.html" style="color: #FFD700; text-decoration: underline;">страницы загрузки</a>.</p>';
         }
         return;
     } else {
-        // Remove the "No tasks found" message if videos are present
+        // Если есть ожидающие видео, удаляем сообщение "Задач не найдено", если оно присутствует.
         const initialMessage = document.getElementById('statusMessage');
         if (initialMessage) {
             initialMessage.remove();
         }
     }
 
-    // Создаем копию массива, чтобы избежать проблем с изменением во время итерации
-    const currentUploadedVideos = [...uploadedVideos];
+    // --- Обработка статусов отдельных задач (цикл остается похожим) ---
+    const currentUploadedVideosCopy = [...uploadedVideos]; // Работаем с копией, чтобы избежать проблем с изменением во время итерации
 
-    for (const video of currentUploadedVideos) {
-        const videoId = video.id; // ИСПОЛЬЗУЕМ video.id (строковый Cloudinary ID) ДЛЯ ЗАПРОСА СТАТУСА
+    for (const video of currentUploadedVideosCopy) {
+        const videoId = video.id;
 
-        // Проверяем, что videoId корректен перед отправкой запроса
         if (!videoId || typeof videoId !== 'string') {
             console.warn(`[FRONTEND] Skipping polling for invalid videoId: ${videoId}. Video object:`, video);
-            continue; // Пропускаем эту итерацию, если ID недействителен
+            continue;
         }
 
-        const currentLocalStatus = video.status; // Текущий статус в локальном хранилище
+        const currentLocalStatus = video.status;
 
+        // Пропускаем опрос, если видео уже находится в конечном состоянии
+        if (currentLocalStatus === 'completed' || currentLocalStatus === 'error' ||
+            currentLocalStatus === 'failed' || currentLocalStatus === 'concatenated_completed' ||
+            currentLocalStatus === 'concatenated_failed') {
+            continue;
+        }
+
+        // Существующая логика опроса для объединенных и отдельных видео
         if (currentLocalStatus === 'concatenated_pending') {
-            tasksStillPending = true; // Объединенное видео еще обрабатывается
             try {
                 console.log(`DEBUG: Checking status for concatenated video with ID: ${videoId}`);
-                const statusResponse = await checkConcatenatedVideoStatus(videoId); // Новая функция для проверки статуса объединенного видео
+                const statusResponse = await checkConcatenatedVideoStatus(videoId); // Функция для проверки статуса объединенного видео
 
                 const index = uploadedVideos.findIndex(v => v.id === videoId); // Находим исходный объект в основном массиве
                 if (index !== -1) {
@@ -404,32 +426,25 @@ async function checkTaskStatuses() {
                         uploadedVideos[index].message = 'Видео объединено и готово!';
                         createOrUpdateBubble(uploadedVideos[index].id, uploadedVideos[index]); // Обновить пузырек
 
-                        saveVideosToLocalStorage(); // Сохранить изменения
+                        // saveVideosToLocalStorage(); // Перенесено в конец цикла
                         displayMessage('Объединенное видео готово!', 'success');
-                        shouldRedirectToFinish = true;
-                        redirectToVideoId = uploadedVideos[index].id; // Указываем, что перенаправлять будем на это видео
-                        // Не прерываем здесь, продолжаем, чтобы другие видео могли обновить свои пузырьки/статусы, если нужно
-                        // Перенаправление произойдет после цикла, если shouldRedirectToFinish будет true
                     } else if (statusResponse && statusResponse.status === 'failed') {
                         console.error(`DEBUG: Concatenated video ${videoId} failed: ${statusResponse.message}`);
                         uploadedVideos[index].status = 'concatenated_failed';
                         uploadedVideos[index].message = statusResponse.message || 'Объединение видео не удалось.';
                         createOrUpdateBubble(uploadedVideos[index].id, uploadedVideos[index]); // Обновить пузырек
-                        saveVideosToLocalStorage();
+                        // saveVideosToLocalStorage(); // Перенесено в конец цикла
                         displayMessage(`Ошибка при объединении видео: ${uploadedVideos[index].message}`, 'error');
-                        // Больше не в ожидании, поэтому allTasksCompleted может стать true, если нет других ожидающих задач
                     } else {
                         console.log(`DEBUG: Concatenated video ${videoId} still pending or status not available.`);
                     }
                 }
             } catch (error) {
                 console.error(`Ошибка при проверке статуса объединенного видео ${videoId}:`, error);
-                // Продолжаем, не блокируем остальные проверки
             }
-        } else if (video.status !== 'completed' && video.status !== 'error' && video.status !== 'failed' && video.status !== 'concatenated_completed' && video.status !== 'concatenated_failed') {
-            // Существующая логика для индивидуальных видео или начального статуса загрузки
-            const updatedTask = await getTaskStatus(videoId); // updatedTask теперь содержит {id: string (Cloudinary ID) , status: ..., ...}
-            const newRemoteStatus = updatedTask.status; // Новый статус от бэкенда
+        } else { // Обрабатываем опрос статуса отдельного видео (первоначальная загрузка/обработка)
+            const updatedTask = await getTaskStatus(videoId);
+            const newRemoteStatus = updatedTask.status;
 
             console.log(`DEBUG: Polling task ${videoId}. Local status: "${currentLocalStatus}". Remote status: "${newRemoteStatus}".`); // Добавлено
 
@@ -474,32 +489,56 @@ async function checkTaskStatuses() {
                 console.warn(`DEBUG: Could not find video ${videoId} in uploadedVideos to render bubble. It might have been filtered out or is invalid.`);
             }
         }
+    }
 
-        // Повторная проверка статуса ожидания после потенциального обновления для текущего видео
-        if (uploadedVideos.find(v => v.id === videoId) && uploadedVideos.find(v => v.id === videoId).status !== 'completed' && uploadedVideos.find(v => v.id === videoId).status !== 'error' && uploadedVideos.find(v => v.id === videoId).status !== 'failed' && uploadedVideos.find(v => v.id === videoId).status !== 'concatenated_completed' && uploadedVideos.find(v => v.id === videoId).status !== 'concatenated_failed') {
-            tasksStillPending = true;
+    // --- Окончательная оценка статуса и управление опросом (после всех индивидуальных обновлений) ---
+    saveVideosToLocalStorage(); // Сохраняем все изменения после цикла
+
+    // Переоцениваем, есть ли еще ожидающие задачи после всех потенциальных обновлений в этом цикле
+    const anyTasksStillPendingAfterCurrentCycle = uploadedVideos.some(v =>
+        v.status !== 'completed' && v.status !== 'error' && v.status !== 'failed' &&
+        v.status !== 'concatenated_completed' && v.status !== 'concatenated_failed'
+    );
+
+    console.log("DEBUG: Final check - anyTasksStillPendingAfterCurrentCycle:", anyTasksStillPendingAfterCurrentCycle);
+    console.log("DEBUG: Final check - uploadedVideos content after update:", uploadedVideos);
+
+    if (anyTasksStillPendingAfterCurrentCycle) {
+        // Если задачи все еще ожидаются И опрос неактивен, запускаем его.
+        if (!pollingIntervalId) {
+            pollingIntervalId = setInterval(checkTaskStatuses, CHECK_STATUS_INTERVAL_MS);
+            console.log("DEBUG: Started polling interval for task statuses (final check).");
         }
-    }
+    } else {
+        // Если задач нет в ожидании И опрос активен, останавливаем его.
+        if (pollingIntervalId) {
+            clearInterval(pollingIntervalId);
+            pollingIntervalId = null;
+            console.log("[FRONTEND] All tasks completed or errored. Polling stopped (final check).");
+        }
 
-    saveVideosToLocalStorage(); // Сохранить все изменения после цикла
+        // Теперь, когда опрос окончательно остановлен (или уже был остановлен) и нет ожидающих задач,
+        // проверяем успешное завершение и перенаправляем.
+        const hasSuccessfullyCompletedVideo = uploadedVideos.some(video =>
+            video.status === 'completed' || video.status === 'concatenated_completed'
+        );
 
-    if (shouldRedirectToFinish && redirectToVideoId) {
-        console.log(`DEBUG: Redirecting to finish.html for video ID: ${redirectToVideoId}`);
-        // Сохраняем ID видео, которое будет отображено на finish.html
-        localStorage.setItem('displayVideoId', redirectToVideoId);
-        window.location.href = 'finish.html';
-        return; // Останавливаем дальнейшие проверки и таймер
-    }
+        console.log("DEBUG: Final check - Has successfully completed video (after polling stopped)?", hasSuccessfullyCompletedVideo);
 
-    // Запускаем/останавливаем интервал опроса
-    if (tasksStillPending && !pollingIntervalId) {
-        pollingIntervalId = setInterval(checkTaskStatuses, CHECK_STATUS_INTERVAL_MS);
-        console.log("DEBUG: Started polling interval for task statuses.");
-    } else if (!tasksStillPending && pollingIntervalId) {
-        clearInterval(pollingIntervalId);
-        pollingIntervalId = null;
-        displayGeneralStatus('Все процессы обработки видео завершены. Ознакомьтесь с результатами ниже.', 'completed');
-        console.log("[FRONTEND] All tasks completed or errored. Polling stopped.");
+        if (hasSuccessfullyCompletedVideo) {
+            console.log('DEBUG: [FRONTEND] All tasks processed, redirecting to finish.html (final check redirect)');
+            const videoToDisplay = uploadedVideos.find(v => v.status === 'concatenated_completed') ||
+                                   uploadedVideos.find(v => v.status === 'completed');
+            if (videoToDisplay) {
+                localStorage.setItem('displayVideoId', videoToDisplay.id);
+            } else {
+                localStorage.removeItem('displayVideoId');
+            }
+            window.location.href = 'finish.html';
+            return; // Выходим немедленно после перенаправления
+        } else {
+            displayGeneralStatus('Все процессы обработки видео завершены. Ознакомьтесь с результатами ниже.', 'completed');
+        }
     }
 }
 
@@ -814,6 +853,93 @@ async function handleProcessSelectedVideos() {
         console.debug('DEBUG: --- Process Selected Videos Button Click Handler FINISHED (No videos to process) ---');
         return;
     }
+
+    const taskIdsToProcess = videosToProcess.map(video => video.id);
+    console.debug('DEBUG: Task IDs to process (for ALL completed): %o', taskIdsToProcess);
+
+    const identifierType = DOM_ELEMENTS.identifierTypeSelect ? DOM_ELEMENTS.identifierTypeSelect.value : 'instagram_username'; // Использовать DOM_ELEMENTS
+    const identifierInput = DOM_ELEMENTS.identifierInput; // Использовать DOM_ELEMENTS
+    const identifierValue = identifierInput ? identifierInput.value.trim() : '';
+    const email = identifierType === 'email' ? identifierValue : null;
+    const instagram_username = identifierType === 'instagram_username' ? identifierValue : null;
+    const linkedin_profile = identifierType === 'linkedin_profile' ? identifierValue : null;
+
+    try {
+        if (DOM_ELEMENTS.processingMessage) DOM_ELEMENTS.processingMessage.textContent = 'Отправка видео на обработку...'; // Использовать DOM_ELEMENTS
+        displayMessage('Отправка видео на обработку. Пожалуйста, подождите...', 'info');
+        console.debug('DEBUG: Calling processVideosFromSelection...');
+
+        // Предполагаем, что processVideosFromSelection определена в process_videos.js и доступна глобально
+            const response = await processVideosFromSelection(
+            taskIdsToProcess, // Передаем task_ids первым
+            shouldConnect,    // Передаем connect_videos вторым
+            instagram_username, // Имя пользователя Instagram
+            email,            // Email
+            linkedin_profile, // Профиль LinkedIn
+            displayGeneralStatus, // Передаем displayGeneralStatus (или displayProcessStatus, если она у вас есть и отличается)
+            displayGeneralStatus, // Снова displayGeneralStatus, если process_videos.js ожидает две функции обратного вызова
+            RENDER_BACKEND_URL // Передаем URL бэкенда
+        );
+
+
+        console.debug('DEBUG: processVideosFromSelection returned: %o', response);
+
+        if (response.error) {
+            displayMessage(response.error, 'error');
+            return;
+        }
+
+        // Если это объединение, бэкенд должен вернуть новый taskId для объединенного видео
+        if (shouldConnect && response.concatenated_task_id) {
+            const newConcatenatedVideo = {
+                id: response.concatenated_task_id, // Используем ID объединенного видео от бэкенда
+                original_filename: 'Объединенное Видео', // Просто название для отображения
+                status: 'concatenated_pending', // Новый статус для отслеживания объединенного видео
+                timestamp: new Date().toISOString(),
+                cloudinary_url: null, // Изначально пусто
+                shotstackRenderId: response.shotstackRenderId || null, // ID рендера Shotstack
+                shotstackUrl: null // URL Shotstack после завершения
+            };
+            uploadedVideos.push(newConcatenatedVideo); // Добавляем в общий список
+            saveVideosToLocalStorage(); // Сохраняем обновленный список
+            createOrUpdateBubble(newConcatenatedVideo.id, newConcatenatedVideo); // Создаем или обновляем пузырек для объединенного видео
+            displayMessage('Объединение видео инициировано. Отслеживание статуса...', 'info');
+            console.debug('DEBUG: New concatenated video added for tracking: %o', newConcatenatedVideo);
+        } else if (response.initiated_tasks && response.initiated_tasks.length > 0) {
+            // Если была запрошена индивидуальная обработка (существующая логика)
+            response.initiated_tasks.forEach(initiatedTask => {
+                const videoIndex = uploadedVideos.findIndex(v => v.id === initiatedTask.taskId);
+                if (videoIndex !== -1) {
+                    uploadedVideos[videoIndex].status = 'shotstack_pending';
+                    uploadedVideos[videoIndex].shotstackRenderId = initiatedTask.shotstackRenderId;
+                    uploadedVideos[videoIndex].message = initiatedTask.message;
+                    createOrUpdateBubble(uploadedVideos[videoIndex].id, uploadedVideos[videoIndex]); // Обновить пузырек
+                }
+            });
+            saveVideosToLocalStorage(); // Сохраняем все изменения после цикла forEach
+            displayMessage('Индивидуальная обработка видео инициирована. Отслеживание статуса...', 'info');
+        } else {
+            displayMessage('Не удалось инициировать обработку видео. Пожалуйста, попробуйте еще раз.', 'error');
+        }
+
+        // Запускаем опрос статусов после инициирования обработки
+        // Это важно для запуска опроса, если он еще не был активен.
+        if (!pollingIntervalId) {
+            pollingIntervalId = setInterval(checkTaskStatuses, CHECK_STATUS_INTERVAL_MS);
+            console.log("DEBUG: Started polling interval after initiating tasks.");
+        }
+    } catch (error) {
+        console.error('ERROR: Failed to process selected videos:', error);
+        displayMessage(`Ошибка при обработке видео: ${error.message}`, 'error');
+    } finally {
+        // Убедитесь, что кнопка снова активна после попытки обработки (даже если есть ошибка)
+        if (DOM_ELEMENTS.processSelectedVideosButton) {
+            DOM_ELEMENTS.processSelectedVideosButton.disabled = false;
+            DOM_ELEMENTS.processSelectedVideosButton.textContent = 'Обработать/Объединить видео';
+        }
+        console.debug('DEBUG: --- Process Selected Videos Button Click Handler FINISHED ---');
+    }
+}
 
     const taskIdsToProcess = videosToProcess.map(video => video.id);
     console.debug('DEBUG: Task IDs to process (for ALL completed): %o', taskIdsToProcess);
