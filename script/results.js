@@ -265,12 +265,12 @@ function createOrUpdateBubble(videoId, data) {
     let thumbnailUrl;
 
     // LOGIC TO DETERMINE THUMBNAIL URL
-    if (String(videoId).startsWith('concatenated_video_') && data.posterUrl) {
-        // Если это объединенное видео И у нас есть posterUrl, используем его
+    // Для объединенного видео используем data.posterUrl
+    if (data.isConcatenated && data.posterUrl) {
         thumbnailUrl = data.posterUrl;
-        console.log(`DEBUG: Using Shotstack poster URL for concatenated video ${videoId}: ${thumbnailUrl}`);
+        console.log(`DEBUG: Using posterUrl for concatenated video ${videoId}: ${thumbnailUrl}`);
     } else if (data.cloudinary_url) {
-        // В противном случае, если есть Cloudinary URL, используем его для миниатютуры
+        // Для обычного видео используем Cloudinary URL
         thumbnailUrl = getCloudinaryThumbnailUrl(data.cloudinary_url);
         console.log(`DEBUG: Using Cloudinary thumbnail URL for original video ${videoId}: ${thumbnailUrl}`);
     } else {
@@ -299,6 +299,7 @@ function createOrUpdateBubble(videoId, data) {
             bubble.classList.add('loading');
             break;
         case 'concatenated_completed':
+            // Используем shotstackUrl, который теперь будет содержать final video_url
             if (data.shotstackUrl) {
                 statusMessageText = '<p class="status-message-bubble status-success">Объединение завершено!</p>';
                 actionButtonsHtml += `<a href="${sanitizeHTML(data.shotstackUrl)}" target="_blank" class="action-button view-generated-button">Посмотреть сгенерированное видео</a>`;
@@ -509,6 +510,8 @@ async function uploadVideoFromResults(file) {
                 metadata: response.metadata || {},
                 shotstackRenderId: null,
                 shotstackUrl: null,
+                posterUrl: null, // Добавляем posterUrl для индивидуальных видео
+                isConcatenated: false, // Инициализируем как необъединенное
                 selectedForConcatenation: false // Инициализируем как невыбранное
             };
 
@@ -530,6 +533,40 @@ async function uploadVideoFromResults(file) {
             if (DOM_ELEMENTS.uploadNewBtn) DOM_ELEMENTS.uploadNewBtn.disabled = false;
         }
     );
+}
+
+/**
+ * Перенаправляет пользователя на страницу finish.html с URL-адресами видео и постера.
+ * @param {string} videoUrl - URL объединенного видео.
+ * @param {string} posterUrl - URL постера объединенного видео.
+ */
+function navigateToFinishPage(videoUrl, posterUrl) {
+    if (!videoUrl) {
+        console.error("[RESULTS] Невозможно перенаправить на finish.html: videoUrl отсутствует.");
+        displayGeneralStatus("Не удалось получить URL объединенного видео для перенаправления.", 'error');
+        return;
+    }
+    const params = new URLSearchParams();
+    params.append('video_url', videoUrl);
+    if (posterUrl) {
+        params.append('poster_url', posterUrl);
+    }
+    // Добавляем исходные данные пользователя для сохранения контекста
+    const currentUsername = localStorage.getItem('hifeUsername');
+    const currentEmail = localStorage.getItem('hifeEmail');
+    const currentLinkedin = localStorage.getItem('hifeLinkedin');
+
+    if (currentUsername) params.append('instagram_username', currentUsername);
+    if (currentEmail) params.append('email', currentEmail);
+    if (currentLinkedin) params.append('linkedin_profile', currentLinkedin);
+
+    // Очищаем флаги объединения из localStorage перед перенаправлением
+    localStorage.removeItem('concatenationInitiated');
+    localStorage.removeItem('activeConcatenationTaskId');
+
+    const redirectUrl = `finish.html?${params.toString()}`;
+    console.log(`[RESULTS] Перенаправление на: ${redirectUrl}`);
+    window.location.href = redirectUrl;
 }
 
 /**
@@ -614,9 +651,10 @@ async function handleProcessSelectedVideos() {
                 original_filename: 'Объединенное Видео',
                 status: 'concatenated_pending',
                 timestamp: new Date().toISOString(),
-                cloudinary_url: null,
+                cloudinary_url: null, // Может быть null или временный URL, пока не завершено
                 shotstackRenderId: response.shotstackRenderId || null,
-                shotstackUrl: null,
+                shotstackUrl: null, // Этот будет содержать final video_url после завершения
+                posterUrl: null, // Этот будет содержать final poster_url после завершения
                 isConcatenated: true, // Флаг для объединенного видео
                 selectedForConcatenation: false
             };
@@ -715,14 +753,13 @@ async function checkTaskStatuses() {
     // При этом не ждем завершения других индивидуальных видео.
     if (concatenationInitiated && isTargetConcatenationCompleted) {
         console.log(`DEBUG: [FRONTEND] Инициированная задача объединения ${activeConcatenationTaskId} завершена. Перенаправление на finish.html.`);
-        localStorage.setItem('displayVideoId', targetConcatenatedVideo.shotstackUrl || targetConcatenatedVideo.cloudinary_url); // Передаем URL готового видео
-        localStorage.removeItem('concatenationInitiated'); // Очищаем флаг
-        localStorage.removeItem('activeConcatenationTaskId');
+        // Останавливаем опрос перед перенаправлением
         if (pollingIntervalId) {
-            clearInterval(pollingIntervalId); // Останавливаем опрос перед перенаправлением
+            clearInterval(pollingIntervalId);
             pollingIntervalId = null;
         }
-        window.location.href = 'finish.html';
+        // Используем navigateToFinishPage для перенаправления с правильными URL
+        navigateToFinishPage(targetConcatenatedVideo.shotstackUrl, targetConcatenatedVideo.posterUrl);
         return; // Важно: выйти после перенаправления
     }
 
@@ -779,13 +816,14 @@ async function checkTaskStatuses() {
                 const statusResponse = await getConcatenatedVideoStatus(videoId);
                 const index = uploadedVideos.findIndex(v => v.id === videoId);
                 if (index !== -1) {
-                    if (statusResponse && statusResponse.status === 'completed' && statusResponse.cloudinary_url && statusResponse.shotstackUrl) {
+                    // ИЗМЕНЕНО: Проверяем на 'concatenated_completed' и используем video_url/poster_url
+                    if (statusResponse && statusResponse.status === 'concatenated_completed' && statusResponse.video_url) {
                         uploadedVideos[index] = {
                             ...uploadedVideos[index],
                             status: 'concatenated_completed',
-                            cloudinary_url: statusResponse.cloudinary_url,
-                            shotstackUrl: statusResponse.shotstackUrl,
-                            posterUrl: statusResponse.posterUrl || uploadedVideos[index].posterUrl,
+                            cloudinary_url: statusResponse.cloudinary_url || uploadedVideos[index].cloudinary_url, // Если Cloudinary URL все еще нужен
+                            shotstackUrl: statusResponse.video_url, // Обновлено: final video URL
+                            posterUrl: statusResponse.poster_url || uploadedVideos[index].posterUrl, // Обновлено: poster URL
                             message: 'Видео объединено и готово!',
                             isConcatenated: true // Убеждаемся, что флаг установлен
                         };
@@ -800,15 +838,18 @@ async function checkTaskStatuses() {
                         };
                         createOrUpdateBubble(uploadedVideos[index].id, uploadedVideos[index]);
                         displayGeneralStatus(`Ошибка при объединении видео: ${uploadedVideos[index].message}`, 'error');
+                    } else {
+                        // Если статус не изменился или не содержит final_url, просто обновите bubble
+                        createOrUpdateBubble(uploadedVideos[index].id, uploadedVideos[index]);
                     }
                 }
             } catch (error) {
                 console.error(`Ошибка при проверке статуса объединенного видео ${videoId}:`, error);
                 const index = uploadedVideos.findIndex(v => v.id === videoId);
                 if (index !== -1) {
-                     uploadedVideos[index].status = 'failed';
-                     uploadedVideos[index].message = error.message;
-                     createOrUpdateBubble(uploadedVideos[index].id, uploadedVideos[index]);
+                    uploadedVideos[index].status = 'failed';
+                    uploadedVideos[index].message = error.message;
+                    createOrUpdateBubble(uploadedVideos[index].id, uploadedVideos[index]);
                 }
             }
         } else { // Обрабатываем опрос статуса отдельного видео
@@ -824,8 +865,8 @@ async function checkTaskStatuses() {
                         metadata: updatedTask.metadata || uploadedVideos[index].metadata,
                         message: updatedTask.message || uploadedVideos[index].message,
                         shotstackRenderId: updatedTask.shotstackRenderId || uploadedVideos[index].shotstackRenderId,
-                        shotstackUrl: updatedTask.shotstackUrl || uploadedVideos[index].shotstackUrl,
-                        posterUrl: updatedTask.posterUrl || uploadedVideos[index].posterUrl
+                        shotstackUrl: updatedTask.shotstackUrl || uploadedTask.video_url || uploadedVideos[index].shotstackUrl, // Prefer video_url if available, then shotstackUrl
+                        posterUrl: updatedTask.posterUrl || updatedTask.thumbnail_url || uploadedVideos[index].posterUrl // Prefer posterUrl if available, then thumbnail_url
                     };
                     createOrUpdateBubble(uploadedVideos[index].id, uploadedVideos[index]);
                 }
@@ -996,10 +1037,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     timestamp: newVideo.timestamp,
                     cloudinary_url: newVideo.cloudinary_url,
                     shotstackRenderId: newVideo.shotstackRenderId,
-                    shotstackUrl: newVideo.shotstackUrl,
+                    // ИЗМЕНЕНО: Используем newVideo.video_url для shotstackUrl и newVideo.poster_url для posterUrl
+                    shotstackUrl: newVideo.video_url || newVideo.shotstackUrl, // Теперь video_url - основной для final link
+                    posterUrl: newVideo.poster_url || newVideo.thumbnail_url, // Теперь poster_url - основной для постера
                     message: newVideo.message,
                     metadata: newVideo.metadata || {},
-                    posterUrl: newVideo.posterUrl,
                     isConcatenated: newVideo.isConcatenated || false, // Важно!
                     selectedForConcatenation: false
                 });
