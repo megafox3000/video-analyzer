@@ -35,24 +35,54 @@
             border-radius: 8px;
             overflow: hidden; /* Скрывает все, что выходит за границы */
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            /* Добавлено для 16:9 аспекта */
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
         }
 
         .video-player-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: auto;
+            height: 100%;
             display: block; /* Убирает лишние отступы под видео */
+            object-fit: contain; /* Обеспечивает вписывание видео без обрезки */
         }
 
-        #finishStatusMessage {
+        #finishStatusMessage, #userMessageBox {
             margin-top: 15px;
             font-size: 1.1em;
             color: var(--text-color-light);
+        }
+
+        /* Стили для сообщений */
+        .message-box {
+            background-color: #2a4365; /* Темно-синий для сообщений */
+            color: #bee3f8; /* Светло-синий текст */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            display: none; /* Скрыто по умолчанию */
+            width: 100%;
+            max-width: 640px;
+            box-sizing: border-box; /* Учитываем padding в общей ширине */
+        }
+        .message-box.success {
+            background-color: #22a45d; /* Зеленый для успеха */
+            color: white;
+        }
+        .message-box.error {
+            background-color: #e53e3e; /* Красный для ошибки */
+            color: white;
         }
     </style>
 </head>
 <body class="fade-in">
     <div class="background">
-        <div class="content-container"> <h2>Ваша сессия завершена!</h2>
+        <div class="content-container">
+            <h2>Ваша сессия завершена!</h2>
             <p>Спасибо, что воспользовались Hife Video Analyzer. Ваши видео обрабатываются.</p>
             <p>Вы можете закрыть эту страницу.</p>
 
@@ -62,39 +92,110 @@
                 </video>
             </div>
             <p id="finishStatusMessage" class="status-message info"></p>
-            <button type="button" id="returnToUploadButton" class="gold-button">Начать новую сессию</button>
-        </div> </div>
+
+            <!-- Блок для пользовательских сообщений (скопировано URL и т.п.) -->
+            <div id="userMessageBox" class="message-box hidden"></div>
+
+            <button type="button" id="copyUrlButton" class="gold-button" style="display: none; margin-top: 1rem;">Копировать URL видео</button>
+            <button type="button" id="returnToResultsButton" class="gold-button" style="margin-top: 1rem;">Вернуться к результатам</button>
+            <button type="button" id="startNewSessionButton" class="gold-button" style="margin-top: 1rem;">Начать новую сессию</button>
+        </div>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const returnToUploadButton = document.getElementById('returnToUploadButton');
             const concatenatedVideoPlayer = document.getElementById('concatenatedVideoPlayer');
             const videoPlayerContainer = document.querySelector('.video-player-container');
             const finishStatusMessage = document.getElementById('finishStatusMessage');
+            const userMessageBox = document.getElementById('userMessageBox');
+            const copyUrlButton = document.getElementById('copyUrlButton');
+            const returnToResultsButton = document.getElementById('returnToResultsButton');
+            const startNewSessionButton = document.getElementById('startNewSessionButton');
 
             // Получаем URL объединенного видео из параметров URL
             const urlParams = new URLSearchParams(window.location.search);
-            const videoUrl = urlParams.get('videoUrl');
+            const videoUrl = urlParams.get('video_url'); // Исправлено: video_url
+            const posterUrl = urlParams.get('poster_url'); // Добавлено: poster_url
+            const instagramUsername = urlParams.get('instagram_username');
+            const email = urlParams.get('email');
+            const linkedinProfile = urlParams.get('linkedin_profile');
+
+            console.log("DEBUG: finish.html загружен.");
+            console.log("DEBUG: Получен video_url:", videoUrl);
+            console.log("DEBUG: Получен poster_url:", posterUrl);
+            console.log("DEBUG: Получен instagram_username:", instagramUsername);
+            console.log("DEBUG: Получен email:", email);
+            console.log("DEBUG: Получен linkedin_profile:", linkedinProfile);
 
             if (videoUrl) {
                 concatenatedVideoPlayer.src = videoUrl;
+                if (posterUrl) {
+                    concatenatedVideoPlayer.poster = posterUrl;
+                }
                 videoPlayerContainer.style.display = 'block'; // Показываем плеер
+                copyUrlButton.style.display = 'block'; // Показываем кнопку копирования
                 finishStatusMessage.textContent = 'Объединенное видео готово к просмотру!';
                 finishStatusMessage.className = 'status-message completed';
                 concatenatedVideoPlayer.load(); // Загружаем видео
-                console.log('Displaying concatenated video:', videoUrl);
+                console.log('Отображение объединенного видео:', videoUrl);
             } else {
-                finishStatusMessage.textContent = 'Видео не было объединено. Вы можете начать новую сессию.';
+                finishStatusMessage.textContent = 'Видео не было объединено или произошла ошибка. Вы можете начать новую сессию.';
                 finishStatusMessage.className = 'status-message info';
-                console.log('No video URL found for concatenation.');
+                console.log('URL видео для объединения не найден.');
             }
 
-            returnToUploadButton.addEventListener('click', () => {
+            // Функция для отображения сообщений пользователю
+            function showMessage(message, type) {
+                userMessageBox.textContent = message;
+                userMessageBox.className = `message-box ${type}`;
+                userMessageBox.style.display = 'block';
+                setTimeout(() => {
+                    userMessageBox.style.display = 'none';
+                    userMessageBox.className = 'message-box hidden';
+                }, 5000); // Сообщение исчезнет через 5 секунд
+            }
+
+            // Обработчик для кнопки копирования URL
+            copyUrlButton.addEventListener('click', () => {
+                // Используем document.execCommand('copy') для совместимости с iframe
+                const tempInput = document.createElement('textarea');
+                tempInput.value = videoUrl;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                try {
+                    document.execCommand('copy');
+                    showMessage("URL видео скопирован!", 'success');
+                } catch (err) {
+                    console.error('Не удалось скопировать URL:', err);
+                    showMessage("Не удалось скопировать URL.", 'error');
+                }
+                document.body.removeChild(tempInput);
+            });
+
+            // Обработчик для кнопки "Вернуться к результатам"
+            returnToResultsButton.addEventListener('click', () => {
+                // Сохраняем данные пользователя в localStorage, чтобы results.js мог их использовать
+                if (instagramUsername) localStorage.setItem('hifeUsername', instagramUsername);
+                if (email) localStorage.setItem('hifeEmail', email);
+                if (linkedinProfile) localStorage.setItem('hifeLinkedin', linkedinProfile);
+
+                // Очищаем флаги объединения, если они есть
+                localStorage.removeItem('concatenationInitiated');
+                localStorage.removeItem('activeConcatenationTaskId');
+
+                // Перенаправляем на results.html. results.js сам загрузит видео.
+                window.location.href = 'results.html';
+            });
+
+            // Обработчик для кнопки "Начать новую сессию" (очищает все и начинает заново)
+            startNewSessionButton.addEventListener('click', () => {
                 // Очищаем localStorage при начале новой сессии
                 localStorage.removeItem('uploadedVideos');
                 localStorage.removeItem('hifeUsername');
                 localStorage.removeItem('hifeEmail');
                 localStorage.removeItem('hifeLinkedin');
+                localStorage.removeItem('concatenationInitiated'); // Убедиться, что флаг очищен
+                localStorage.removeItem('activeConcatenationTaskId'); // Убедиться, что флаг очищен
                 window.location.replace('upload.html'); // Возвращаемся к началу
             });
         });
