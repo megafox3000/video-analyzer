@@ -10,7 +10,7 @@ const API_BASE_URL = 'https://video-meta-api.onrender.com'; // ЗАМЕНИТЕ 
  * @param {string} taskId - ID задачи (Cloudinary ID или аналогичный).
  * @returns {Promise<Object>} Объект с обновленным статусом задачи и данными видео.
  */
-export async function getSingleVideoStatus(taskId) { // ЭТА ФУНКЦИЯ БЫЛА ПЕРЕМЕЩЕНА ИЗ results.js
+export async function getSingleVideoStatus(taskId) {
     if (!taskId || typeof taskId !== 'string') {
         console.warn(`[PROCESS_VIDEOS] Некорректный taskId передан в getSingleVideoStatus: ${taskId}. Пропускаем сетевой запрос.`);
         return { id: taskId, status: 'failed', error: 'Некорректный ID задачи.' };
@@ -25,8 +25,6 @@ export async function getSingleVideoStatus(taskId) { // ЭТА ФУНКЦИЯ Б
         }
         const data = await response.json();
         console.log("DEBUG: [PROCESS_VIDEOS] Получены данные статуса индивидуального видео:", data);
-        // Убедимся, что возвращаемый ID всегда является строковым ID задачи,
-        // который мы использовали для запроса, даже если бэкенд возвращает другие ID.
         return { ...data, id: data.taskId || taskId };
     } catch (error) {
         console.error(`[PROCESS_VIDEOS] Ошибка сети при проверке статуса задачи ${taskId}:`, error);
@@ -37,9 +35,9 @@ export async function getSingleVideoStatus(taskId) { // ЭТА ФУНКЦИЯ Б
 /**
  * Асинхронно проверяет статус объединенного видео на бэкенде.
  * @param {string} concatenatedTaskId ID объединенной задачи (строковый, например, 'concatenated_video_xyz').
- * @returns {Promise<object>} Объект с статусом и URL (если готовы).
+ * @returns {Promise<object>} Объект с статусом, video_url и poster_url (если готовы).
  */
-export async function getConcatenatedVideoStatus(concatenatedTaskId) { // ЭТА ФУНКЦИЯ БЫЛА ПЕРЕМЕЩЕНА ИЗ results.js
+export async function getConcatenatedVideoStatus(concatenatedTaskId) {
     try {
         console.log(`DEBUG: [PROCESS_VIDEOS] Запрос статуса для объединенного видео: ${API_BASE_URL}/concatenated-video-status/${concatenatedTaskId}`);
         const response = await fetch(`${API_BASE_URL}/concatenated-video-status/${concatenatedTaskId}`);
@@ -50,7 +48,22 @@ export async function getConcatenatedVideoStatus(concatenatedTaskId) { // ЭТА
         }
         const data = await response.json();
         console.log("DEBUG: [PROCESS_VIDEOS] Получены данные статуса объединенного видео:", data);
-        return data; // Ожидаем { status: 'completed'/'pending'/'failed', cloudinary_url: '...', shotstackUrl: '...', posterUrl: '...' }
+
+        // ИЗМЕНЕНИЕ ЗДЕСЬ: Убедимся, что возвращаем ожидаемые поля, используя резервные
+        // Бэкенд может возвращать 'video_url' и 'poster_url' (Shotstack) или
+        // 'cloudinary_url' и 'shotstackUrl' (старый формат или другой источник).
+        // Мы отдаем приоритет 'video_url' и 'poster_url', так как бэкенд логирует их.
+        return {
+            status: data.status || 'unknown',
+            video_url: data.video_url || data.shotstackUrl || null, // Использовать data.video_url, если есть, иначе data.shotstackUrl
+            poster_url: data.poster_url || data.posterUrl || null, // Использовать data.poster_url, если есть, иначе data.posterUrl
+            // Включаем другие поля для отладки, если бэкенд их присылает (но на них не полагаемся для основного UI)
+            cloudinary_url: data.cloudinary_url || null,
+            shotstackUrl: data.shotstackUrl || null,
+            message: data.message || null,
+            id: data.id || null, // Database ID, если есть
+            taskId: data.taskId || concatenatedTaskId // Cloudinary/Task ID
+        };
     } catch (error) {
         console.error(`[PROCESS_VIDEOS] Ошибка сети при проверке статуса объединенного видео ${concatenatedTaskId}:`, error);
         return { status: 'failed', message: 'Ошибка сети/сервера' };
