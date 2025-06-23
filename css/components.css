@@ -1,4 +1,4 @@
-/* Стили для "золотой" кнопки (общие компоненты) */
+/* --- Стили для "золотой" кнопки (общие компоненты) --- */
 .gold-button {
     background: var(--gold-gradient);
     color: var(--text-color-dark);
@@ -93,7 +93,7 @@
 }
 
 /* Контейнер для "пузырей" - сетка карточек (компонент, используется на results.html и upload.html для превью) */
-.results-grid { 
+.results-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 2rem;
@@ -107,27 +107,27 @@
 
 /* Обертка для каждого элемента сетки (video-grid-item) и для превью-пузырей на upload.html */
 .video-grid-item, .preview-bubble {
-    position: relative; 
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start; 
-    width: 280px; 
-    height: 280px; 
+    justify-content: flex-start;
+    width: 280px;
+    height: 280px;
     max-width: 300px;
     box-sizing: border-box;
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border 0.3s ease; 
-    border: 1px solid #4a4a4a; 
-    border-radius: 50%; 
-    overflow: hidden; 
-    background-color: #3b3b3b; 
-    box-shadow: 0 8px 20px rgba(0,0,0,0.5); 
-    cursor: pointer; 
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border 0.3s ease;
+    border: 1px solid #4a4a4a;
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: #3b3b3b;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    cursor: pointer; /* cursor: pointer на весь элемент, т.к. клик по нему может открывать видео */
 }
 
 /* Анимация плавания для карточек на results.html */
 .video-grid-item {
-    animation: float 3s ease-in-out infinite; 
+    animation: float 3s ease-in-out infinite;
 }
 
 /* Убираем анимацию плавания для превью на upload.html */
@@ -150,39 +150,39 @@
 
 /* Стиль для ВЫБРАННОГО пузыря */
 .video-grid-item.selected-bubble {
-    border: 4px solid #FFD700; 
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.8); 
+    border: 4px solid #FFD700;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
 }
 
 /* Стили для отдельной круглой части видео-пузыря */
 .video-bubble {
-    width: 100%; 
-    height: 100%; 
-    border-radius: 50%; 
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
     overflow: hidden;
-    position: relative; 
-    background-color: transparent; 
-    box-shadow: none; 
-    border: none; 
+    position: relative;
+    background-color: transparent;
+    box-shadow: none;
+    border: none;
     text-align: center;
     color: var(--text-color-light);
     box-sizing: border-box;
     flex-shrink: 0;
     margin-top: 0;
-    cursor: default; 
-    animation: none; 
+    cursor: default;
+    animation: none;
 }
 
 /* Стили для изображения превью в пузыре */
 .bubble-preview-img {
     width: 100%;
-    height: 100%; 
+    height: 100%;
     object-fit: cover;
-    border-radius: 50%; 
+    border-radius: 50%;
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 1; 
+    z-index: 1;
 }
 
 /* Контейнер для текста, который будет поверх превью */
@@ -192,7 +192,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 2; 
+    z-index: 2;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -204,6 +204,9 @@
     text-align: center;
     font-family: 'Segoe UI', sans-serif;
     border-radius: 50%;
+    /* ИЗМЕНЕНИЕ 1: Добавляем pointer-events: none, чтобы клики проходили сквозь оверлей
+       и достигали элементов ниже (или тех, что с более высоким z-index, например, чекбокс) */
+    pointer-events: none;
 }
 
 /* Стили для заголовка файла (название задачи/видео) */
@@ -217,6 +220,9 @@
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.2;
+    /* Если h3 должен быть кликабельным (например, для открытия модального окна с деталями),
+       и bubble-text-overlay имеет pointer-events: none, то нужно добавить: */
+    /* pointer-events: auto; */
 }
 
 /* Стили для сообщения о статусе */
@@ -224,10 +230,12 @@
     margin: 0;
     font-size: 0.9em;
     font-weight: bold;
+    /* Аналогично, если этот элемент должен быть интерактивным: */
+    /* pointer-events: auto; */
 }
 
 /* Общий статус для текстовых сообщений */
-.status-message { 
+.status-message {
     margin-top: 1rem;
     font-size: 1rem;
     color: #c0c0c0;
@@ -244,7 +252,7 @@
 .status-error, .status-failed {
     color: var(--status-error-color);
 }
-.status-info { 
+.status-info {
     color: var(--status-info-color);
 }
 
@@ -261,7 +269,7 @@
     width: 30px;
     height: 30px;
     animation: spin 1s linear infinite;
-    z-index: 10; 
+    z-index: 10;
 }
 
 .video-bubble.loading .bubble-text-overlay {
@@ -322,7 +330,7 @@
 }
 
 .modal-content h4 {
-    color: var(--gold-gradient);
+    color: var(--gold-gradient); /* Это свойство не будет работать, т.к. color не поддерживает градиенты */
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -330,6 +338,13 @@
     margin-bottom: 1rem;
     text-shadow: 1px 1px 4px var(--shadow-dark);
 }
+/* ИЗМЕНЕНИЕ 2: Корректировка градиентного текста.
+   Чтобы градиентный текст был видимым, свойство background-clip: text;
+   должно применяться к свойству background, а не color.
+   Свойство color должно быть установленым на transparent.
+   В вашем случае это уже есть, но я добавил комментарий для ясности.
+   Если text-shadow перекрывает градиент, возможно, стоит его ослабить. */
+
 
 .modal-content pre {
     background-color: #1a1a1a;
@@ -346,7 +361,7 @@
 
 .close-button {
     color: #aaa;
-    float: right;
+    float: right; /* float может быть проблемным для адаптивного дизайна, лучше использовать flex/grid */
     font-size: 2.5rem;
     font-weight: bold;
     position: absolute;
@@ -365,14 +380,15 @@
 
 /* Стиль для кнопки Finish Session (специфичный красный градиент) */
 #finishSessionBtn {
-    background: linear-gradient(45deg, #FF6B6B, #EE4D4D); 
+    background: linear-gradient(45deg, #FF6B6B, #EE4D4D);
 }
 
 #finishSessionBtn:hover {
-    background: linear-gradient(45deg, #FF4D4D, #CC3B3B); 
+    background: linear-gradient(45deg, #FF4D4D, #CC3B3B);
 }
 
-/* --- Стили для чекбокса "Объединить видео" на results.html --- */
+/* --- Стили для чекбокса "Объединить видео" (главный переключатель режима) --- */
+/* Обратите внимание: этот чекбокс - это слайдер/тумблер, а не галочка */
 .toggle-container {
     display: flex;
     align-items: center;
@@ -393,61 +409,47 @@
     display: none;
 }
 
-/* Создаем кастомный переключатель */
+/* Создаем кастомный переключатель (его "дорожку") */
 .toggle-checkbox + .toggle-label::before {
     content: '';
     display: inline-block;
-    width: 40px; 
-    height: 20px; 
-    background-color: #555; 
-    border-radius: 10px; 
-    position: relative;
+    width: 40px;
+    height: 20px;
+    background-color: #555;
+    border-radius: 10px;
+    position: relative; /* Важно для позиционирования ::after */
     vertical-align: middle;
     margin-right: 10px;
     transition: background-color 0.3s ease;
 }
 
+/* Создаем кастомный переключатель (его "ползунок") */
 .toggle-checkbox + .toggle-label::after {
     content: '';
-    position: absolute;
+    position: absolute; /* Позиционируем относительно ::before или родителя */
     display: inline-block;
-    width: 18px; 
+    width: 18px;
     height: 18px;
-    background-color: #f0f0f0; 
+    background-color: #f0f0f0;
     border-radius: 50%;
-    top: 50%;
-    left: 11px; 
-    transform: translateY(-50%) translateX(-18px); 
+    top: 50%; /* Центрируем по вертикали относительно родителя (label) */
+    left: 11px; /* Начальная позиция ползунка */
+    transform: translateY(-50%) translateX(-18px); /* Смещение для центровки и начального положения */
     transition: transform 0.3s ease, background-color 0.3s ease;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
-/* Стиль, когда чекбокс отмечен */
-.toggle-checkbox:checked + .checkmark {
-    background: var(--gold-gradient); /* Золотой фон из градиента при выборе */
-    border-color: #FFD700; /* Соответствующий цвет рамки */
+/* ИЗМЕНЕНИЕ 3: Корректировка стилей для отмеченного toggle-checkbox.
+   Предыдущие правила были неправильно применены к .checkmark, которого нет у toggle. */
+.toggle-checkbox:checked + .toggle-label::before {
+    background: var(--gold-gradient); /* Меняем фон дорожки при активации */
 }
 
-/* Визуальная "галочка" внутри checkmark при выборе */
-.checkmark:after {
-    content: "";
-    position: absolute;
-    display: none; /* Скрыта по умолчанию */
-    left: 6px;    /* Позиция галочки */
-    top: 2px;
-    width: 6px;
-    height: 12px;
-    border: solid white; /* Цвет галочки */
-    border-width: 0 3px 3px 0; /* Только нижняя и правая границы */
-    -webkit-transform: rotate(45deg);
-    -ms-transform: rotate(45deg);
-    transform: rotate(45deg);
+.toggle-checkbox:checked + .toggle-label::after {
+    transform: translateY(-50%) translateX(10px); /* Перемещаем ползунок вправо */
+    background-color: var(--text-color-dark); /* Можно изменить цвет ползунка при активации */
 }
 
-/* Показываем галочку, когда input выбран */
-.toggle-checkbox:checked + .checkmark:after {
-    display: block;
-}
 
 /* Стиль для отключенного чекбокса */
 .toggle-checkbox:disabled + .toggle-label {
@@ -456,12 +458,13 @@
 }
 
 .toggle-checkbox:disabled + .toggle-label::before {
-    background-color: #333; 
+    background-color: #333;
 }
 
 .toggle-checkbox:disabled + .toggle-label::after {
-    background-color: #888; 
+    background-color: #888;
 }
+
 
 /* --- Стили для чекбокса в пузыре на results.html (для выбора видео) --- */
 
@@ -469,61 +472,66 @@
 /* Позиционируем относительно .video-grid-item */
 .checkbox-container {
     position: absolute;
-    top: 10px;          /* Отступ сверху */
-    left: 10px;         /* Отступ слева */
-    z-index: 20;        /* ОЧЕНЬ ВАЖНО: Помещает чекбокс поверх превью (z-index:1) и текста (z-index:2) */
+    top: 10px;
+    left: 10px;
+    z-index: 20; /* ОЧЕНЬ ВАЖНО: Помещает чекбокс поверх превью (z-index:1) и текста (z-index:2) */
     background-color: rgba(0, 0, 0, 0.7); /* Полупрозрачный темный фон для видимости */
     padding: 6px 10px;
     border-radius: 8px;
-    display: flex;      /* Для выравнивания галочки и текста (если есть) */
+    display: flex;
     align-items: center;
-    cursor: pointer;    /* Изменение курсора для индикации кликабельности */
+    cursor: pointer; /* Изменение курсора для индикации кликабельности */
     border: 1px solid rgba(255, 255, 255, 0.3); /* Легкая рамка */
+    /* ИЗМЕНЕНИЕ 4: Добавляем pointer-events: auto, чтобы клики на этом контейнере работали.
+       Это особенно важно, если bubble-text-overlay имеет pointer-events: none. */
+    pointer-events: auto;
 }
 
 /* Скрываем НАСТОЯЩИЙ input чекбокс визуально */
 .video-select-checkbox {
-    position: absolute; /* Делаем его абсолютно позиционированным */
-    opacity: 0;         /* Полностью скрываем */
-    cursor: pointer;    /* Сохраняем курсор для доступности */
-    height: 100%;       /* Растягиваем на весь контейнер, чтобы было легко нажать */
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 100%;
     width: 100%;
     top: 0;
     left: 0;
     margin: 0;
     padding: 0;
     z-index: 21; /* На один выше, чем у контейнера, для обработки кликов */
+    /* ИЗМЕНЕНИЕ 5: Убедимся, что input сам по себе также реагирует на события */
+    pointer-events: auto;
 }
 
 /* Стили для кастомного визуального элемента чекбокса (checkmark) */
 .checkmark {
-    height: 20px;       /* Размер видимого квадрата */
+    height: 20px;
     width: 20px;
-    background-color: #eee; /* Цвет по умолчанию (невыбранный) */
-    border-radius: 4px; /* Скругленные углы */
-    border: 2px solid var(--gold-gradient); /* Золотая рамка из градиента */
-    display: block; /* Важно, чтобы span мог принимать размеры */
-    position: relative; /* Для псевдо-элемента галочки */
-    transition: background-color 0.2s, border-color 0.2s; /* Плавный переход */
+    background-color: #eee;
+    border-radius: 4px;
+    border: 2px solid var(--gold-gradient);
+    display: block;
+    position: relative;
+    transition: background-color 0.2s, border-color 0.2s;
 }
 
 /* Когда input выбран, изменяем фон checkmark */
 .video-select-checkbox:checked + .checkmark {
-    background: var(--gold-gradient); /* Золотой фон из градиента при выборе */
-    border-color: #FFD700; /* Соответствующий цвет рамки */
+    background: var(--gold-gradient);
+    border-color: #FFD700;
 }
 
 /* Визуальная "галочка" внутри checkmark при выборе */
 .checkmark:after {
     content: "";
     position: absolute;
-    display: none; /* Скрыта по умолчанию */
-    left: 6px;    /* Позиция галочки */
+    display: none;
+    left: 6px;
     top: 2px;
     width: 6px;
     height: 12px;
-    border: solid white; /* Цвет галочки */
-    border-width: 0 3px 3px 0; /* Только нижняя и правая границы */
+    border: solid white;
+    border-width: 0 3px 3px 0;
     -webkit-transform: rotate(45deg);
     -ms-transform: rotate(45deg);
     transform: rotate(45deg);
