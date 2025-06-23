@@ -1,82 +1,166 @@
-// script/process_videos.js
-console.log("DEBUG: process_videos.js loaded and executing.");
+// process_videos.js
+// Этот файл содержит логику взаимодействия с бэкендом для обработки и получения статусов видео.
+
+// URL вашего бэкенда. Убедитесь, что он соответствует RENDER_BACKEND_URL в results.js.
+// Здесь он также должен быть объявлен, так как это отдельный модуль.
+const API_BASE_URL = 'https://video-meta-api.onrender.com'; // ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ URL
 
 /**
- * Отправляет запрос на бэкенд для обработки или объединения выбранных видео.
- * @param {string[]} videoIds Массив ID видео, которые нужно обработать.
- * @param {boolean} connectVideos Флаг, указывающий, нужно ли объединять видео.
- * @param {string} instagramUsername Имя пользователя Instagram.
- * @param {string} email Email пользователя.
- * @param {string} linkedinProfile URL профиля LinkedIn пользователя.
- * @param {function(string, string): void} displayProcessStatus Функция для отображения статуса (используется для внутреннего статуса в этом файле).
- * @param {function(string, string): void} displayGeneralStatus Функция для отображения общего статуса (передаётся для использования в results.js).
- * @returns {Promise<Object|null>} Результат от бэкенда или null в случае ошибки.
+ * Отправляет запрос на бэкенд для получения статуса отдельной задачи.
+ * @param {string} taskId - ID задачи (Cloudinary ID или аналогичный).
+ * @returns {Promise<Object>} Объект с обновленным статусом задачи и данными видео.
  */
-async function processVideosFromSelection(
-    videoIds,
-    connectVideos,
-    instagramUsername,
-    email,
-    linkedinProfile,
-    displayProcessStatus, // Это будет отображаться в results.js
-    displayGeneralStatus,
-    RENDER_BACKEND_URL
-) {
-    // Внутреннее отображение статуса в этом модуле, если нужно
-    displayProcessStatus('Инициируем обработку видео...', 'info');
-    displayGeneralStatus('Отправляем запрос на сервер...', 'info'); // Используем переданную функцию
+export async function getSingleVideoStatus(taskId) { // ЭТА ФУНКЦИЯ БЫЛА ПЕРЕМЕЩЕНА ИЗ results.js
+    if (!taskId || typeof taskId !== 'string') {
+        console.warn(`[PROCESS_VIDEOS] Некорректный taskId передан в getSingleVideoStatus: ${taskId}. Пропускаем сетевой запрос.`);
+        return { id: taskId, status: 'failed', error: 'Некорректный ID задачи.' };
+    }
+    try {
+        console.log(`DEBUG: [PROCESS_VIDEOS] Запрос статуса для индивидуального видео: ${API_BASE_URL}/task-status/${taskId}`);
+        const response = await fetch(`${API_BASE_URL}/task-status/${taskId}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error(`DEBUG: [PROCESS_VIDEOS] Ошибка HTTP при получении статуса индивидуального видео! Статус: ${response.status}, Данные ошибки:`, errorData);
+            throw new Error(`Ошибка HTTP! Статус: ${response.status}, Сообщение: ${errorData.error}`);
+        }
+        const data = await response.json();
+        console.log("DEBUG: [PROCESS_VIDEOS] Получены данные статуса индивидуального видео:", data);
+        // Убедимся, что возвращаемый ID всегда является строковым ID задачи,
+        // который мы использовали для запроса, даже если бэкенд возвращает другие ID.
+        return { ...data, id: data.taskId || taskId };
+    } catch (error) {
+        console.error(`[PROCESS_VIDEOS] Ошибка сети при проверке статуса задачи ${taskId}:`, error);
+        return { id: taskId, status: 'failed', error: error.message || 'Ошибка сети/сервера' };
+    }
+}
 
-    if (!videoIds || videoIds.length === 0) {
-        displayProcessStatus('Не выбрано видео для обработки.', 'error');
-        displayGeneralStatus('Обработка не инициирована: нет выбранных видео.', 'error');
-        return null; // Возвращаем null на случай ошибки для лучшей обработки в results.js
+/**
+ * Асинхронно проверяет статус объединенного видео на бэкенде.
+ * @param {string} concatenatedTaskId ID объединенной задачи (строковый, например, 'concatenated_video_xyz').
+ * @returns {Promise<object>} Объект с статусом и URL (если готовы).
+ */
+export async function getConcatenatedVideoStatus(concatenatedTaskId) { // ЭТА ФУНКЦИЯ БЫЛА ПЕРЕМЕЩЕНА ИЗ results.js
+    try {
+        console.log(`DEBUG: [PROCESS_VIDEOS] Запрос статуса для объединенного видео: ${API_BASE_URL}/concatenated-video-status/${concatenatedTaskId}`);
+        const response = await fetch(`${API_BASE_URL}/concatenated-video-status/${concatenatedTaskId}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error(`DEBUG: [PROCESS_VIDEOS] Ошибка HTTP при получении статуса объединенного видео! Статус: ${response.status}, Данные ошибки:`, errorData);
+            throw new Error(`Ошибка HTTP! Статус: ${response.status}, Сообщение: ${errorData.error}`);
+        }
+        const data = await response.json();
+        console.log("DEBUG: [PROCESS_VIDEOS] Получены данные статуса объединенного видео:", data);
+        return data; // Ожидаем { status: 'completed'/'pending'/'failed', cloudinary_url: '...', shotstackUrl: '...', posterUrl: '...' }
+    } catch (error) {
+        console.error(`[PROCESS_VIDEOS] Ошибка сети при проверке статуса объединенного видео ${concatenatedTaskId}:`, error);
+        return { status: 'failed', message: 'Ошибка сети/сервера' };
+    }
+}
+
+
+/**
+ * Отправляет запрос на бэкенд для инициирования обработки или объединения видео.
+ * Эта функция теперь обрабатывает логику, которая ранее была в handleProcessSelectedVideos,
+ * но фокусируется только на взаимодействии с бэкендом.
+ *
+ * @param {string[]} taskIdsToProcess Массив ID видео (Cloudinary IDs), которые нужно обработать/объединить.
+ * @param {boolean} shouldConnect Флаг, указывающий, нужно ли объединять видео.
+ * @param {string} instagram_username Имя пользователя Instagram (для бэкенда).
+ * @param {string} email Email пользователя (для бэкенда).
+ * @param {string} linkedin_profile LinkedIn профиль пользователя (для бэкенда).
+ * @returns {Promise<Object>} Объект с результатом операции (например, concatenated_task_id, initiated_tasks, error).
+ */
+export async function initiateVideoProcessing( // ЭТА ФУНКЦИЯ ЯВЛЯЕТСЯ ЭКВИВАЛЕНТОМ processVideosFromSelection, ВЫДЕЛЕННЫМ В ОТДЕЛЬНЫЙ МОДУЛЬ
+    taskIdsToProcess,
+    shouldConnect,
+    instagram_username,
+    email,
+    linkedin_profile
+) {
+    console.debug('DEBUG: [PROCESS_VIDEOS] initiateVideoProcessing STARTED.');
+
+    if (taskIdsToProcess.length === 0) {
+        console.warn('[PROCESS_VIDEOS] Нет видео для обработки. Пропускаем запрос к бэкенду.');
+        return { error: 'Нет видео для обработки.' };
     }
 
     try {
         const payload = {
-            task_ids: videoIds, // Изменено с video_ids на task_ids, чтобы соответствовать бэкенду
-            connect_videos: connectVideos,
-            instagram_username: instagramUsername,
+            task_ids: taskIdsToProcess,
+            connect_videos: shouldConnect,
+            instagram_username: instagram_username,
             email: email,
-            linkedin_profile: linkedinProfile
+            linkedin_profile: linkedin_profile
         };
 
-        // ДОБАВЛЕН ЛОГ: Проверяем отправляемый payload
-        console.log("DEBUG: [processVideosFromSelection] Отправляемый payload:", JSON.stringify(payload, null, 2));
-
-
-        // RENDER_BACKEND_URL должен быть доступен глобально или передан
-        // Предполагаем, что он доступен из результатов.js, который его инициирует
-        const response = await fetch(`${RENDER_BACKEND_URL}/process_videos`, {
+        console.debug('DEBUG: [PROCESS_VIDEOS] Отправка запроса на /process_videos с payload:', payload);
+        const response = await fetch(`${API_BASE_URL}/process_videos`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `Ошибка сервера: ${response.status}`);
+            console.error(`ERROR: [PROCESS_VIDEOS] Ошибка HTTP при инициировании обработки: ${response.status} -`, errorData);
+            throw new Error(errorData.message || 'Неизвестная ошибка при инициировании обработки.');
         }
 
         const result = await response.json();
-        
-        displayProcessStatus(`Обработка инициирована для видео! ID задачи: ${result.concatenated_task_id || result.message}`, 'success');
-        displayGeneralStatus('Запрос на обработку отправлен. Статусы скоро обновятся.', 'completed'); // Обновленное сообщение
+        console.debug('DEBUG: [PROCESS_VIDEOS] Ответ от /process_videos:', result);
+        return result;
 
-        // Логика управления localStorage (удаление/установка lastProcessTaskId)
-        // Теперь находится в results.js, который вызывает эту функцию.
-        // Здесь мы просто возвращаем результат для обработки в results.js.
-
-        return result; // Возвращаем результат от бэкенда для results.js, чтобы тот обновил localStorage
     } catch (error) {
-        console.error('Ошибка в processVideosFromSelection:', error);
-        displayProcessStatus(`Не удалось инициировать обработку: ${error.message}`, 'error');
-        displayGeneralStatus(`Обработка не удалась. Пожалуйста, проверьте консоль для деталей.`, 'error');
-        throw error; // Перебрасываем ошибку, чтобы results.js мог её перехватить и обновить UI
+        console.error('ERROR: [PROCESS_VIDEOS] Не удалось инициировать обработку видео:', error);
+        return { error: `Ошибка при инициировании обработки: ${error.message}` };
+    } finally {
+        console.debug('DEBUG: [PROCESS_VIDEOS] initiateVideoProcessing FINISHED.');
     }
 }
 
-// Экспортируем функцию, чтобы её могли импортировать другие модули
-export { processVideosFromSelection };
+
+/**
+ * Получает список видео пользователя с бэкенда.
+ * @param {string} identifierValue - Значение идентификатора (например, имя пользователя Instagram).
+ * @param {string} identifierType - Тип идентификатора (например, 'instagram_username').
+ * @returns {Promise<Array>} Массив объектов видео.
+ */
+export async function fetchUserVideosFromBackend(identifierValue, identifierType) { // ЭТА ФУНКЦИЯ БЫЛА ПЕРЕМЕЩЕНА ИЗ results.js
+    console.log(`DEBUG: [PROCESS_VIDEOS] fetchUserVideosFromBackend вызвана с identifierValue: "${identifierValue}", identifierType: "${identifierType}"`);
+
+    let url = `${API_BASE_URL}/user-videos?`;
+    if (identifierType === 'instagram_username' && identifierValue) {
+        url += `instagram_username=${encodeURIComponent(identifierValue)}`;
+    } else if (identifierType === 'email' && identifierValue) {
+        url += `email=${encodeURIComponent(identifierValue)}`;
+    } else if (identifierType === 'linkedin_profile' && identifierValue) {
+        url += `linkedin_profile=${encodeURIComponent(identifierValue)}`;
+    } else {
+        console.error('ERROR: [PROCESS_VIDEOS] Неверный тип идентификатора или пустое значение.');
+        throw new Error('Неверный тип идентификатора или пустое значение.');
+    }
+
+    try {
+        console.log(`DEBUG: [PROCESS_VIDEOS] Отправка запроса на: ${url}`);
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error(`ERROR: [PROCESS_VIDEOS] Ошибка HTTP при получении видео пользователя! Статус: ${response.status}, Данные ошибки:`, errorData);
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("DEBUG: [PROCESS_VIDEOS] Получены данные о видео пользователя:", data);
+
+        if (!Array.isArray(data)) {
+            console.error("ERROR: [PROCESS_VIDEOS] Полученные данные не являются массивом:", data);
+            throw new Error('Некорректный формат данных от сервера. Ожидался массив.');
+        }
+        return data;
+    } catch (error) {
+        console.error('ERROR: [PROCESS_VIDEOS] Ошибка при получении видео пользователя:', error);
+        throw error;
+    }
+}
