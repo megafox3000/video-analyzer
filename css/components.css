@@ -204,9 +204,7 @@
     text-align: center;
     font-family: 'Segoe UI', sans-serif;
     border-radius: 50%;
-    /* ИЗМЕНЕНИЕ 1: Добавляем pointer-events: none, чтобы клики проходили сквозь оверлей
-       и достигали элементов ниже (или тех, что с более высоким z-index, например, чекбокс) */
-    pointer-events: none;
+    
 }
 
 /* Стили для заголовка файла (название задачи/видео) */
