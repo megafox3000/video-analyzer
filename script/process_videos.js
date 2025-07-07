@@ -177,3 +177,55 @@ export async function fetchUserVideosFromBackend(identifierValue, identifierType
         throw error;
     }
 }
+
+// Экспортируем функцию deleteVideo
+/**
+ * Отправляет запрос на бэкенд для удаления видео.
+ * @param {string} videoId Идентификатор видео (Cloudinary public_id или concatenated_video_ID).
+ * @param {Function} displayStatusCallback Колбэк функция для отображения статуса.
+ * @param {string} RENDER_BACKEND_URL Базовый URL бэкенда.
+ * @returns {Promise<boolean>} Promise, разрешающийся true при успехе, false при ошибке.
+ */
+export async function deleteVideo(videoId, displayStatusCallback, RENDER_BACKEND_URL) {
+    displayStatusCallback(`Удаление видео ${videoId}...`, 'pending');
+    console.log(`DEBUG: [DELETE_VIDEO] Sending delete request for video: ${videoId}`);
+
+    const username = localStorage.getItem('username'); // Используем имя пользователя для идентификации
+    const userIdentifierType = localStorage.getItem('userIdentifierType');
+    const userIdentifierValue = localStorage.getItem('userIdentifierValue');
+
+    let queryParams = '';
+    // Добавляем идентификаторы пользователя в параметры запроса для бэкенда
+    if (userIdentifierType === 'instagram_username') {
+        queryParams = `instagram_username=${encodeURIComponent(userIdentifierValue)}`;
+    } else if (userIdentifierType === 'email') {
+        queryParams = `email=${encodeURIComponent(userIdentifierValue)}`;
+    } else if (userIdentifierType === 'linkedin_profile') {
+        queryParams = `linkedin_profile=${encodeURIComponent(userIdentifierValue)}`;
+    }
+    // Добавьте другие типы идентификаторов, если они есть
+
+    try {
+        // Отправляем DELETE запрос на эндпоинт бэкенда
+        const response = await fetch(`${RENDER_BACKEND_URL}/delete_video/${videoId}?${queryParams}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Не удалось удалить видео ${videoId}`);
+        }
+
+        const result = await response.json();
+        displayStatusCallback(`Видео ${videoId} успешно удалено: ${result.message}`, 'success');
+        console.log(`DEBUG: [DELETE_VIDEO] Delete successful: ${result.message}`);
+        return true; // Возвращаем true при успешном удалении
+    } catch (error) {
+        displayStatusCallback(`Ошибка при удалении видео ${videoId}: ${error.message}`, 'error');
+        console.error(`ERROR: [DELETE_VIDEO] Не удалось удалить видео ${videoId}:`, error);
+        return false; // Возвращаем false при ошибке
+    }
+}
