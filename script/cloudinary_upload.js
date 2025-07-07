@@ -11,16 +11,7 @@ const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // ЗАМЕН�
  * @param {string} username - Имя пользователя Instagram.
  * @param {string} email - Email пользователя.
  * @param {string} linkedin - Профиль LinkedIn пользователя.
- * @param {object} uiCallbacks - Объект с функциями обратного вызова и DOM-элементами для обновления UI:
- * - updateFileBubbleUI: (file, message, type) => void (для upload_validation.js)
- * - displayGeneralStatus: (message, type) => void (для upload_validation.js)
- * - updateUploadStatusDisplay: (message, type) => void (для results.js)
- * - resetProgressBar: () => void
- * - selectFilesButton: HTMLElement (кнопка "Transfer", для включения/отключения)
- * - uploadNewBtn: HTMLElement (кнопка "Upload New", для включения/отключения в results.js)
- * - progressBar: HTMLElement (для обновления ширины)
- * - progressText: HTMLElement (для обновления текста)
- * - progressBarContainer: HTMLElement (для отображения/скрытия)
+ * @param {object} uiCallbacks - Объект с функциями обратного вызова и DOM-элементами для обновления UI.
  * @param {Function} onUploadSuccess - Функция, вызываемая при успешной загрузке. Принимает (response, file).
  * @param {Function} onUploadError - Функция, вызываемая при ошибке загрузки. Принимает (error, file).
  */
@@ -36,23 +27,23 @@ export async function uploadFileToCloudinary(
     const {
         updateFileBubbleUI,
         displayGeneralStatus,
-        updateUploadStatusDisplay, // Для results.js
+        updateUploadStatusDisplay,
         resetProgressBar,
-        selectFilesButton, // Для upload_validation.js
-        uploadNewBtn, // Для results.js
+        selectFilesButton,
+        uploadNewBtn,
         progressBar,
         progressText,
         progressBarContainer
     } = uiCallbacks;
 
     // Обновляем UI для текущего файла, показывая "Uploading..."
-    if (updateFileBubbleUI) { // Используем только если функция предоставлена (для upload_validation.js)
+    if (updateFileBubbleUI) {
         updateFileBubbleUI(file, 'Uploading...', 'info');
     }
-    if (displayGeneralStatus) { // Используем только если функция предоставлена (для upload_validation.js)
+    if (displayGeneralStatus) {
         displayGeneralStatus(`Uploading video ${file.name}...`, 'info');
     }
-    if (updateUploadStatusDisplay) { // Используем только если функция предоставлена (для results.js)
+    if (updateUploadStatusDisplay) {
         updateUploadStatusDisplay(`Uploading: 0%`, 'info');
     }
 
@@ -60,8 +51,8 @@ export async function uploadFileToCloudinary(
     if (progressBar) progressBar.style.width = '0%';
     if (progressText) progressText.textContent = '0%';
 
-    if (selectFilesButton) selectFilesButton.disabled = true; // Отключаем кнопку на странице upload.html
-    if (uploadNewBtn) uploadNewBtn.disabled = true; // Отключаем кнопку на странице results.html
+    if (selectFilesButton) selectFilesButton.disabled = true;
+    if (uploadNewBtn) uploadNewBtn.disabled = true;
 
     const formData = new FormData();
     formData.append('video', file);
@@ -83,10 +74,10 @@ export async function uploadFileToCloudinary(
             const percent = (event.loaded / event.total) * 100;
             if (progressBar) progressBar.style.width = `${percent.toFixed(0)}%`;
             if (progressText) progressText.textContent = `${percent.toFixed(0)}%`;
-            if (displayGeneralStatus) { // Для upload_validation.js
+            if (displayGeneralStatus) {
                 displayGeneralStatus(`Uploading video ${file.name} (${percent.toFixed(0)}%)`, 'info');
             }
-            if (updateUploadStatusDisplay) { // Для results.js
+            if (updateUploadStatusDisplay) {
                 updateUploadStatusDisplay(`Uploading: ${percent.toFixed(0)}%`, 'info');
             }
         }
@@ -100,8 +91,17 @@ export async function uploadFileToCloudinary(
             const response = JSON.parse(xhr.responseText);
             onUploadSuccess(response, file);
         } else {
-            const error = JSON.parse(xhr.responseText);
-            onUploadError(error, file);
+            // --- НАЧАЛО ИСПРАВЛЕНИЯ ---
+            let errorPayload;
+            try {
+                // Пытаемся обработать ответ как JSON
+                errorPayload = JSON.parse(xhr.responseText);
+            } catch (e) {
+                // Если не получилось, используем текстовый ответ как сообщение об ошибке
+                errorPayload = { error: 'Server returned a non-JSON response.', details: xhr.responseText };
+            }
+            onUploadError(errorPayload, file);
+            // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
         }
         if (resetProgressBar) resetProgressBar(); // Сбрасываем прогресс-бар после загрузки/ошибки
     };
