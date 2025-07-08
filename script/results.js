@@ -9,12 +9,14 @@ const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // ЗАМЕН�
 // Импортируем функцию загрузки из cloudinary_upload.js
 import { uploadFileToCloudinary } from './cloudinary_upload.js';
 
+// Импортируем функции из нового файла process_videos.js
 import {
-    getTaskStatus, // <-- Используем новую универсальную функцию
+    getSingleVideoStatus,
+    getConcatenatedVideoStatus,
     initiateVideoProcessing,
-    fetchUserVideosFromBackend,
-    deleteVideo
+    fetchUserVideosFromBackend
 } from './process_videos.js';
+
 
 // --- Константы и глобальные переменные для таймера неактивности ---
 let inactivityTimeout;
@@ -225,58 +227,9 @@ function saveVideosToLocalStorage() {
 }
 
 /**
- * Отображает пользовательское модальное окно подтверждения вместо window.confirm().
- * @param {string} message Сообщение для отображения в модальном окне.
- * @returns {Promise<boolean>} Promise, который разрешается true, если пользователь подтвердил, и false в противном случае.
- */
-function showConfirmationModal(message) {
-    return new Promise(resolve => {
-        // Создаем элементы модального окна
-        const modalOverlay = document.createElement('div');
-        modalOverlay.className = 'modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-        modalOverlay.style.fontFamily = 'Inter, sans-serif'; // Применяем шрифт Inter
-
-        const modalContent = document.createElement('div');
-        modalContent.className = 'modal-content bg-white p-6 rounded-lg shadow-lg max-w-sm w-full text-center';
-
-        const messageParagraph = document.createElement('p');
-        messageParagraph.className = 'text-lg mb-4 text-gray-800';
-        messageParagraph.textContent = message;
-
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'flex justify-center space-x-4';
-
-        const confirmButton = document.createElement('button');
-        confirmButton.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out';
-        confirmButton.textContent = 'Удалить';
-        confirmButton.addEventListener('click', () => {
-            modalOverlay.remove();
-            resolve(true);
-        });
-
-        const cancelButton = document.createElement('button');
-        cancelButton.className = 'bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out';
-        cancelButton.textContent = 'Отмена';
-        cancelButton.addEventListener('click', () => {
-            modalOverlay.remove();
-            resolve(false);
-        });
-
-        buttonContainer.appendChild(confirmButton);
-        buttonContainer.appendChild(cancelButton);
-        modalContent.appendChild(messageParagraph);
-        modalContent.appendChild(buttonContainer);
-        modalOverlay.appendChild(modalContent);
-
-        document.body.appendChild(modalOverlay);
-    });
-}
-
-
-/**
- * Создает или обновляет элемент видео-пузыря в DOM.
- * @param {string} videoId Уникальный идентификатор видео.
- * @param {object} data Объект данных видео (статус, URL, имя файла и т.д.).
+ * Создает или обновляет DOM-элемент "пузыря" для видео.
+ * @param {string} videoId Идентификатор видео (строковый Cloudinary ID).
+ * @param {Object} data Объект с данными видео (id, original_filename, status, metadata и т.д.).
  */
 function createOrUpdateBubble(videoId, data) {
     let videoGridItem = taskBubbles[videoId]; // Храним обертку здесь
@@ -306,13 +259,12 @@ function createOrUpdateBubble(videoId, data) {
         bubble = videoGridItem.querySelector('.video-bubble');
     }
 
-    // Объявляем переменные один раз
     let filenameText = `<h3 class="bubble-title-overlay">${sanitizeHTML(data.original_filename || `Задача ${videoId}`)}</h3>`;
     let statusMessageText = '';
-    let actionButtonsHtml = ''; // Объявляем здесь один раз
+    let actionButtonsHtml = '';
     let thumbnailUrl;
 
-    // ЛОГИКА ОПРЕДЕЛЕНИЯ URL МИНИАТЮРЫ
+    // LOGIC TO DETERMINE THUMBNAIL URL
     // Для объединенного видео используем data.posterUrl
     if (data.isConcatenated && data.posterUrl) {
         thumbnailUrl = data.posterUrl;
@@ -327,7 +279,7 @@ function createOrUpdateBubble(videoId, data) {
         console.log(`DEBUG: Using placeholder for video ${videoId} (no specific URL available).`);
     }
 
-    // Логика определения статуса и кнопок действий
+    // Обновляем innerHTML пузыря (круглой части) в зависимости от статуса
     switch (data.status) {
         case 'completed':
             statusMessageText = '<p class="status-message-bubble status-completed">Нажмите для просмотра метаданных</p>';
@@ -368,15 +320,7 @@ function createOrUpdateBubble(videoId, data) {
             break;
     }
 
-    // Добавляем кнопку удаления для всех типов видео, кроме тех, что прямо сейчас в процессе активной обработки.
-    // Это должно быть после switch, чтобы не конфликтовать с другими кнопками.
-    if (data.status !== 'uploaded' && data.status !== 'processing' && data.status !== 'shotstack_pending' && data.status !== 'concatenated_pending') {
-        actionButtonsHtml += `<button class="action-button delete-button" data-video-id="${sanitizeHTML(videoId)}">Удалить</button>`;
-    } else {
-        // Если видео в процессе, мы не добавляем кнопку, чтобы избежать случайного удаления.
-    }
-
-    // Обновляем innerHTML пузыря (круглой части) один раз в конце
+    // Добавляем изображение миниатюры
     bubble.innerHTML = `
         <img src="${sanitizeHTML(thumbnailUrl)}" alt="Видео превью" class="video-thumbnail">
         <div class="bubble-text-overlay">
@@ -387,41 +331,6 @@ function createOrUpdateBubble(videoId, data) {
             </div>
         </div>
     `;
-
-    // Найдите только что созданную кнопку удаления и добавьте слушатель события
-    // Этот код должен быть после обновления innerHTML, чтобы кнопка существовала в DOM
-    const deleteButton = bubble.querySelector(`.delete-button[data-video-id="${videoId}"]`);
-    if (deleteButton) {
-        deleteButton.addEventListener('click', async (event) => {
-            event.stopPropagation(); // Важно: предотвращаем всплытие события, чтобы не сработал клик на пузырь
-            console.log(`DEBUG: Delete button clicked for video ID: ${videoId}`);
-
-            // Запрашиваем подтверждение у пользователя перед удалением с помощью пользовательского модального окна
-            const confirmed = await showConfirmationModal(`Вы уверены, что хотите удалить видео ${sanitizeHTML(data.original_filename || videoId)}? Это действие необратимо и удалит видео из Cloudinary и базы данных.`);
-
-            if (confirmed) {
-                // Вызываем импортированную функцию deleteVideo, передавая ей необходимые аргументы
-                const success = await deleteVideo(videoId, displayGeneralStatus, RENDER_BACKEND_URL);
-                if (success) {
-                    // Если удаление на бэкенде успешно, обновляем фронтенд
-                    // Удаляем видео из массива uploadedVideos в localStorage
-                    uploadedVideos = uploadedVideos.filter(v => v.id !== videoId);
-                    saveVideosToLocalStorage(); // Сохраняем обновленный массив
-
-                    // Удаляем пузырек из DOM
-                    const videoGridItemToRemove = document.getElementById(`video-item-${videoId}`);
-                    if (videoGridItemToRemove) {
-                        videoGridItemToRemove.remove();
-                        delete taskBubbles[videoId]; // Удаляем из объекта taskBubbles
-                    }
-                    updateConcatenationUI(); // Обновляем UI после удаления (например, состояние кнопки "Объединить")
-                    displayGeneralStatus(`Видео ${sanitizeHTML(data.original_filename || videoId)} успешно удалено.`, 'success');
-                } else {
-                    displayGeneralStatus(`Не удалось удалить видео ${sanitizeHTML(data.original_filename || videoId)}.`, 'error');
-                }
-            }
-        });
-    }
 
     // --- Управление чекбоксом выбора видео ---
     // Сначала удалим существующий, если он есть, чтобы избежать дублирования
@@ -904,7 +813,7 @@ async function checkTaskStatuses() {
         // Если это объединенное видео в ожидании, используем специфичную функцию
         if (currentLocalStatus === 'concatenated_pending') {
             try {
-                const statusResponse = await getTaskStatus(videoId);
+                const statusResponse = await getConcatenatedVideoStatus(videoId);
                 const index = uploadedVideos.findIndex(v => v.id === videoId);
                 if (index !== -1) {
                     // ИЗМЕНЕНО: Проверяем на 'concatenated_completed' и используем video_url/poster_url
@@ -945,7 +854,7 @@ async function checkTaskStatuses() {
             }
         } else { // Обрабатываем опрос статуса отдельного видео
             try {
-                const updatedTask = await getTaskStatus(videoId);
+                const updatedTask = await getSingleVideoStatus(videoId);
                 const index = uploadedVideos.findIndex(v => v.id === videoId);
                 if (index !== -1) {
                     uploadedVideos[index] = {
