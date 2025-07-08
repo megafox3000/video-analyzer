@@ -9,15 +9,12 @@ const RENDER_BACKEND_URL = 'https://video-meta-api.onrender.com'; // ЗАМЕН�
 // Импортируем функцию загрузки из cloudinary_upload.js
 import { uploadFileToCloudinary } from './cloudinary_upload.js';
 
-// Импортируем функции из нового файла process_videos.js
 import {
-    getSingleVideoStatus,
-    getConcatenatedVideoStatus,
+    getTaskStatus, // <-- Используем новую универсальную функцию
     initiateVideoProcessing,
     fetchUserVideosFromBackend,
     deleteVideo
 } from './process_videos.js';
-
 
 // --- Константы и глобальные переменные для таймера неактивности ---
 let inactivityTimeout;
