@@ -904,7 +904,7 @@ async function checkTaskStatuses() {
         // Если это объединенное видео в ожидании, используем специфичную функцию
         if (currentLocalStatus === 'concatenated_pending') {
             try {
-                const statusResponse = await getConcatenatedVideoStatus(videoId);
+                const statusResponse = await getTaskStatus(videoId);
                 const index = uploadedVideos.findIndex(v => v.id === videoId);
                 if (index !== -1) {
                     // ИЗМЕНЕНО: Проверяем на 'concatenated_completed' и используем video_url/poster_url
@@ -945,7 +945,7 @@ async function checkTaskStatuses() {
             }
         } else { // Обрабатываем опрос статуса отдельного видео
             try {
-                const updatedTask = await getSingleVideoStatus(videoId);
+                const updatedTask = await getTaskStatus(videoId);
                 const index = uploadedVideos.findIndex(v => v.id === videoId);
                 if (index !== -1) {
                     uploadedVideos[index] = {
