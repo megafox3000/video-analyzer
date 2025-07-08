@@ -1,10 +1,14 @@
 // ui_upload_feedback.js
+"""
+This module contains all functions related to updating the UI
+on the upload page. It manipulates the DOM to provide feedback to the user.
+"""
 
 /**
- * Отображает общее сообщение о статусе.
- * @param {HTMLElement} element - DOM-элемент для сообщения.
- * @param {string} message - Сообщение.
- * @param {'info'|'success'|'error'|'pending'} type - Тип для стилизации.
+ * Displays a general status message on the page.
+ * @param {HTMLElement} element - The DOM element for the message.
+ * @param {string} message - The message to display.
+ * @param {'info'|'success'|'error'|'pending'} type - The type of message for styling.
  */
 export function displayGeneralStatus(element, message, type) {
     if (element) {
@@ -14,10 +18,9 @@ export function displayGeneralStatus(element, message, type) {
 }
 
 /**
- * Создает "пузырь" для предпросмотра файла.
- * @param {File} file - Файл.
- * @param {HTMLElement} container - DOM-элемент контейнера для превью.
- * @returns {HTMLElement} Созданный элемент пузыря.
+ * Creates a preview "bubble" for a selected file.
+ * @param {File} file - The file object.
+ * @param {HTMLElement} container - The DOM element to append the bubble to.
  */
 export function createPreviewBubble(file, container) {
     const previewBubble = document.createElement('div');
@@ -30,15 +33,15 @@ export function createPreviewBubble(file, container) {
         </div>
     `;
     container.appendChild(previewBubble);
-    file._previewBubble = previewBubble; // Сохраняем ссылку на элемент в объекте файла
-    return previewBubble;
+    // Store a reference to the DOM element directly on the file object for easy access
+    file._previewBubble = previewBubble;
 }
 
 /**
- * Обновляет статус внутри конкретного пузыря.
- * @param {File} file - Файл, у которого есть свойство _previewBubble.
- * @param {string} message - Сообщение.
- * @param {'info'|'success'|'error'} type - Тип статуса.
+ * Updates the status message inside a specific file's preview bubble.
+ * @param {File} file - The file object that has a _previewBubble property.
+ * @param {string} message - The message to display.
+ * @param {'info'|'success'|'error'} type - The status type for styling.
  */
 export function updateBubbleStatus(file, message, type) {
     const statusElement = file._previewBubble?.querySelector('.status-message-bubble');
@@ -49,12 +52,38 @@ export function updateBubbleStatus(file, message, type) {
 }
 
 /**
- * Очищает контейнер предпросмотра.
- * @param {HTMLElement} container 
+ * Clears all preview bubbles and hides the preview section.
+ * @param {HTMLElement} container - The container holding the bubbles.
+ * @param {HTMLElement} section - The parent section element to hide.
  */
-export function clearPreviews(container) {
+export function clearPreviews(container, section) {
     if (container) {
         container.innerHTML = '';
-        container.parentElement.style.display = 'none';
     }
+    if (section) {
+        section.style.display = 'none';
+    }
+}
+
+/**
+ * Updates the visual progress bar.
+ * @param {number} percent - The completion percentage (0-100).
+ * @param {object} domElements - An object containing references to progress bar DOM elements.
+ */
+export function updateProgressBar(percent, domElements) {
+    const { progressBar, progressText, progressBarContainer } = domElements;
+    if (progressBarContainer) progressBarContainer.style.display = 'flex';
+    if (progressBar) progressBar.style.width = `${percent.toFixed(0)}%`;
+    if (progressText) progressText.textContent = `${percent.toFixed(0)}%`;
+}
+
+/**
+ * Resets and hides the progress bar.
+ * @param {object} domElements - An object containing references to progress bar DOM elements.
+ */
+export function resetProgressBar(domElements) {
+    const { progressBar, progressText, progressBarContainer } = domElements;
+    if (progressBarContainer) progressBarContainer.style.display = 'none';
+    if (progressBar) progressBar.style.width = '0%';
+    if (progressText) progressText.textContent = '0%';
 }
